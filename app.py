@@ -9,7 +9,7 @@ from supabase import create_client
 # ---------------------------------
 
 st.set_page_config(
-    page_title="BYTE & RIDE | Rutas en moto",
+    page_title="FAMILY BIKE | Rutas en moto",
     page_icon="🏍️",
     layout="wide"
 )
@@ -17,21 +17,34 @@ st.set_page_config(
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
+# IMPORTANTE:
+# Se mantiene el dominio interno para no alterar
+# las cuentas de usuario que ya hemos creado.
 AUTH_DOMAIN = "users.byteandride.invalid"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 # ---------------------------------
-# DISEÑO
+# DISEÑO FAMILY BIKE
 # ---------------------------------
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --orange: #f0a43a;
+    --orange-light: #ffc36b;
+    --background: #0c0e12;
+    --card: #171a20;
+    --border: #30343d;
+    --muted: #a3a8b2;
+}
 
 .stApp {
-    background: #101114;
+    background: var(--background);
     color: #f5f5f5;
     font-family: 'Inter', sans-serif;
 }
@@ -41,130 +54,214 @@ header[data-testid="stHeader"] {
 }
 
 .block-container {
-    max-width: 1250px;
-    padding-top: 2rem;
+    max-width: 1320px;
+    padding-top: 1.5rem;
     padding-bottom: 3rem;
 }
 
+/* ---------------------------------
+   PORTADA PRINCIPAL
+--------------------------------- */
+
 .hero {
-    background: linear-gradient(110deg, #17191e, #292d34);
-    border: 1px solid #393d45;
-    border-radius: 22px;
-    padding: 55px 35px;
-    margin-bottom: 30px;
-    text-align: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 440px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 65px 7%;
+    margin-bottom: 38px;
+    border-radius: 24px;
+    border: 1px solid #343943;
+
+    background-image:
+        linear-gradient(
+            90deg,
+            rgba(8, 10, 14, 0.96) 0%,
+            rgba(8, 10, 14, 0.82) 38%,
+            rgba(8, 10, 14, 0.25) 100%
+        ),
+        linear-gradient(
+            0deg,
+            rgba(8, 10, 14, 0.55),
+            transparent 60%
+        ),
+        url("https://images.unsplash.com/photo-1781950878596-a16655127d7b?auto=format&fit=crop&w=2400&q=85");
+
+    background-size: cover;
+    background-position: center 55%;
+    box-shadow: 0 20px 65px rgba(0,0,0,0.35);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 720px;
 }
 
 .hero-label {
-    color: #f0a43a;
+    display: inline-block;
+    color: var(--orange);
+    font-size: 12px;
+    font-weight: 800;
     letter-spacing: 5px;
-    font-size: 13px;
-    font-weight: 700;
+    margin-bottom: 18px;
+    text-transform: uppercase;
 }
 
 .hero h1 {
     color: white;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: clamp(48px, 8vw, 82px);
-    font-weight: 800;
-    letter-spacing: 3px;
-    margin: 12px 0;
+    font-size: clamp(65px, 10vw, 112px);
+    font-weight: 900;
+    letter-spacing: 2px;
+    line-height: 0.9;
+    margin: 0 0 22px 0;
+    text-shadow: 0 5px 25px rgba(0,0,0,0.4);
 }
 
-.hero p {
-    color: #bfc2c8;
-    font-size: 17px;
-    margin-bottom: 0;
+.hero h1 span {
+    color: var(--orange);
 }
+
+.hero-description {
+    color: #e1e3e8;
+    font-size: clamp(15px, 2vw, 19px);
+    line-height: 1.7;
+    max-width: 520px;
+    margin-bottom: 25px;
+}
+
+.hero-line {
+    width: 75px;
+    height: 4px;
+    background: var(--orange);
+    border-radius: 5px;
+    margin-bottom: 23px;
+}
+
+.hero-tagline {
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+}
+
+/* ---------------------------------
+   TÍTULOS
+--------------------------------- */
 
 .section-title {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 34px;
-    font-weight: 700;
+    font-size: 37px;
+    font-weight: 800;
     color: white;
     margin: 25px 0 5px 0;
+    letter-spacing: 1px;
+}
+
+.section-title span {
+    color: var(--orange);
 }
 
 .section-subtitle {
-    color: #999da5;
+    color: var(--muted);
     font-size: 14px;
-    margin-bottom: 22px;
+    margin-bottom: 24px;
+    line-height: 1.6;
 }
 
+/* ---------------------------------
+   TARJETAS DE RUTA
+--------------------------------- */
+
 .route-card {
-    background: #1b1e24;
-    border: 1px solid #343840;
-    border-radius: 15px;
-    padding: 22px;
-    min-height: 175px;
+    background: linear-gradient(145deg, #1c2027, #14171c);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 23px;
+    min-height: 185px;
     margin-bottom: 18px;
-    transition: all .2s ease;
+    transition: all .25s ease;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
 }
 
 .route-card:hover {
-    border-color: #f0a43a;
-    transform: translateY(-3px);
+    border-color: var(--orange);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(240,164,58,0.09);
 }
 
 .route-number {
-    color: #f0a43a;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 2px;
+    color: var(--orange);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 3px;
 }
 
 .route-name {
     color: #ffffff;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 25px;
+    font-size: 27px;
     font-weight: 700;
-    margin: 12px 0 20px 0;
+    margin: 15px 0 22px 0;
+    line-height: 1.1;
 }
 
 .route-link {
     display: inline-block;
-    background: #f0a43a;
+    background: var(--orange);
     color: #151515 !important;
     text-decoration: none !important;
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 900;
     letter-spacing: 1px;
-    padding: 11px 16px;
+    padding: 12px 17px;
     border-radius: 7px;
+    transition: all .2s ease;
 }
 
 .route-link:hover {
-    background: #ffc36b;
+    background: var(--orange-light);
+    transform: translateY(-2px);
 }
 
+/* ---------------------------------
+   ESTADÍSTICAS
+--------------------------------- */
+
 .stat-box {
-    background: #1b1e24;
-    border: 1px solid #343840;
-    border-radius: 12px;
-    padding: 18px;
+    background: linear-gradient(145deg, #1b1f26, #14171c);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 22px 12px;
     text-align: center;
+    transition: border .2s ease;
+}
+
+.stat-box:hover {
+    border-color: var(--orange);
 }
 
 .stat-number {
-    color: #f0a43a;
-    font-size: 30px;
-    font-weight: 800;
+    color: var(--orange);
+    font-size: 32px;
+    font-weight: 900;
 }
 
 .stat-label {
-    color: #aeb1b8;
-    font-size: 12px;
-    letter-spacing: 1px;
+    color: #aeb3bd;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    margin-top: 5px;
 }
 
-.footer {
-    text-align: center;
-    color: #777b83;
-    border-top: 1px solid #30333a;
-    padding-top: 25px;
-    margin-top: 50px;
-    font-size: 12px;
-}
+/* ---------------------------------
+   ACCESO Y FORMULARIOS
+--------------------------------- */
 
 div[data-testid="stTextInput"] input,
 div[data-testid="stTextInputRootElement"] input,
@@ -174,19 +271,147 @@ div[data-testid="stTextInput"] input[type="password"] {
     border: 1px solid #414650;
     border-radius: 9px;
 }
+
+div[data-testid="stTextInput"] input:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 1px var(--orange);
+}
+
+.stButton button,
+.stFormSubmitButton button {
+    background: var(--orange);
+    color: #171717;
+    border: none;
+    border-radius: 9px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    min-height: 43px;
+}
+
+.stButton button:hover,
+.stFormSubmitButton button:hover {
+    background: var(--orange-light);
+    color: #111;
+    border: none;
+}
+
+/* ---------------------------------
+   PESTAÑAS
+--------------------------------- */
+
+button[data-baseweb="tab"] {
+    color: #c3c6ce;
+    font-weight: 700;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: var(--orange);
+}
+
+div[data-baseweb="tab-highlight"] {
+    background-color: var(--orange);
+}
+
+/* ---------------------------------
+   PIE DE PÁGINA
+--------------------------------- */
+
+.footer {
+    text-align: center;
+    color: #858a94;
+    border-top: 1px solid #30343c;
+    padding-top: 28px;
+    margin-top: 55px;
+    font-size: 12px;
+    line-height: 1.9;
+}
+
+.footer strong {
+    color: white;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 25px;
+    letter-spacing: 3px;
+}
+
+.footer span {
+    color: var(--orange);
+}
+
+/* ---------------------------------
+   MÓVILES
+--------------------------------- */
+
+@media (max-width: 768px) {
+
+    .block-container {
+        padding-top: 0.7rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .hero {
+        min-height: 340px;
+        padding: 38px 25px;
+        border-radius: 17px;
+        background-position: center;
+    }
+
+    .hero h1 {
+        font-size: 65px;
+    }
+
+    .hero-label {
+        font-size: 10px;
+        letter-spacing: 3px;
+    }
+
+    .hero-description {
+        font-size: 14px;
+    }
+
+    .section-title {
+        font-size: 30px;
+    }
+
+    .route-card {
+        min-height: 160px;
+    }
+}
+
 </style>
 """, unsafe_allow_html=True)
 
 
 # ---------------------------------
-# PORTADA
+# PORTADA FAMILY BIKE
 # ---------------------------------
 
 st.markdown("""
 <div class="hero">
-    <div class="hero-label">MOTORCYCLE ROUTES • ADVENTURE • FREEDOM</div>
-    <h1>BYTE & RIDE</h1>
-    <p>Las mejores rutas para disfrutar de la carretera.</p>
+    <div class="hero-content">
+
+        <div class="hero-label">
+            MOTORCYCLE ROUTES · ADVENTURE · FREEDOM
+        </div>
+
+        <h1>
+            FAMILY<br>
+            <span>BIKE</span>
+        </h1>
+
+        <div class="hero-line"></div>
+
+        <div class="hero-description">
+            No importa el destino. Lo importante es el camino.
+            Descubre nuevas carreteras, encuentra tu próxima
+            aventura y disfruta cada kilómetro.
+        </div>
+
+        <div class="hero-tagline">
+            TU MOTO · TU RUTA · TU LIBERTAD
+        </div>
+
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -261,13 +486,13 @@ if (
 if not autenticado:
 
     st.markdown(
-        '<div class="section-title">ACCESO A BYTE & RIDE</div>',
+        '<div class="section-title">BIENVENIDO A <span>FAMILY BIKE</span></div>',
         unsafe_allow_html=True
     )
 
     st.markdown(
         '<div class="section-subtitle">'
-        'Regístrate o inicia sesión para descubrir nuestras rutas.'
+        'Accede a tu cuenta o regístrate para descubrir nuevas rutas.'
         '</div>',
         unsafe_allow_html=True
     )
@@ -297,7 +522,7 @@ if not autenticado:
             )
 
             boton_login = st.form_submit_button(
-                "ENTRAR",
+                "ENTRAR EN FAMILY BIKE",
                 use_container_width=True
             )
 
@@ -324,7 +549,7 @@ if not autenticado:
 
                     if guardar_sesion(response, username):
 
-                        st.success("Sesión iniciada correctamente.")
+                        st.success("¡Bienvenido a Family Bike!")
                         st.rerun()
 
                     else:
@@ -361,7 +586,7 @@ if not autenticado:
             )
 
             boton_registro = st.form_submit_button(
-                "CREAR CUENTA",
+                "UNIRME A FAMILY BIKE",
                 use_container_width=True
             )
 
@@ -400,7 +625,7 @@ if not autenticado:
 
                     if guardar_sesion(response, username):
 
-                        st.success("¡Cuenta creada correctamente!")
+                        st.success("¡Ya formas parte de Family Bike!")
                         st.rerun()
 
                     else:
@@ -420,11 +645,15 @@ if not autenticado:
                     st.code(str(e))
 
 
+    # ---------------------------------
+    # PIE DE PÁGINA SIN SESIÓN
+    # ---------------------------------
+
     st.markdown("""
     <div class="footer">
-        <strong>BYTE & RIDE</strong><br><br>
-        CARRETERA · AVENTURA · LIBERTAD<br>
-        © BYTE & RIDE
+        <strong>FAMILY BIKE</strong><br>
+        <span>CARRETERA · AVENTURA · LIBERTAD</span><br>
+        © FAMILY BIKE
     </div>
     """, unsafe_allow_html=True)
 
@@ -440,7 +669,7 @@ col_usuario, col_salir = st.columns([4, 1])
 with col_usuario:
 
     st.markdown(
-        f"### 🏍️ Bienvenido, "
+        f"### 🏍️ Bienvenido a Family Bike, "
         f"{html.escape(st.session_state['username'])}"
     )
 
@@ -513,13 +742,13 @@ with col3:
 # ---------------------------------
 
 st.markdown(
-    '<div class="section-title">EXPLORA LAS RUTAS</div>',
+    '<div class="section-title">EXPLORA <span>LAS RUTAS</span></div>',
     unsafe_allow_html=True
 )
 
 st.markdown(
     '<div class="section-subtitle">'
-    'Encuentra tu próximo destino y sal a disfrutar de la carretera.'
+    'Tu próxima aventura está a un clic. Elige una ruta y disfruta del camino.'
     '</div>',
     unsafe_allow_html=True
 )
@@ -564,7 +793,7 @@ else:
 
         tarjeta = f"""
         <div class="route-card">
-            <div class="route-number">RUTA {indice + 1:02d}</div>
+            <div class="route-number">FAMILY BIKE · RUTA {indice + 1:02d}</div>
             <div class="route-name">{nombre}</div>
             <a class="route-link"
                href="{url}"
@@ -589,8 +818,8 @@ else:
 
 st.markdown("""
 <div class="footer">
-    <strong>BYTE & RIDE</strong><br><br>
-    CARRETERA · AVENTURA · LIBERTAD<br>
-    © BYTE & RIDE
+    <strong>FAMILY BIKE</strong><br>
+    <span>CARRETERA · AVENTURA · LIBERTAD</span><br>
+    © FAMILY BIKE
 </div>
 """, unsafe_allow_html=True)
