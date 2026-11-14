@@ -2,6 +2,7 @@
 import streamlit as st
 import html
 import re
+from datetime import date, time
 from supabase import create_client
 
 # ---------------------------------
@@ -20,6 +21,11 @@ SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 AUTH_DOMAIN = "users.byteandride.invalid"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+IMAGEN_PREDETERMINADA = (
+    "https://images.unsplash.com/photo-1558981806-ec527fa84c39"
+    "?auto=format&fit=crop&w=1000&q=80"
+)
 
 
 # ---------------------------------
@@ -157,6 +163,14 @@ header[data-testid="stHeader"] {
     letter-spacing: 1px;
 }
 
+.event-card {
+    background: #1b1e24;
+    border: 1px solid #343840;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 18px;
+}
+
 .footer {
     text-align: center;
     color: #777b83;
@@ -168,7 +182,8 @@ header[data-testid="stHeader"] {
 
 div[data-testid="stTextInput"] input,
 div[data-testid="stTextInputRootElement"] input,
-div[data-testid="stTextInput"] input[type="password"] {
+div[data-testid="stTextInput"] input[type="password"],
+div[data-testid="stTextArea"] textarea {
     background: #1b1e24;
     color: white;
     border: 1px solid #414650;
@@ -210,6 +225,14 @@ def guardar_sesion(response, username):
     st.session_state["refresh_token"] = session.refresh_token
     st.session_state["username"] = username
 
+    user = getattr(response, "user", None)
+
+    if user is None:
+        user = getattr(session, "user", None)
+
+    if user is not None:
+        st.session_state["user_id"] = user.id
+
     return True
 
 
@@ -223,7 +246,8 @@ def cerrar_sesion():
     for key in [
         "access_token",
         "refresh_token",
-        "username"
+        "username",
+        "user_id"
     ]:
         st.session_state.pop(key, None)
 
@@ -246,7 +270,15 @@ if (
             st.session_state["refresh_token"]
         )
 
-        supabase.auth.get_user()
+        respuesta_usuario = supabase.auth.get_user()
+        usuario_actual = respuesta_usuario.user
+
+        st.session_state["user_id"] = usuario_actual.id
+
+        if not st.session_state.get("username"):
+            st.session_state["username"] = (
+                usuario_actual.user_metadata.get("username", "motero")
+            )
 
         autenticado = True
 
@@ -276,7 +308,6 @@ if not autenticado:
         "INICIAR SESIÓN",
         "CREAR CUENTA"
     ])
-
 
     # ---------------------------------
     # INICIAR SESIÓN
@@ -335,7 +366,6 @@ if not autenticado:
 
                     st.error("No se ha podido iniciar sesión.")
                     st.code(str(e))
-
 
     # ---------------------------------
     # CREAR CUENTA
@@ -419,7 +449,6 @@ if not autenticado:
                     )
                     st.code(str(e))
 
-
     st.markdown("""
     <div class="footer">
         <strong>FAMILY BIKE</strong><br><br>
@@ -435,13 +464,15 @@ if not autenticado:
 # USUARIO AUTENTICADO
 # ---------------------------------
 
+usuario_id = st.session_state.get("user_id")
+username_actual = st.session_state["username"]
+
 col_usuario, col_salir = st.columns([4, 1])
 
 with col_usuario:
 
     st.markdown(
-        f"### 🏍️ Bienvenido, "
-        f"{html.escape(st.session_state['username'])}"
+        f"### 🏍️ Bienvenido, {html.escape(username_actual)}"
     )
 
 with col_salir:
@@ -452,6 +483,11 @@ with col_salir:
         st.rerun()
 
 
+if not usuario_id:
+    st.error("No se ha podido identificar tu usuario. Vuelve a iniciar sesión.")
+    st.stop()
+
+
 # ---------------------------------
 # CARGAR RUTAS DESDE SUPABASE
 # ---------------------------------
@@ -460,7 +496,7 @@ try:
 
     respuesta = (
         supabase.table("rutas")
-        .select("id,nombre,url")
+        .select("id,nombre,url,imagen_url")
         .order("id")
         .execute()
     )
@@ -477,6 +513,22 @@ except Exception as e:
 # ---------------------------------
 # ESTADÍSTICAS
 # ---------------------------------
+
+try:
+
+    respuesta_quedadas = (
+        supabase.table("quedadas")
+        .select("id", count="exact")
+        .eq("estado", "abierta")
+        .gte("fecha", date.today().isoformat())
+        .execute()
+    )
+
+    total_quedadas = respuesta_quedadas.count or 0
+
+except Exception:
+    total_quedadas = 0
+
 
 col1, col2, col3 = st.columns(3)
 
@@ -500,87 +552,557 @@ with col2:
 
 with col3:
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="stat-box">
-        <div class="stat-number">📍</div>
-        <div class="stat-label">GOOGLE MAPS</div>
+        <div class="stat-number">{total_quedadas}</div>
+        <div class="stat-label">PRÓXIMAS QUEDADAS</div>
     </div>
     """, unsafe_allow_html=True)
 
 
 # ---------------------------------
-# CATÁLOGO DE RUTAS
+# PESTAÑAS PRINCIPALES
 # ---------------------------------
 
-st.markdown(
-    '<div class="section-title">EXPLORA LAS RUTAS</div>',
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    '<div class="section-subtitle">'
-    'Encuentra tu próximo destino y sal a disfrutar de la carretera.'
-    '</div>',
-    unsafe_allow_html=True
-)
-
-busqueda = st.text_input(
-    "Buscar ruta",
-    placeholder="Escribe el nombre de una ruta..."
-)
-
-rutas_filtradas = [
-    ruta for ruta in rutas
-    if busqueda.lower() in ruta.get("nombre", "").lower()
-]
+tab_rutas, tab_quedadas = st.tabs([
+    "🏍️ EXPLORAR RUTAS",
+    "📅 QUEDADAS MOTERAS"
+])
 
 
-if not rutas:
+# =================================
+# PESTAÑA DE RUTAS
+# =================================
 
-    st.warning("Todavía no hay rutas disponibles.")
+with tab_rutas:
 
-elif not rutas_filtradas:
+    st.markdown(
+        '<div class="section-title">EXPLORA LAS RUTAS</div>',
+        unsafe_allow_html=True
+    )
 
-    st.info("No hay rutas que coincidan con tu búsqueda.")
+    st.markdown(
+        '<div class="section-subtitle">'
+        'Encuentra tu próximo destino y sal a disfrutar de la carretera.'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
-else:
+    busqueda = st.text_input(
+        "Buscar ruta",
+        placeholder="Escribe el nombre de una ruta...",
+        key="buscar_ruta"
+    )
 
-    st.caption(f"Mostrando {len(rutas_filtradas)} rutas")
+    rutas_filtradas = [
+        ruta for ruta in rutas
+        if busqueda.lower() in ruta.get("nombre", "").lower()
+    ]
 
-    columnas = st.columns(3)
+    if not rutas:
 
-    for indice, ruta in enumerate(rutas_filtradas):
+        st.warning("Todavía no hay rutas disponibles.")
 
-        nombre = html.escape(
+    elif not rutas_filtradas:
+
+        st.info("No hay rutas que coincidan con tu búsqueda.")
+
+    else:
+
+        st.caption(f"Mostrando {len(rutas_filtradas)} rutas")
+
+        columnas = st.columns(3)
+
+        for indice, ruta in enumerate(rutas_filtradas):
+
+            nombre = ruta.get("nombre", "Ruta sin nombre")
+            url_original = ruta.get("url", "")
+            imagen = ruta.get("imagen_url")
+
+            if not isinstance(imagen, str) or not imagen.startswith(
+                ("https://", "http://")
+            ):
+                imagen = IMAGEN_PREDETERMINADA
+
+            with columnas[indice % 3]:
+
+                st.image(
+                    imagen,
+                    use_container_width=True
+                )
+
+                st.markdown(
+                    f"""
+                    <div class="route-card">
+                        <div class="route-number">
+                            RUTA {indice + 1:02d}
+                        </div>
+                        <div class="route-name">
+                            {html.escape(nombre)}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                if isinstance(url_original, str) and url_original.startswith(
+                    ("https://", "http://")
+                ):
+
+                    st.link_button(
+                        "VER RECORRIDO ↗",
+                        url_original,
+                        use_container_width=True
+                    )
+
+
+# =================================
+# PESTAÑA DE QUEDADAS
+# =================================
+
+with tab_quedadas:
+
+    st.markdown(
+        '<div class="section-title">QUEDADAS MOTERAS</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        '<div class="section-subtitle">'
+        'Organiza una salida, invita a otros moteros y comparte carretera.'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    # ---------------------------------
+    # CREAR QUEDADA
+    # ---------------------------------
+
+    with st.expander("➕ CREAR UNA NUEVA QUEDADA", expanded=False):
+
+        nombres_rutas = [
             ruta.get("nombre", "Ruta sin nombre")
+            for ruta in rutas
+        ]
+
+        with st.form("form_nueva_quedada"):
+
+            tipo_destino = st.radio(
+                "¿Qué tipo de salida quieres organizar?",
+                ["Ruta del catálogo", "Destino libre"],
+                horizontal=True
+            )
+
+            if tipo_destino == "Ruta del catálogo" and nombres_rutas:
+
+                ruta_elegida = st.selectbox(
+                    "Selecciona una ruta",
+                    nombres_rutas
+                )
+
+                destino_libre = ""
+
+            else:
+
+                ruta_elegida = ""
+
+                destino_libre = st.text_input(
+                    "Nombre del destino o ruta",
+                    placeholder="Ejemplo: Grazalema, Sierra de Cádiz..."
+                )
+
+            fecha_quedada = st.date_input(
+                "Fecha de la quedada",
+                value=date.today(),
+                min_value=date.today(),
+                format="DD/MM/YYYY"
+            )
+
+            hora_quedada = st.time_input(
+                "Hora de salida",
+                value=time(9, 0)
+            )
+
+            punto_encuentro = st.text_input(
+                "Punto de encuentro",
+                placeholder="Ejemplo: Gasolinera de San Fernando"
+            )
+
+            descripcion = st.text_area(
+                "Descripción de la salida",
+                placeholder="Cuenta cómo será la ruta, kilómetros, paradas, recomendaciones..."
+            )
+
+            imagen_quedada = st.text_input(
+                "URL de una fotografía (opcional)",
+                placeholder="https://..."
+            )
+
+            publicar = st.form_submit_button(
+                "PUBLICAR QUEDADA",
+                use_container_width=True
+            )
+
+        if publicar:
+
+            nombre_final = (
+                ruta_elegida
+                if tipo_destino == "Ruta del catálogo"
+                else destino_libre.strip()
+            )
+
+            if not nombre_final:
+
+                st.error("Introduce el nombre de la ruta o destino.")
+
+            elif not punto_encuentro.strip():
+
+                st.error("Indica el punto de encuentro.")
+
+            elif imagen_quedada.strip() and not imagen_quedada.strip().startswith(
+                ("https://", "http://")
+            ):
+
+                st.error("La dirección de la fotografía no es válida.")
+
+            else:
+
+                imagen_final = imagen_quedada.strip()
+
+                if (
+                    tipo_destino == "Ruta del catálogo"
+                    and not imagen_final
+                ):
+
+                    ruta_seleccionada = next(
+                        (
+                            r for r in rutas
+                            if r.get("nombre") == nombre_final
+                        ),
+                        {}
+                    )
+
+                    imagen_final = ruta_seleccionada.get(
+                        "imagen_url"
+                    ) or ""
+
+                nueva_quedada = {
+                    "creador_id": usuario_id,
+                    "ruta_nombre": nombre_final,
+                    "es_ruta_catalogo": (
+                        tipo_destino == "Ruta del catálogo"
+                    ),
+                    "fecha": fecha_quedada.isoformat(),
+                    "hora": hora_quedada.strftime("%H:%M:%S"),
+                    "punto_encuentro": punto_encuentro.strip(),
+                    "descripcion": descripcion.strip(),
+                    "imagen_url": imagen_final,
+                    "estado": "abierta"
+                }
+
+                try:
+
+                    supabase.table("quedadas").insert(
+                        nueva_quedada
+                    ).execute()
+
+                    st.success("¡Quedada publicada correctamente!")
+                    st.rerun()
+
+                except Exception as e:
+
+                    st.error("No se ha podido publicar la quedada.")
+                    st.code(str(e))
+
+
+    # ---------------------------------
+    # CARGAR QUEDADAS
+    # ---------------------------------
+
+    try:
+
+        respuesta = (
+            supabase.table("quedadas")
+            .select(
+                "id,creador_id,ruta_nombre,es_ruta_catalogo,"
+                "fecha,hora,punto_encuentro,descripcion,"
+                "imagen_url,estado,created_at"
+            )
+            .eq("estado", "abierta")
+            .gte("fecha", date.today().isoformat())
+            .order("fecha")
+            .execute()
         )
 
-        url_original = ruta.get("url", "")
+        quedadas = respuesta.data or []
 
-        if not url_original.startswith(("https://", "http://")):
-            continue
+    except Exception as e:
 
-        url = html.escape(url_original, quote=True)
+        st.error("No se han podido cargar las quedadas.")
+        st.code(str(e))
+        quedadas = []
 
-        tarjeta = f"""
-        <div class="route-card">
-            <div class="route-number">RUTA {indice + 1:02d}</div>
-            <div class="route-name">{nombre}</div>
-            <a class="route-link"
-               href="{url}"
-               target="_blank"
-               rel="noopener noreferrer">
-               VER RECORRIDO ↗
-            </a>
-        </div>
-        """
 
-        with columnas[indice % 3]:
+    # ---------------------------------
+    # CARGAR ASISTENTES Y PERFILES
+    # ---------------------------------
+
+    asistentes_por_quedada = {}
+    nombres_usuarios = {}
+
+    if quedadas:
+
+        ids_quedadas = [q["id"] for q in quedadas]
+
+        try:
+
+            respuesta_asistentes = (
+                supabase.table("asistentes")
+                .select("quedada_id,usuario_id")
+                .in_("quedada_id", ids_quedadas)
+                .execute()
+            )
+
+            todos_asistentes = respuesta_asistentes.data or []
+
+            ids_usuarios = set()
+
+            for asistente in todos_asistentes:
+
+                qid = asistente["quedada_id"]
+                uid = asistente["usuario_id"]
+
+                asistentes_por_quedada.setdefault(
+                    qid, []
+                ).append(uid)
+
+                ids_usuarios.add(uid)
+
+            ids_usuarios.update(
+                q["creador_id"] for q in quedadas
+            )
+
+            if ids_usuarios:
+
+                respuesta_perfiles = (
+                    supabase.table("profiles")
+                    .select("id,username")
+                    .in_("id", list(ids_usuarios))
+                    .execute()
+                )
+
+                for perfil in respuesta_perfiles.data or []:
+
+                    nombres_usuarios[perfil["id"]] = (
+                        perfil.get("username", "Motero")
+                    )
+
+        except Exception as e:
+
+            st.warning(
+                "No se han podido cargar todos los nombres de los asistentes. "
+                "Comprueba los permisos de la tabla profiles."
+            )
+
+
+    # ---------------------------------
+    # MOSTRAR QUEDADAS
+    # ---------------------------------
+
+    if not quedadas:
+
+        st.info(
+            "Todavía no hay quedadas publicadas. "
+            "¡Anímate a organizar la primera!"
+        )
+
+    else:
+
+        st.markdown("### PRÓXIMAS SALIDAS")
+
+        for quedada in quedadas:
+
+            qid = quedada["id"]
+            creador_id = quedada["creador_id"]
+
+            asistentes = asistentes_por_quedada.get(qid, [])
+
+            estoy_apuntado = usuario_id in asistentes
+
+            creador_nombre = nombres_usuarios.get(
+                creador_id,
+                "Motero"
+            )
+
+            imagen = quedada.get("imagen_url")
+
+            if not isinstance(imagen, str) or not imagen.startswith(
+                ("https://", "http://")
+            ):
+                imagen = IMAGEN_PREDETERMINADA
+
+            st.markdown('<div class="event-card">', unsafe_allow_html=True)
+
+            st.image(
+                imagen,
+                use_container_width=True
+            )
 
             st.markdown(
-                tarjeta,
-                unsafe_allow_html=True
+                f"## 🏍️ {html.escape(quedada['ruta_nombre'])}"
             )
+
+            st.markdown(
+                f"📅 **Fecha:** {quedada['fecha']}"
+            )
+
+            st.markdown(
+                f"🕘 **Hora:** {str(quedada['hora'])[:5]}"
+            )
+
+            st.markdown(
+                f"📍 **Punto de encuentro:** "
+                f"{html.escape(quedada['punto_encuentro'])}"
+            )
+
+            st.markdown(
+                f"👤 **Organiza:** {html.escape(creador_nombre)}"
+            )
+
+            if quedada.get("descripcion"):
+
+                st.write(quedada["descripcion"])
+
+            if quedada.get("es_ruta_catalogo"):
+
+                ruta_correspondiente = next(
+                    (
+                        r for r in rutas
+                        if r.get("nombre") == quedada["ruta_nombre"]
+                    ),
+                    None
+                )
+
+                if ruta_correspondiente:
+
+                    url_ruta = ruta_correspondiente.get("url", "")
+
+                    if isinstance(url_ruta, str) and url_ruta.startswith(
+                        ("https://", "http://")
+                    ):
+
+                        st.link_button(
+                            "VER RECORRIDO EN GOOGLE MAPS ↗",
+                            url_ruta
+                        )
+
+            st.divider()
+
+            st.markdown(
+                f"**🏍️ Moteros apuntados: {len(asistentes)}**"
+            )
+
+            with st.expander("Ver quién va"):
+
+                if asistentes:
+
+                    for uid in asistentes:
+
+                        nombre_asistente = nombres_usuarios.get(
+                            uid,
+                            "Motero"
+                        )
+
+                        st.write(f"🏍️ {nombre_asistente}")
+
+                else:
+
+                    st.write("Todavía no hay asistentes.")
+
+            col_apuntarse, col_estado = st.columns([2, 2])
+
+            with col_apuntarse:
+
+                if estoy_apuntado:
+
+                    if st.button(
+                        "CANCELAR MI ASISTENCIA",
+                        key=f"salir_{qid}",
+                        use_container_width=True
+                    ):
+
+                        try:
+
+                            (
+                                supabase.table("asistentes")
+                                .delete()
+                                .eq("quedada_id", qid)
+                                .eq("usuario_id", usuario_id)
+                                .execute()
+                            )
+
+                            st.success("Has cancelado tu asistencia.")
+                            st.rerun()
+
+                        except Exception as e:
+
+                            st.error("No se ha podido cancelar la asistencia.")
+                            st.code(str(e))
+
+                else:
+
+                    if st.button(
+                        "🏍️ ME APUNTO",
+                        key=f"apuntarme_{qid}",
+                        use_container_width=True
+                    ):
+
+                        try:
+
+                            supabase.table("asistentes").insert({
+                                "quedada_id": qid,
+                                "usuario_id": usuario_id
+                            }).execute()
+
+                            st.success("¡Ya estás apuntado a la quedada!")
+                            st.rerun()
+
+                        except Exception as e:
+
+                            st.error("No se ha podido registrar tu asistencia.")
+                            st.code(str(e))
+
+            with col_estado:
+
+                if creador_id == usuario_id:
+
+                    st.caption("Esta es tu quedada")
+
+                    if st.button(
+                        "CANCELAR QUEDADA",
+                        key=f"cancelar_{qid}",
+                        use_container_width=True
+                    ):
+
+                        try:
+
+                            (
+                                supabase.table("quedadas")
+                                .update({"estado": "cancelada"})
+                                .eq("id", qid)
+                                .eq("creador_id", usuario_id)
+                                .execute()
+                            )
+
+                            st.success("Quedada cancelada.")
+                            st.rerun()
+
+                        except Exception as e:
+
+                            st.error("No se ha podido cancelar la quedada.")
+                            st.code(str(e))
+
+            st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------
