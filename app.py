@@ -17,16 +17,13 @@ st.set_page_config(
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-# Dominio técnico interno: no se muestra a los usuarios.
 AUTH_DOMAIN = "users.byteandride.invalid"
 
-def crear_cliente():
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-supabase = crear_cliente()
 
 # ---------------------------------
-# ESTILOS
+# DISEÑO
 # ---------------------------------
 
 st.markdown("""
@@ -170,7 +167,8 @@ header[data-testid="stHeader"] {
 }
 
 div[data-testid="stTextInput"] input,
-div[data-testid="stPasswordInput"] input {
+div[data-testid="stTextInputRootElement"] input,
+div[data-testid="stTextInput"] input[type="password"] {
     background: #1b1e24;
     color: white;
     border: 1px solid #414650;
@@ -178,6 +176,7 @@ div[data-testid="stPasswordInput"] input {
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 # ---------------------------------
 # PORTADA
@@ -191,15 +190,17 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+
 # ---------------------------------
 # FUNCIONES DE AUTENTICACIÓN
 # ---------------------------------
 
 def email_interno(username):
-    return f"{username.lower()}@{AUTH_DOMAIN}"
+    return f"{username}@{AUTH_DOMAIN}"
 
 
 def guardar_sesion(response, username):
+
     session = getattr(response, "session", None)
 
     if session is None:
@@ -213,12 +214,17 @@ def guardar_sesion(response, username):
 
 
 def cerrar_sesion():
+
     try:
         supabase.auth.sign_out()
     except Exception:
         pass
 
-    for key in ["access_token", "refresh_token", "username"]:
+    for key in [
+        "access_token",
+        "refresh_token",
+        "username"
+    ]:
         st.session_state.pop(key, None)
 
 
@@ -232,13 +238,16 @@ if (
     st.session_state.get("access_token")
     and st.session_state.get("refresh_token")
 ):
+
     try:
+
         supabase.auth.set_session(
             st.session_state["access_token"],
             st.session_state["refresh_token"]
         )
 
         supabase.auth.get_user()
+
         autenticado = True
 
     except Exception:
@@ -268,6 +277,11 @@ if not autenticado:
         "CREAR CUENTA"
     ])
 
+
+    # ---------------------------------
+    # INICIAR SESIÓN
+    # ---------------------------------
+
     with tab_login:
 
         with st.form("form_login"):
@@ -279,8 +293,7 @@ if not autenticado:
 
             password_login = st.text_input(
                 "Contraseña",
-                type="password",
-                placeholder="Tu contraseña"
+                type="password"
             )
 
             boton_login = st.form_submit_button(
@@ -293,26 +306,40 @@ if not autenticado:
             username = usuario_login.strip().lower()
 
             if not username or not password_login:
+
                 st.error("Introduce tu usuario y contraseña.")
 
             elif not re.fullmatch(r"[a-z0-9_]{3,24}", username):
-                st.error("El nombre de usuario no tiene un formato válido.")
+
+                st.error("El nombre de usuario no es válido.")
 
             else:
+
                 try:
+
                     response = supabase.auth.sign_in_with_password({
                         "email": email_interno(username),
                         "password": password_login
                     })
 
                     if guardar_sesion(response, username):
+
                         st.success("Sesión iniciada correctamente.")
                         st.rerun()
-                    else:
-                        st.error("No se ha podido iniciar la sesión.")
 
-                except Exception:
-                    st.error("Usuario o contraseña incorrectos.")
+                    else:
+
+                        st.error("Supabase no ha devuelto una sesión.")
+
+                except Exception as e:
+
+                    st.error("No se ha podido iniciar sesión.")
+                    st.code(str(e))
+
+
+    # ---------------------------------
+    # CREAR CUENTA
+    # ---------------------------------
 
     with tab_registro:
 
@@ -343,19 +370,24 @@ if not autenticado:
             username = nuevo_usuario.strip().lower()
 
             if not re.fullmatch(r"[a-z0-9_]{3,24}", username):
+
                 st.error(
                     "El usuario debe tener entre 3 y 24 caracteres. "
-                    "Solo letras, números y guion bajo."
+                    "Utiliza letras, números o guion bajo."
                 )
 
             elif len(nueva_password) < 8:
+
                 st.error("La contraseña debe tener al menos 8 caracteres.")
 
             elif nueva_password != repetir_password:
+
                 st.error("Las contraseñas no coinciden.")
 
             else:
+
                 try:
+
                     response = supabase.auth.sign_up({
                         "email": email_interno(username),
                         "password": nueva_password,
@@ -367,19 +399,26 @@ if not autenticado:
                     })
 
                     if guardar_sesion(response, username):
+
                         st.success("¡Cuenta creada correctamente!")
                         st.rerun()
+
                     else:
-                        st.success(
-                            "Registro recibido. Ahora inicia sesión "
-                            "con tu usuario y contraseña."
+
+                        st.warning(
+                            "Supabase ha recibido el registro, "
+                            "pero no ha devuelto una sesión. "
+                            "Prueba a iniciar sesión."
                         )
 
-                except Exception:
-                    st.error(
-                        "No se ha podido crear la cuenta. "
-                        "Comprueba si el nombre de usuario ya existe."
+                except Exception as e:
+
+                    st.error("ERROR AL CREAR LA CUENTA")
+                    st.write(
+                        "Supabase ha devuelto el siguiente mensaje:"
                     )
+                    st.code(str(e))
+
 
     st.markdown("""
     <div class="footer">
@@ -399,12 +438,16 @@ if not autenticado:
 col_usuario, col_salir = st.columns([4, 1])
 
 with col_usuario:
+
     st.markdown(
-        f"### 🏍️ Bienvenido, {html.escape(st.session_state['username'])}"
+        f"### 🏍️ Bienvenido, "
+        f"{html.escape(st.session_state['username'])}"
     )
 
 with col_salir:
+
     if st.button("CERRAR SESIÓN", use_container_width=True):
+
         cerrar_sesion()
         st.rerun()
 
@@ -414,6 +457,7 @@ with col_salir:
 # ---------------------------------
 
 try:
+
     respuesta = (
         supabase.table("rutas")
         .select("id,nombre,url")
@@ -423,8 +467,10 @@ try:
 
     rutas = respuesta.data or []
 
-except Exception:
+except Exception as e:
+
     st.error("No se han podido cargar las rutas desde Supabase.")
+    st.code(str(e))
     st.stop()
 
 
@@ -435,6 +481,7 @@ except Exception:
 col1, col2, col3 = st.columns(3)
 
 with col1:
+
     st.markdown(f"""
     <div class="stat-box">
         <div class="stat-number">{len(rutas)}</div>
@@ -443,6 +490,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
+
     st.markdown("""
     <div class="stat-box">
         <div class="stat-number">🏍️</div>
@@ -451,6 +499,7 @@ with col2:
     """, unsafe_allow_html=True)
 
 with col3:
+
     st.markdown("""
     <div class="stat-box">
         <div class="stat-number">📍</div>
@@ -485,10 +534,13 @@ rutas_filtradas = [
     if busqueda.lower() in ruta.get("nombre", "").lower()
 ]
 
+
 if not rutas:
+
     st.warning("Todavía no hay rutas disponibles.")
 
 elif not rutas_filtradas:
+
     st.info("No hay rutas que coincidan con tu búsqueda.")
 
 else:
@@ -524,7 +576,11 @@ else:
         """
 
         with columnas[indice % 3]:
-            st.markdown(tarjeta, unsafe_allow_html=True)
+
+            st.markdown(
+                tarjeta,
+                unsafe_allow_html=True
+            )
 
 
 # ---------------------------------
