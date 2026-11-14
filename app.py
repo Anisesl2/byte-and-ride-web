@@ -18,6 +18,7 @@ st.set_page_config(
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
+# Se conserva para no romper las cuentas existentes.
 AUTH_DOMAIN = "users.byteandride.invalid"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -214,6 +215,15 @@ def email_interno(username):
     return f"{username}@{AUTH_DOMAIN}"
 
 
+def email_valido(email):
+    return bool(
+        re.fullmatch(
+            r"[^@\s]+@[^@\s]+\.[^@\s]+",
+            email.strip()
+        )
+    )
+
+
 def guardar_sesion(response, username):
 
     session = getattr(response, "session", None)
@@ -234,6 +244,21 @@ def guardar_sesion(response, username):
         st.session_state["user_id"] = user.id
 
     return True
+
+
+def guardar_datos_contacto(user_id, email_contacto, avisos_email):
+
+    respuesta = (
+        supabase.table("profiles")
+        .update({
+            "email_contacto": email_contacto.strip().lower(),
+            "avisos_email": bool(avisos_email)
+        })
+        .eq("id", user_id)
+        .execute()
+    )
+
+    return respuesta
 
 
 def cerrar_sesion():
@@ -276,8 +301,16 @@ if (
         st.session_state["user_id"] = usuario_actual.id
 
         if not st.session_state.get("username"):
-            st.session_state["username"] = (
-                usuario_actual.user_metadata.get("username", "motero")
+
+            metadata = getattr(
+                usuario_actual,
+                "user_metadata",
+                {}
+            ) or {}
+
+            st.session_state["username"] = metadata.get(
+                "username",
+                "motero"
             )
 
         autenticado = True
@@ -362,10 +395,10 @@ if not autenticado:
 
                         st.error("Supabase no ha devuelto una sesión.")
 
-                except Exception as e:
+                except Exception:
 
                     st.error("No se ha podido iniciar sesión.")
-                    st.code(str(e))
+                    st.info("Comprueba el usuario y la contraseña.")
 
     # ---------------------------------
     # CREAR CUENTA
@@ -373,11 +406,21 @@ if not autenticado:
 
     with tab_registro:
 
+        st.caption(
+            "El correo indicado será tu dirección de contacto. "
+            "Seguirás accediendo con tu nombre de usuario y contraseña."
+        )
+
         with st.form("form_registro"):
 
             nuevo_usuario = st.text_input(
                 "Elige un nombre de usuario",
                 placeholder="Ejemplo: motero_01"
+            )
+
+            email_contacto = st.text_input(
+                "Tu correo electrónico real",
+                placeholder="nombre@ejemplo.com"
             )
 
             nueva_password = st.text_input(
@@ -390,6 +433,11 @@ if not autenticado:
                 type="password"
             )
 
+            aceptar_avisos = st.checkbox(
+                "Acepto recibir por correo electrónico avisos "
+                "de nuevas rutas y novedades de FAMILY BIKE."
+            )
+
             boton_registro = st.form_submit_button(
                 "CREAR CUENTA",
                 use_container_width=True
@@ -398,6 +446,7 @@ if not autenticado:
         if boton_registro:
 
             username = nuevo_usuario.strip().lower()
+            email_real = email_contacto.strip().lower()
 
             if not re.fullmatch(r"[a-z0-9_]{3,24}", username):
 
@@ -406,9 +455,17 @@ if not autenticado:
                     "Utiliza letras, números o guion bajo."
                 )
 
+            elif not email_valido(email_real):
+
+                st.error(
+                    "Introduce una dirección de correo electrónico válida."
+                )
+
             elif len(nueva_password) < 8:
 
-                st.error("La contraseña debe tener al menos 8 caracteres.")
+                st.error(
+                    "La contraseña debe tener al menos 8 caracteres."
+                )
 
             elif nueva_password != repetir_password:
 
@@ -417,6 +474,9 @@ if not autenticado:
             else:
 
                 try:
+
+                    # Se mantiene el correo interno de autenticación.
+                    # No se sustituye por el correo real del usuario.
 
                     response = supabase.auth.sign_up({
                         "email": email_interno(username),
@@ -430,15 +490,44 @@ if not autenticado:
 
                     if guardar_sesion(response, username):
 
-                        st.success("¡Cuenta creada correctamente!")
-                        st.rerun()
+                        user_id_nuevo = st.session_state.get("user_id")
+
+                        try:
+
+                            guardar_datos_contacto(
+                                user_id_nuevo,
+                                email_real,
+                                aceptar_avisos
+                            )
+
+                            st.success(
+                                "¡Cuenta creada correctamente! "
+                                "Tu correo y tus preferencias se han guardado."
+                            )
+
+                            st.rerun()
+
+                        except Exception as error_perfil:
+
+                            st.error(
+                                "La cuenta se ha creado, pero no se han "
+                                "podido guardar los datos de contacto."
+                            )
+
+                            st.warning(
+                                "Comprueba que has ejecutado el SQL de "
+                                "configuración de profiles."
+                            )
+
+                            st.code(str(error_perfil))
 
                     else:
 
                         st.warning(
-                            "Supabase ha recibido el registro, "
-                            "pero no ha devuelto una sesión. "
-                            "Prueba a iniciar sesión."
+                            "Supabase ha recibido el registro, pero no ha "
+                            "devuelto una sesión. Inicia sesión con tu usuario "
+                            "y contraseña. El correo de contacto tendrá que "
+                            "guardarse después de iniciar sesión."
                         )
 
                 except Exception as e:
@@ -477,14 +566,22 @@ with col_usuario:
 
 with col_salir:
 
-    if st.button("CERRAR SESIÓN", use_container_width=True):
+    if st.button(
+        "CERRAR SESIÓN",
+        use_container_width=True
+    ):
 
         cerrar_sesion()
         st.rerun()
 
 
 if not usuario_id:
-    st.error("No se ha podido identificar tu usuario. Vuelve a iniciar sesión.")
+
+    st.error(
+        "No se ha podido identificar tu usuario. "
+        "Vuelve a iniciar sesión."
+    )
+
     st.stop()
 
 
@@ -527,6 +624,7 @@ try:
     total_quedadas = respuesta_quedadas.count or 0
 
 except Exception:
+
     total_quedadas = 0
 
 
@@ -609,7 +707,9 @@ with tab_rutas:
 
     else:
 
-        st.caption(f"Mostrando {len(rutas_filtradas)} rutas")
+        st.caption(
+            f"Mostrando {len(rutas_filtradas)} rutas"
+        )
 
         columnas = st.columns(3)
 
@@ -619,8 +719,9 @@ with tab_rutas:
             url_original = ruta.get("url", "")
             imagen = ruta.get("imagen_url")
 
-            if not isinstance(imagen, str) or not imagen.startswith(
-                ("https://", "http://")
+            if (
+                not isinstance(imagen, str)
+                or not imagen.startswith(("https://", "http://"))
             ):
                 imagen = IMAGEN_PREDETERMINADA
 
@@ -645,8 +746,9 @@ with tab_rutas:
                     unsafe_allow_html=True
                 )
 
-                if isinstance(url_original, str) and url_original.startswith(
-                    ("https://", "http://")
+                if (
+                    isinstance(url_original, str)
+                    and url_original.startswith(("https://", "http://"))
                 ):
 
                     st.link_button(
@@ -678,7 +780,10 @@ with tab_quedadas:
     # CREAR QUEDADA
     # ---------------------------------
 
-    with st.expander("➕ CREAR UNA NUEVA QUEDADA", expanded=False):
+    with st.expander(
+        "➕ CREAR UNA NUEVA QUEDADA",
+        expanded=False
+    ):
 
         nombres_rutas = [
             ruta.get("nombre", "Ruta sin nombre")
@@ -693,7 +798,10 @@ with tab_quedadas:
                 horizontal=True
             )
 
-            if tipo_destino == "Ruta del catálogo" and nombres_rutas:
+            if (
+                tipo_destino == "Ruta del catálogo"
+                and nombres_rutas
+            ):
 
                 ruta_elegida = st.selectbox(
                     "Selecciona una ruta",
@@ -730,7 +838,10 @@ with tab_quedadas:
 
             descripcion = st.text_area(
                 "Descripción de la salida",
-                placeholder="Cuenta cómo será la ruta, kilómetros, paradas, recomendaciones..."
+                placeholder=(
+                    "Cuenta cómo será la ruta, kilómetros, "
+                    "paradas, recomendaciones..."
+                )
             )
 
             imagen_quedada = st.text_input(
@@ -753,17 +864,24 @@ with tab_quedadas:
 
             if not nombre_final:
 
-                st.error("Introduce el nombre de la ruta o destino.")
+                st.error(
+                    "Introduce el nombre de la ruta o destino."
+                )
 
             elif not punto_encuentro.strip():
 
                 st.error("Indica el punto de encuentro.")
 
-            elif imagen_quedada.strip() and not imagen_quedada.strip().startswith(
-                ("https://", "http://")
+            elif (
+                imagen_quedada.strip()
+                and not imagen_quedada.strip().startswith(
+                    ("https://", "http://")
+                )
             ):
 
-                st.error("La dirección de la fotografía no es válida.")
+                st.error(
+                    "La dirección de la fotografía no es válida."
+                )
 
             else:
 
@@ -782,9 +900,9 @@ with tab_quedadas:
                         {}
                     )
 
-                    imagen_final = ruta_seleccionada.get(
-                        "imagen_url"
-                    ) or ""
+                    imagen_final = (
+                        ruta_seleccionada.get("imagen_url") or ""
+                    )
 
                 nueva_quedada = {
                     "creador_id": usuario_id,
@@ -806,12 +924,18 @@ with tab_quedadas:
                         nueva_quedada
                     ).execute()
 
-                    st.success("¡Quedada publicada correctamente!")
+                    st.success(
+                        "¡Quedada publicada correctamente!"
+                    )
+
                     st.rerun()
 
                 except Exception as e:
 
-                    st.error("No se ha podido publicar la quedada.")
+                    st.error(
+                        "No se ha podido publicar la quedada."
+                    )
+
                     st.code(str(e))
 
 
@@ -838,7 +962,10 @@ with tab_quedadas:
 
     except Exception as e:
 
-        st.error("No se han podido cargar las quedadas.")
+        st.error(
+            "No se han podido cargar las quedadas."
+        )
+
         st.code(str(e))
         quedadas = []
 
@@ -852,7 +979,9 @@ with tab_quedadas:
 
     if quedadas:
 
-        ids_quedadas = [q["id"] for q in quedadas]
+        ids_quedadas = [
+            q["id"] for q in quedadas
+        ]
 
         try:
 
@@ -863,7 +992,9 @@ with tab_quedadas:
                 .execute()
             )
 
-            todos_asistentes = respuesta_asistentes.data or []
+            todos_asistentes = (
+                respuesta_asistentes.data or []
+            )
 
             ids_usuarios = set()
 
@@ -897,11 +1028,12 @@ with tab_quedadas:
                         perfil.get("username", "Motero")
                     )
 
-        except Exception as e:
+        except Exception:
 
             st.warning(
-                "No se han podido cargar todos los nombres de los asistentes. "
-                "Comprueba los permisos de la tabla profiles."
+                "No se han podido cargar todos los nombres "
+                "de los asistentes. Comprueba los permisos "
+                "de la tabla profiles."
             )
 
 
@@ -925,7 +1057,10 @@ with tab_quedadas:
             qid = quedada["id"]
             creador_id = quedada["creador_id"]
 
-            asistentes = asistentes_por_quedada.get(qid, [])
+            asistentes = asistentes_por_quedada.get(
+                qid,
+                []
+            )
 
             estoy_apuntado = usuario_id in asistentes
 
@@ -936,12 +1071,17 @@ with tab_quedadas:
 
             imagen = quedada.get("imagen_url")
 
-            if not isinstance(imagen, str) or not imagen.startswith(
-                ("https://", "http://")
+            if (
+                not isinstance(imagen, str)
+                or not imagen.startswith(("https://", "http://"))
             ):
+
                 imagen = IMAGEN_PREDETERMINADA
 
-            st.markdown('<div class="event-card">', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="event-card">',
+                unsafe_allow_html=True
+            )
 
             st.image(
                 imagen,
@@ -985,10 +1125,14 @@ with tab_quedadas:
 
                 if ruta_correspondiente:
 
-                    url_ruta = ruta_correspondiente.get("url", "")
+                    url_ruta = ruta_correspondiente.get(
+                        "url",
+                        ""
+                    )
 
-                    if isinstance(url_ruta, str) and url_ruta.startswith(
-                        ("https://", "http://")
+                    if (
+                        isinstance(url_ruta, str)
+                        and url_ruta.startswith(("https://", "http://"))
                     ):
 
                         st.link_button(
@@ -1013,11 +1157,15 @@ with tab_quedadas:
                             "Motero"
                         )
 
-                        st.write(f"🏍️ {nombre_asistente}")
+                        st.write(
+                            f"🏍️ {nombre_asistente}"
+                        )
 
                 else:
 
-                    st.write("Todavía no hay asistentes.")
+                    st.write(
+                        "Todavía no hay asistentes."
+                    )
 
             col_apuntarse, col_estado = st.columns([2, 2])
 
@@ -1041,12 +1189,18 @@ with tab_quedadas:
                                 .execute()
                             )
 
-                            st.success("Has cancelado tu asistencia.")
+                            st.success(
+                                "Has cancelado tu asistencia."
+                            )
+
                             st.rerun()
 
                         except Exception as e:
 
-                            st.error("No se ha podido cancelar la asistencia.")
+                            st.error(
+                                "No se ha podido cancelar la asistencia."
+                            )
+
                             st.code(str(e))
 
                 else:
@@ -1064,19 +1218,27 @@ with tab_quedadas:
                                 "usuario_id": usuario_id
                             }).execute()
 
-                            st.success("¡Ya estás apuntado a la quedada!")
+                            st.success(
+                                "¡Ya estás apuntado a la quedada!"
+                            )
+
                             st.rerun()
 
                         except Exception as e:
 
-                            st.error("No se ha podido registrar tu asistencia.")
+                            st.error(
+                                "No se ha podido registrar tu asistencia."
+                            )
+
                             st.code(str(e))
 
             with col_estado:
 
                 if creador_id == usuario_id:
 
-                    st.caption("Esta es tu quedada")
+                    st.caption(
+                        "Esta es tu quedada"
+                    )
 
                     if st.button(
                         "CANCELAR QUEDADA",
@@ -1094,15 +1256,24 @@ with tab_quedadas:
                                 .execute()
                             )
 
-                            st.success("Quedada cancelada.")
+                            st.success(
+                                "Quedada cancelada."
+                            )
+
                             st.rerun()
 
                         except Exception as e:
 
-                            st.error("No se ha podido cancelar la quedada.")
+                            st.error(
+                                "No se ha podido cancelar la quedada."
+                            )
+
                             st.code(str(e))
 
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(
+                '</div>',
+                unsafe_allow_html=True
+            )
 
 
 # ---------------------------------
