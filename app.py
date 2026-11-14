@@ -199,7 +199,7 @@ div[data-testid="stTextArea"] textarea {
 
 st.markdown("""
 <div class="hero">
-    <div class="hero-label">MOTORCYCLE ROUTES • ADVENTURE • FREEDOM</div>
+    <div class="hero-label">MOTORCYCLE ROUTES • ADVENTURE • FAMILY</div>
     <h1>FAMILY BIKE</h1>
     <p>Las mejores rutas para disfrutar de la carretera.</p>
 </div>
