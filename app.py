@@ -261,7 +261,52 @@ def guardar_datos_contacto(user_id, email_contacto, avisos_email):
 
     return respuesta
 
+# ---------------------------------
+# ENVÍO DE CORREO DE PRUEBA
+# ---------------------------------
 
+def enviar_correo_prueba():
+
+    api_key = st.secrets.get("RESEND_API_KEY")
+
+    if not api_key:
+        raise ValueError(
+            "No se encuentra RESEND_API_KEY en los Secrets."
+        )
+
+    resend.api_key = api_key
+
+    resultado = resend.Emails.send({
+        "from": "FAMILY BIKE <onboarding@resend.dev>",
+        "to": ["delivered@resend.dev"],
+        "subject": "Prueba de correo - FAMILY BIKE",
+        "html": """
+            <div style="font-family:Arial,sans-serif;
+                        background:#101114;
+                        color:white;
+                        padding:30px;
+                        border-radius:12px;">
+                <h1 style="color:#f0a43a;">
+                    FAMILY BIKE
+                </h1>
+                <h2>Prueba de conexión correcta</h2>
+                <p>
+                    Resend está conectado correctamente
+                    con nuestra aplicación.
+                </p>
+                <p>
+                    El sistema de correo está preparado
+                    para futuras notificaciones de rutas.
+                </p>
+            </div>
+        """,
+        "text": (
+            "FAMILY BIKE: prueba de conexión correcta "
+            "con el servicio Resend."
+        )
+    })
+
+    return resultado
 def cerrar_sesion():
 
     try:
