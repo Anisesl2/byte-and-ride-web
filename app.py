@@ -2,6 +2,7 @@
 import streamlit as st
 import html
 import re
+import resend
 from datetime import date, time
 from supabase import create_client
 
