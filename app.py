@@ -202,7 +202,7 @@ st.markdown("""
 <div class="hero">
     <div class="hero-label">MOTORCYCLE ROUTES • ADVENTURE • FAMILY</div>
     <h1>FAMILY BIKE</h1>
-    <p>Crea una quedada motera y todos los usuarios registradon la recibiran por correo electronico.</p>
+    <p>Crea una quedada motera y todos los usuarios registrados la recibiran en su correo electronico.</p>
 </div>
 """, unsafe_allow_html=True)
 
