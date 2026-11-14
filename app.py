@@ -17,8 +17,7 @@ st.set_page_config(
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-# IMPORTANTE:
-# Se mantiene el dominio interno para no alterar
+# Se mantiene el dominio interno para conservar
 # las cuentas de usuario que ya hemos creado.
 AUTH_DOMAIN = "users.byteandride.invalid"
 
@@ -99,16 +98,6 @@ header[data-testid="stHeader"] {
     position: relative;
     z-index: 2;
     max-width: 720px;
-}
-
-.hero-label {
-    display: inline-block;
-    color: var(--orange);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 5px;
-    margin-bottom: 18px;
-    text-transform: uppercase;
 }
 
 .hero h1 {
@@ -360,11 +349,6 @@ div[data-baseweb="tab-highlight"] {
         font-size: 65px;
     }
 
-    .hero-label {
-        font-size: 10px;
-        letter-spacing: 3px;
-    }
-
     .hero-description {
         font-size: 14px;
     }
@@ -389,10 +373,6 @@ div[data-baseweb="tab-highlight"] {
 st.markdown("""
 <div class="hero">
     <div class="hero-content">
-
-        <div class="hero-label">
-            MOTORCYCLE ROUTES · ADVENTURE · FREEDOM
-        </div>
 
         <h1>
             FAMILY<br>
@@ -502,7 +482,6 @@ if not autenticado:
         "CREAR CUENTA"
     ])
 
-
     # ---------------------------------
     # INICIAR SESIÓN
     # ---------------------------------
@@ -560,7 +539,6 @@ if not autenticado:
 
                     st.error("No se ha podido iniciar sesión.")
                     st.code(str(e))
-
 
     # ---------------------------------
     # CREAR CUENTA
@@ -643,7 +621,6 @@ if not autenticado:
                         "Supabase ha devuelto el siguiente mensaje:"
                     )
                     st.code(str(e))
-
 
     # ---------------------------------
     # PIE DE PÁGINA SIN SESIÓN
