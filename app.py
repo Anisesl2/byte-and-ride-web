@@ -181,6 +181,25 @@ header[data-testid="stHeader"] {
     background: var(--amarillo-secundario);
 }
 
+/* ICONOS DE LAS RUTAS */
+
+.route-icon-box {
+    background: linear-gradient(145deg, #202020, #101010);
+    border: 1px solid var(--borde);
+    border-radius: 15px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.route-icon {
+    font-size: 65px;
+    line-height: 1;
+    filter: drop-shadow(0 4px 8px rgba(255, 212, 0, 0.15));
+}
+
 /* ESTADÍSTICAS */
 
 .stat-box {
@@ -550,6 +569,51 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
         "creadas": creadas,
         "omitidas": len(perfiles) - creadas
     }
+
+
+# ---------------------------------
+# ICONOS AUTOMÁTICOS PARA LAS RUTAS
+# ---------------------------------
+
+def icono_ruta(nombre):
+
+    texto = (nombre or "").lower()
+
+    categorias = [
+        (["playa", "costa", "mar", "litoral", "puerto"], "🌊"),
+        (["montaña", "montana", "sierra", "pico", "cumbre"], "⛰️"),
+        (["bosque", "pinar", "pino", "naturaleza"], "🌲"),
+        (["curvas", "carretera", "asfalto"], "🏍️"),
+        (["río", "rio", "pantano", "embalse", "agua"], "🏞️"),
+        (["pueblo", "pueblos", "ciudad", "urbana"], "🏘️"),
+        (["desierto", "árida", "arida", "campo"], "🌵"),
+        (["mirador", "vistas", "panorámica", "panoramica"], "🌄"),
+        (["castillo", "historia", "monumento"], "🏰"),
+        (["gastronomía", "gastronomia", "comida"], "🍽️"),
+        (["noche", "nocturna", "atardecer"], "🌙"),
+        (["aventura", "offroad", "trail", "pista"], "🧭"),
+        (["cádiz", "cadiz", "andalucía", "andalucia"], "☀️"),
+    ]
+
+    for palabras, icono in categorias:
+
+        if any(palabra in texto for palabra in palabras):
+            return icono
+
+    # Iconos alternativos para nombres sin categoría reconocida
+
+    iconos = [
+        "🏍️",
+        "🛣️",
+        "🧭",
+        "🌍",
+        "🏁",
+        "⛽"
+    ]
+
+    posicion = sum(ord(letra) for letra in texto) % len(iconos)
+
+    return iconos[posicion]
 
 
 # ---------------------------------
@@ -1036,27 +1100,27 @@ with tab_rutas:
 
             nombre = ruta.get("nombre", "Ruta sin nombre")
             url_original = ruta.get("url", "")
-            imagen = ruta.get("imagen_url")
 
-            if (
-                not isinstance(imagen, str)
-                or not imagen.startswith(("https://", "http://"))
-            ):
-                imagen = IMAGEN_PREDETERMINADA
+            # Seleccionar automáticamente el icono
+            icono = icono_ruta(nombre)
 
             with columnas[indice % 3]:
 
-                st.image(
-                    imagen,
-                    use_container_width=True
-                )
+                # TARJETA CON ICONO EN VEZ DE FOTOGRAFÍA
 
                 st.markdown(
                     f"""
+                    <div class="route-icon-box">
+                        <div class="route-icon">
+                            {icono}
+                        </div>
+                    </div>
+
                     <div class="route-card">
                         <div class="route-number">
                             RUTA {indice + 1:02d}
                         </div>
+
                         <div class="route-name">
                             {html.escape(nombre)}
                         </div>
