@@ -2,7 +2,6 @@
 import streamlit as st
 import html
 import re
-import resend
 from datetime import date, time, datetime, timezone
 from supabase import create_client
 
@@ -197,6 +196,38 @@ header[data-testid="stHeader"] {
     margin-bottom: 18px;
 }
 
+/* GARAJE */
+
+.garaje-card {
+    background: #171717;
+    border: 1px solid #FFD400;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 10px 0 18px 0;
+}
+
+.garaje-titulo {
+    color: #FFD400 !important;
+    font-size: 23px;
+    font-weight: 800;
+    font-family: 'Barlow Condensed', sans-serif;
+}
+
+.garaje-subtitulo {
+    color: #FFF2A6 !important;
+    font-size: 14px;
+    margin-top: 7px;
+}
+
+.garaje-card p,
+.garaje-card div,
+.garaje-card span,
+.garaje-card strong {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+
 /* PIE DE PÁGINA */
 
 .footer {
@@ -218,10 +249,18 @@ div[data-testid="stTextInput"] input,
 div[data-testid="stTextInputRootElement"] input,
 div[data-testid="stTextInput"] input[type="password"],
 div[data-testid="stTextArea"] textarea {
-    background: var(--negro-card);
-    color: var(--amarillo-suave);
+    background: var(--negro-card) !important;
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
     border: 1px solid var(--borde);
     border-radius: 9px;
+}
+
+div[data-testid="stTextInput"] input::placeholder,
+div[data-testid="stTextArea"] textarea::placeholder {
+    color: #BDBDBD !important;
+    -webkit-text-fill-color: #BDBDBD !important;
+    opacity: 1 !important;
 }
 
 div[data-testid="stTextInput"] input:focus,
@@ -257,6 +296,7 @@ div[data-baseweb="menu"] li {
 .stLinkButton > a {
     background: var(--amarillo);
     color: #111111 !important;
+    -webkit-text-fill-color: #111111 !important;
     border: 1px solid var(--amarillo);
     border-radius: 9px;
     font-weight: 800;
@@ -289,6 +329,11 @@ div[data-testid="stRadio"] label {
     color: var(--amarillo-suave) !important;
 }
 
+div[data-testid="stCheckbox"] label *,
+div[data-testid="stRadio"] label * {
+    color: var(--amarillo-suave) !important;
+}
+
 /* EXPANDERS */
 
 div[data-testid="stExpander"] {
@@ -297,7 +342,8 @@ div[data-testid="stExpander"] {
     border-radius: 10px;
 }
 
-div[data-testid="stExpander"] summary {
+div[data-testid="stExpander"] summary,
+div[data-testid="stExpander"] summary span {
     color: var(--amarillo) !important;
 }
 
@@ -316,40 +362,82 @@ hr {
     border-color: var(--borde) !important;
 }
 
-/* MENSAJES DE ERROR Y AVISOS */
+/* MENSAJES DE ERROR, AVISO E INFORMACIÓN */
 
 div[data-testid="stAlert"] {
-    background: #242424 !important;
-    border: 1px solid #FFD400 !important;
-    border-radius: 10px !important;
+    background: #292929 !important;
+    border: 2px solid #FFD400 !important;
+    border-radius: 12px !important;
+    padding: 14px 16px !important;
+    opacity: 1 !important;
 }
 
+div[data-testid="stAlert"] *,
 div[data-testid="stAlert"] p,
 div[data-testid="stAlert"] span,
 div[data-testid="stAlert"] div,
-div[data-testid="stAlert"] [data-testid="stMarkdownContainer"] {
+div[data-testid="stAlert"] li,
+div[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
+div[data-testid="stAlert"] [data-testid="stMarkdownContainer"] p {
     color: #FFFFFF !important;
     opacity: 1 !important;
+    visibility: visible !important;
+    -webkit-text-fill-color: #FFFFFF !important;
 }
 
 div[data-testid="stAlert"] svg {
     color: #FFD400 !important;
+    fill: #FFD400 !important;
 }
 
 div[data-testid="stAlert"] a {
     color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
     text-decoration: underline !important;
+}
+
+/* MENSAJES DE LOGIN Y REGISTRO */
+
+div[data-testid="stForm"] div[data-testid="stAlert"] {
+    background: #292929 !important;
+    border: 2px solid #FFD400 !important;
+}
+
+div[data-testid="stForm"] div[data-testid="stAlert"] * {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* CAPTIONS Y TEXTOS SECUNDARIOS */
+
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p,
+.stCaption {
+    color: #FFF2A6 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #FFF2A6 !important;
 }
 
 /* SUBIDA DE FOTOGRAFÍAS */
 
-div[data-testid="stFileUploader"] section {
+div[data-testid="stFileUploader"] {
     background: #171717 !important;
-    border: 1px dashed #FFD400 !important;
+    border: 1px solid #FFD400 !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+}
+
+div[data-testid="stFileUploader"] *,
+div[data-testid="stFileUploader"] section,
+div[data-testid="stFileUploader"] small {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #FFFFFF !important;
 }
 
 div[data-testid="stFileUploader"] button {
     color: #111111 !important;
+    -webkit-text-fill-color: #111111 !important;
     background: #FFD400 !important;
 }
 
@@ -358,16 +446,13 @@ div[data-testid="stFileUploader"] button {
 
 
 # ---------------------------------
-# PORTADA - SOLO LOGO
+# PORTADA - LOGO
 # ---------------------------------
 
 col_izquierda, col_logo, col_derecha = st.columns([1, 2, 1])
 
 with col_logo:
-    st.image(
-        LOGO_URL,
-        width=320
-    )
+    st.image(LOGO_URL, width=320)
 
 
 # ---------------------------------
@@ -441,69 +526,14 @@ def cerrar_sesion():
 
 
 # ---------------------------------
-# RESEND: ENVÍO DE CORREO DE PRUEBA
-# ---------------------------------
-
-def enviar_correo_prueba():
-
-    api_key = st.secrets.get("RESEND_API_KEY")
-
-    if not api_key:
-        raise ValueError(
-            "No se encuentra RESEND_API_KEY en los Secrets de Streamlit."
-        )
-
-    resend.api_key = api_key
-
-    resultado = resend.Emails.send({
-        "from": "FAMILY BIKE <onboarding@resend.dev>",
-        "to": ["delivered@resend.dev"],
-        "subject": "Prueba de correo - FAMILY BIKE",
-        "html": """
-            <div style="
-                font-family:Arial,sans-serif;
-                background:#101114;
-                color:white;
-                padding:30px;
-                border-radius:12px;
-            ">
-                <h1 style="color:#FFD400;">
-                    FAMILY BIKE
-                </h1>
-
-                <h2>Prueba de conexión correcta</h2>
-
-                <p>
-                    Resend está conectado correctamente
-                    con nuestra aplicación.
-                </p>
-
-                <p>
-                    El sistema de correo está preparado
-                    para futuras notificaciones de rutas.
-                </p>
-            </div>
-        """,
-        "text": (
-            "FAMILY BIKE: prueba de conexión correcta "
-            "con el servicio Resend."
-        )
-    })
-
-    return resultado
-
-
-# ---------------------------------
 # SUPABASE: CREAR NOTIFICACIONES
 # ---------------------------------
 
 def crear_notificaciones_quedada(quedada_id, creador_id):
 
     """
-    Crea las notificaciones pendientes en Supabase.
-
-    No envía correos desde Streamlit.
-    El envío se realizará manualmente desde Google Colab.
+    Crea notificaciones pendientes en Supabase.
+    El envío de correos se gestiona desde Google Colab.
     """
 
     if not quedada_id:
@@ -519,7 +549,6 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
     )
 
     perfiles = respuesta_perfiles.data or []
-
     notificaciones = []
 
     ahora_utc = datetime.now(timezone.utc).isoformat()
@@ -695,11 +724,15 @@ if not autenticado:
 
             if not username or not password_login:
 
-                st.error("Introduce tu usuario y contraseña.")
+                st.error(
+                    "Introduce tu usuario y contraseña."
+                )
 
             elif not re.fullmatch(r"[a-z0-9_]{3,24}", username):
 
-                st.error("El nombre de usuario no es válido.")
+                st.error(
+                    "El nombre de usuario no es válido."
+                )
 
             else:
 
@@ -712,12 +745,17 @@ if not autenticado:
 
                     if guardar_sesion(response, username):
 
-                        st.success("Sesión iniciada correctamente.")
+                        st.success(
+                            "Sesión iniciada correctamente."
+                        )
+
                         st.rerun()
 
                     else:
 
-                        st.error("Supabase no ha devuelto una sesión.")
+                        st.error(
+                            "Supabase no ha devuelto una sesión."
+                        )
 
                 except Exception:
 
@@ -795,7 +833,9 @@ if not autenticado:
 
             elif nueva_password != repetir_password:
 
-                st.error("Las contraseñas no coinciden.")
+                st.error(
+                    "Las contraseñas no coinciden."
+                )
 
             else:
 
@@ -856,9 +896,11 @@ if not autenticado:
                 except Exception as e:
 
                     st.error("ERROR AL CREAR LA CUENTA")
+
                     st.write(
                         "Supabase ha devuelto el siguiente mensaje:"
                     )
+
                     st.code(str(e))
 
     st.markdown("""
@@ -879,25 +921,6 @@ if not autenticado:
 usuario_id = st.session_state.get("user_id")
 username_actual = st.session_state["username"]
 
-col_usuario, col_salir = st.columns([4, 1])
-
-with col_usuario:
-
-    st.markdown(
-        f"### 🏍️ Bienvenido, {html.escape(username_actual)}"
-    )
-
-with col_salir:
-
-    if st.button(
-        "CERRAR SESIÓN",
-        use_container_width=True
-    ):
-
-        cerrar_sesion()
-        st.rerun()
-
-
 if not usuario_id:
 
     st.error(
@@ -909,50 +932,96 @@ if not usuario_id:
 
 
 # ---------------------------------
-# PANEL DE PRUEBA DE RESEND
+# CARGAR PERFIL Y FOTO DE MOTO
 # ---------------------------------
 
-with st.expander("📧 PRUEBA DEL SISTEMA DE CORREO"):
+perfil_garaje = {}
+foto_moto_actual = None
 
-    st.write(
-        "Comprueba que FAMILY BIKE puede conectarse "
-        "correctamente con Resend."
+try:
+
+    respuesta_perfil = (
+        supabase.table("profiles")
+        .select("moto_foto_url,username")
+        .eq("id", usuario_id)
+        .maybe_single()
+        .execute()
     )
 
-    st.caption(
-        "Esta prueba utiliza la dirección especial de simulación "
-        "de Resend. No envía un correo a tu bandeja personal."
+    perfil_garaje = respuesta_perfil.data or {}
+
+    foto_moto_actual = perfil_garaje.get(
+        "moto_foto_url"
     )
+
+except Exception as error:
+
+    st.warning(
+        "No se ha podido cargar la fotografía del garaje. "
+        "Comprueba la configuración de profiles."
+    )
+
+
+# ---------------------------------
+# CABECERA DEL USUARIO
+# ---------------------------------
+
+col_usuario, col_moto, col_salir = st.columns([2, 2, 1])
+
+with col_usuario:
+
+    st.markdown(
+        f"""
+        <div class="garaje-card">
+            <div class="garaje-titulo">🏍️ MI GARAJE</div>
+            <div class="garaje-subtitulo">
+                Usuario:
+                <strong>{html.escape(username_actual)}</strong>
+            </div>
+            <div class="garaje-subtitulo">
+                Bienvenido a FAMILY BIKE
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col_moto:
+
+    if foto_moto_actual:
+
+        st.image(
+            foto_moto_actual,
+            caption="Tu motocicleta",
+            use_container_width=True
+        )
+
+    else:
+
+        st.markdown(
+            """
+            <div class="garaje-card">
+                <div class="garaje-titulo">MI MOTOCICLETA</div>
+                <div class="garaje-subtitulo">
+                    Todavía no has añadido una fotografía.
+                </div>
+                <div class="garaje-subtitulo">
+                    Puedes subirla desde la pestaña Mi garaje.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+with col_salir:
 
     if st.button(
-        "ENVIAR CORREO DE PRUEBA",
-        key="boton_prueba_resend"
+        "CERRAR SESIÓN",
+        use_container_width=True
     ):
 
-        try:
-
-            resultado = enviar_correo_prueba()
-
-            email_id = (
-                resultado.get("id")
-                if isinstance(resultado, dict)
-                else getattr(resultado, "id", None)
-            )
-
-            st.success(
-                "¡Conexión con Resend correcta!"
-            )
-
-            if email_id:
-                st.code(f"ID del envío: {email_id}")
-
-        except Exception as e:
-
-            st.error(
-                "No se ha podido enviar la prueba."
-            )
-
-            st.code(str(e))
+        cerrar_sesion()
+        st.rerun()
 
 
 # ---------------------------------
@@ -971,7 +1040,10 @@ try:
 
 except Exception as e:
 
-    st.error("No se han podido cargar las rutas desde Supabase.")
+    st.error(
+        "No se han podido cargar las rutas desde Supabase."
+    )
+
     st.code(str(e))
     st.stop()
 
@@ -1069,11 +1141,15 @@ with tab_rutas:
 
     if not rutas:
 
-        st.warning("Todavía no hay rutas disponibles.")
+        st.warning(
+            "Todavía no hay rutas disponibles."
+        )
 
     elif not rutas_filtradas:
 
-        st.info("No hay rutas que coincidan con tu búsqueda.")
+        st.info(
+            "No hay rutas que coincidan con tu búsqueda."
+        )
 
     else:
 
@@ -1085,19 +1161,22 @@ with tab_rutas:
 
         for indice, ruta in enumerate(rutas_filtradas):
 
-            nombre = ruta.get("nombre", "Ruta sin nombre")
+            nombre = ruta.get(
+                "nombre",
+                "Ruta sin nombre"
+            )
+
             url_original = ruta.get("url", "")
             imagen = ruta.get("imagen_url")
 
-            numero = numero_ruta(ruta)
-
-            if numero is None:
-                numero = indice + 1
+            # Numeración correlativa sin depender del ID
+            numero = indice + 1
 
             if (
                 not isinstance(imagen, str)
                 or not imagen.startswith(("https://", "http://"))
             ):
+
                 imagen = IMAGEN_PREDETERMINADA
 
             with columnas[indice % 3]:
@@ -1245,7 +1324,9 @@ with tab_quedadas:
 
             elif not punto_encuentro.strip():
 
-                st.error("Indica el punto de encuentro.")
+                st.error(
+                    "Indica el punto de encuentro."
+                )
 
             elif (
                 imagen_quedada.strip()
@@ -1304,6 +1385,7 @@ with tab_quedadas:
                     filas_guardadas = respuesta_nueva.data or []
 
                     if not filas_guardadas:
+
                         raise ValueError(
                             "Supabase no ha devuelto la quedada creada. "
                             "No se pueden generar las notificaciones."
@@ -1313,6 +1395,7 @@ with tab_quedadas:
                     quedada_id = quedada_guardada.get("id")
 
                     if not quedada_id:
+
                         raise ValueError(
                             "La quedada se ha guardado, pero no se ha "
                             "recibido su identificador."
@@ -1551,7 +1634,6 @@ with tab_quedadas:
             )
 
             if quedada.get("descripcion"):
-
                 st.write(quedada["descripcion"])
 
             if quedada.get("es_ruta_catalogo"):
@@ -1724,67 +1806,73 @@ with tab_quedadas:
 with tab_garaje:
 
     st.markdown(
-        '<div class="section-title">MI GARAJE</div>',
+        '<div class="section-title">🏁 MI GARAJE</div>',
         unsafe_allow_html=True
     )
 
     st.markdown(
-        '<div class="section-subtitle">'
-        'Tu moto, tu compañera de aventuras. '
-        'Comparte una fotografía con la comunidad FAMILY BIKE.'
-        '</div>',
+        f"""
+        <div class="garaje-card">
+            <div class="garaje-titulo">
+                🏍️ GARAJE DE {html.escape(username_actual.upper())}
+            </div>
+            <div class="garaje-subtitulo">
+                Tu motocicleta y tu espacio en FAMILY BIKE.
+            </div>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
-    foto_moto_actual = None
-
-    try:
-
-        respuesta_perfil = (
-            supabase.table("profiles")
-            .select("moto_foto_url")
-            .eq("id", usuario_id)
-            .maybe_single()
-            .execute()
-        )
-
-        perfil_garaje = respuesta_perfil.data or {}
-
-        foto_moto_actual = perfil_garaje.get(
-            "moto_foto_url"
-        )
-
-    except Exception as error:
-
-        st.error(
-            "No se ha podido cargar la información de tu garaje. "
-            "Comprueba que existe la columna moto_foto_url en profiles."
-        )
-
-        st.code(str(error))
-
-    st.markdown("### 🏍️ MI MOTOCICLETA")
+    st.markdown(
+        '<div class="garaje-titulo">MI MOTOCICLETA</div>',
+        unsafe_allow_html=True
+    )
 
     if foto_moto_actual:
 
         st.image(
             foto_moto_actual,
             use_container_width=True,
-            caption="Tu motocicleta en FAMILY BIKE"
+            caption=f"Motocicleta de {username_actual}"
         )
 
     else:
 
-        st.info(
-            "Todavía no has subido ninguna fotografía de tu moto."
+        st.markdown(
+            """
+            <div class="garaje-card">
+                <div class="garaje-titulo">
+                    🏍️ TODAVÍA NO TIENES UNA FOTOGRAFÍA
+                </div>
+                <p>
+                    Añade una imagen de tu motocicleta para que
+                    aparezca en tu garaje cada vez que entres.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
     st.divider()
 
-    st.markdown("### 📸 SUBIR FOTOGRAFÍA")
+    st.markdown(
+        '<div class="garaje-titulo">📸 AÑADIR O CAMBIAR FOTOGRAFÍA</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div class="garaje-subtitulo">
+            Selecciona una fotografía de tu moto.
+            Si ya tienes una guardada, podrás sustituirla.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     foto_moto = st.file_uploader(
-        "Selecciona una fotografía de tu motocicleta",
+        "Selecciona la fotografía",
         type=["jpg", "jpeg", "png", "webp"],
         key="foto_moto_garaje"
     )
@@ -1793,7 +1881,7 @@ with tab_garaje:
 
         st.image(
             foto_moto,
-            caption="Vista previa de tu fotografía",
+            caption="Vista previa de la fotografía",
             use_container_width=True
         )
 
@@ -1832,14 +1920,21 @@ with tab_garaje:
                 )
 
                 if isinstance(resultado_url, dict):
+
                     url_foto = (
                         resultado_url.get("publicUrl")
                         or resultado_url.get("publicURL")
                     )
+
                 else:
+
                     url_foto = str(resultado_url)
 
-                if not url_foto or not url_foto.startswith("http"):
+                if (
+                    not url_foto
+                    or not url_foto.startswith("http")
+                ):
+
                     raise ValueError(
                         "Supabase no ha devuelto la dirección pública "
                         "de la fotografía."
