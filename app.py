@@ -32,7 +32,7 @@ IMAGEN_PREDETERMINADA = (
 LOGO_URL = (
     "https://nwjnludwqpopcqksntxz.supabase.co/"
     "storage/v1/object/public/familybike/"
-    "316e4e3c-b185-459b-b5d2-944d34cad79e.jpeg"
+    "https://nwjnludwqpopcqksntxz.supabase.co/storage/v1/object/public/familybike/d09209c7-76d5-48d6-8475-a8cc5230498e.jpeg"
 )
 
 
