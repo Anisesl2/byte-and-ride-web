@@ -28,6 +28,13 @@ IMAGEN_PREDETERMINADA = (
     "?auto=format&fit=crop&w=1000&q=80"
 )
 
+# LOGO OFICIAL FAMILY BIKE
+LOGO_URL = (
+    "https://nwjnludwqpopcqksntxz.supabase.co/"
+    "storage/v1/object/public/familybike/"
+    "316e4e3c-b185-459b-b5d2-944d34cad79e.jpeg"
+)
+
 
 # ---------------------------------
 # DISEÑO
@@ -37,10 +44,45 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
+:root {
+    --negro: #0B0B0B;
+    --negro-card: #171717;
+    --negro-hover: #222222;
+    --amarillo: #FFD400;
+    --amarillo-secundario: #F0B900;
+    --amarillo-suave: #FFF2A6;
+    --texto: #FFF8D6;
+    --borde: #494000;
+}
+
 .stApp {
-    background: #101114;
-    color: #f5f5f5;
+    background: var(--negro);
+    color: var(--texto);
     font-family: 'Inter', sans-serif;
+}
+
+/* TEXTOS GENERALES */
+
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
+.stApp,
+.stApp p,
+.stApp label,
+.stApp span,
+.stApp li,
+.stApp div {
+    color: var(--texto);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--amarillo) !important;
+}
+
+.stCaption,
+[data-testid="stCaptionContainer"] {
+    color: var(--amarillo-suave) !important;
 }
 
 header[data-testid="stHeader"] {
@@ -53,54 +95,61 @@ header[data-testid="stHeader"] {
     padding-bottom: 3rem;
 }
 
+/* PORTADA */
+
 .hero {
-    background: linear-gradient(110deg, #17191e, #292d34);
-    border: 1px solid #393d45;
+    background: linear-gradient(110deg, #080808, #202020);
+    border: 1px solid var(--amarillo);
     border-radius: 22px;
-    padding: 55px 35px;
+    padding: 45px 35px;
     margin-bottom: 30px;
     text-align: center;
+    box-shadow: 0 8px 30px rgba(255, 212, 0, 0.08);
 }
 
 .hero-label {
-    color: #f0a43a;
+    color: var(--amarillo) !important;
     letter-spacing: 5px;
     font-size: 13px;
     font-weight: 700;
 }
 
-.hero h1 {
-    color: white;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: clamp(48px, 8vw, 82px);
-    font-weight: 800;
-    letter-spacing: 3px;
-    margin: 12px 0;
+.hero-logo {
+    width: 100%;
+    max-width: 420px;
+    max-height: 210px;
+    object-fit: contain;
+    display: block;
+    margin: 20px auto;
 }
 
 .hero p {
-    color: #bfc2c8;
+    color: var(--amarillo-suave) !important;
     font-size: 17px;
     margin-bottom: 0;
 }
+
+/* TÍTULOS */
 
 .section-title {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 34px;
     font-weight: 700;
-    color: white;
+    color: var(--amarillo) !important;
     margin: 25px 0 5px 0;
 }
 
 .section-subtitle {
-    color: #999da5;
+    color: var(--amarillo-suave) !important;
     font-size: 14px;
     margin-bottom: 22px;
 }
 
+/* TARJETAS DE RUTAS */
+
 .route-card {
-    background: #1b1e24;
-    border: 1px solid #343840;
+    background: var(--negro-card);
+    border: 1px solid var(--borde);
     border-radius: 15px;
     padding: 22px;
     min-height: 175px;
@@ -109,19 +158,19 @@ header[data-testid="stHeader"] {
 }
 
 .route-card:hover {
-    border-color: #f0a43a;
+    border-color: var(--amarillo);
     transform: translateY(-3px);
 }
 
 .route-number {
-    color: #f0a43a;
+    color: var(--amarillo) !important;
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 2px;
 }
 
 .route-name {
-    color: #ffffff;
+    color: var(--amarillo-suave) !important;
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 25px;
     font-weight: 700;
@@ -130,8 +179,8 @@ header[data-testid="stHeader"] {
 
 .route-link {
     display: inline-block;
-    background: #f0a43a;
-    color: #151515 !important;
+    background: var(--amarillo);
+    color: #111111 !important;
     text-decoration: none !important;
     font-size: 12px;
     font-weight: 800;
@@ -141,55 +190,166 @@ header[data-testid="stHeader"] {
 }
 
 .route-link:hover {
-    background: #ffc36b;
+    background: var(--amarillo-secundario);
 }
 
+/* ESTADÍSTICAS */
+
 .stat-box {
-    background: #1b1e24;
-    border: 1px solid #343840;
+    background: var(--negro-card);
+    border: 1px solid var(--borde);
     border-radius: 12px;
     padding: 18px;
     text-align: center;
 }
 
 .stat-number {
-    color: #f0a43a;
+    color: var(--amarillo) !important;
     font-size: 30px;
     font-weight: 800;
 }
 
 .stat-label {
-    color: #aeb1b8;
+    color: var(--amarillo-suave) !important;
     font-size: 12px;
     letter-spacing: 1px;
 }
 
+/* QUEDADAS */
+
 .event-card {
-    background: #1b1e24;
-    border: 1px solid #343840;
+    background: var(--negro-card);
+    border: 1px solid var(--borde);
     border-radius: 15px;
     padding: 20px;
     margin-bottom: 18px;
 }
 
+/* PIE DE PÁGINA */
+
 .footer {
     text-align: center;
-    color: #777b83;
-    border-top: 1px solid #30333a;
+    color: var(--amarillo-suave) !important;
+    border-top: 1px solid var(--borde);
     padding-top: 25px;
     margin-top: 50px;
     font-size: 12px;
 }
 
+.footer strong {
+    color: var(--amarillo) !important;
+}
+
+/* CAMPOS DE TEXTO */
+
 div[data-testid="stTextInput"] input,
 div[data-testid="stTextInputRootElement"] input,
 div[data-testid="stTextInput"] input[type="password"],
 div[data-testid="stTextArea"] textarea {
-    background: #1b1e24;
-    color: white;
-    border: 1px solid #414650;
+    background: var(--negro-card);
+    color: var(--amarillo-suave);
+    border: 1px solid var(--borde);
     border-radius: 9px;
 }
+
+div[data-testid="stTextInput"] input:focus,
+div[data-testid="stTextArea"] textarea:focus {
+    border-color: var(--amarillo);
+    box-shadow: 0 0 0 1px var(--amarillo);
+}
+
+/* SELECTORES */
+
+div[data-baseweb="select"] > div {
+    background: var(--negro-card);
+    border-color: var(--borde);
+    color: var(--amarillo-suave);
+}
+
+div[data-baseweb="popover"] {
+    background: var(--negro-card);
+}
+
+div[data-baseweb="menu"] {
+    background: var(--negro-card);
+}
+
+div[data-baseweb="menu"] li {
+    color: var(--amarillo-suave);
+}
+
+/* BOTONES */
+
+.stButton > button,
+.stFormSubmitButton > button,
+.stLinkButton > a {
+    background: var(--amarillo);
+    color: #111111 !important;
+    border: 1px solid var(--amarillo);
+    border-radius: 9px;
+    font-weight: 800;
+    transition: all .2s ease;
+}
+
+.stButton > button:hover,
+.stFormSubmitButton > button:hover,
+.stLinkButton > a:hover {
+    background: var(--amarillo-secundario);
+    color: #111111 !important;
+    border-color: var(--amarillo-secundario);
+}
+
+/* PESTAÑAS */
+
+button[data-baseweb="tab"] {
+    color: var(--amarillo-suave) !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: var(--amarillo) !important;
+    border-bottom-color: var(--amarillo) !important;
+}
+
+/* CHECKBOX Y RADIO */
+
+div[data-testid="stCheckbox"] label,
+div[data-testid="stRadio"] label {
+    color: var(--amarillo-suave) !important;
+}
+
+/* EXPANDERS */
+
+div[data-testid="stExpander"] {
+    background: var(--negro-card);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+}
+
+div[data-testid="stExpander"] summary {
+    color: var(--amarillo) !important;
+}
+
+/* FORMULARIOS */
+
+div[data-testid="stForm"] {
+    background: var(--negro-card);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 18px;
+}
+
+/* SEPARADORES */
+
+hr {
+    border-color: var(--borde) !important;
+}
+
+/* MENSAJES */
+
+div[data-testid="stAlert"] {
+    border-radius: 10px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -198,11 +358,22 @@ div[data-testid="stTextArea"] textarea {
 # PORTADA
 # ---------------------------------
 
-st.markdown("""
+st.markdown(f"""
 <div class="hero">
-    <div class="hero-label">MOTORCYCLE ROUTES • ADVENTURE • FAMILY</div>
-    <h1>FAMILY BIKE</h1>
-    <p>Crea una quedada motera y todos los usuarios registrados la recibiran en su correo electronico.</p>
+    <div class="hero-label">
+        MOTORCYCLE ROUTES • ADVENTURE • FAMILY
+    </div>
+
+    <img
+        class="hero-logo"
+        src="{LOGO_URL}"
+        alt="FAMILY BIKE"
+    >
+
+    <p>
+        Crea una quedada motera y todos los usuarios registrados
+        la recibirán en su correo electrónico.
+    </p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -304,7 +475,7 @@ def enviar_correo_prueba():
                 padding:30px;
                 border-radius:12px;
             ">
-                <h1 style="color:#f0a43a;">
+                <h1 style="color:#FFD400;">
                     FAMILY BIKE
                 </h1>
 
@@ -340,8 +511,7 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
     Crea las notificaciones pendientes en Supabase.
 
     No envía correos desde Streamlit.
-    El envío lo realizará procesar_notificaciones.py
-    mediante GitHub Actions.
+    El envío se realizará manualmente desde Google Colab.
     """
 
     if not quedada_id:
@@ -361,8 +531,6 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
 
     notificaciones = []
 
-    # Fecha UTC para que el workflow pueda procesarlas
-    # desde el primer momento.
     ahora_utc = datetime.now(timezone.utc).isoformat()
 
     for perfil in perfiles:
@@ -1147,7 +1315,7 @@ with tab_quedadas:
                             st.success(
                                 f"📬 Se han registrado {creadas} "
                                 "notificaciones pendientes. "
-                                "GitHub Actions se encargará de enviarlas."
+                                "Puedes enviarlas desde Google Colab."
                             )
 
                         else:
