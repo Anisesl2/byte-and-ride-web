@@ -61,8 +61,6 @@ st.markdown("""
     font-family: 'Inter', sans-serif;
 }
 
-/* TEXTOS GENERALES */
-
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
@@ -71,7 +69,6 @@ html, body, [class*="css"] {
 .stApp p,
 .stApp label,
 .stApp span,
-.stApp li,
 .stApp div {
     color: var(--texto);
 }
@@ -101,7 +98,7 @@ header[data-testid="stHeader"] {
     background: linear-gradient(110deg, #080808, #202020);
     border: 1px solid var(--amarillo);
     border-radius: 22px;
-    padding: 45px 35px;
+    padding: 35px;
     margin-bottom: 30px;
     text-align: center;
     box-shadow: 0 8px 30px rgba(255, 212, 0, 0.08);
@@ -112,15 +109,6 @@ header[data-testid="stHeader"] {
     letter-spacing: 5px;
     font-size: 13px;
     font-weight: 700;
-}
-
-.hero-logo {
-    width: 100%;
-    max-width: 420px;
-    max-height: 210px;
-    object-fit: contain;
-    display: block;
-    margin: 20px auto;
 }
 
 .hero p {
@@ -355,20 +343,22 @@ div[data-testid="stAlert"] {
 
 
 # ---------------------------------
-# PORTADA
+# PORTADA - LOGO CORREGIDO
 # ---------------------------------
 
-st.markdown(f"""
+col_izquierda, col_logo, col_derecha = st.columns([1, 2, 1])
+
+with col_logo:
+    st.image(
+        LOGO_URL,
+        width=320
+    )
+
+st.markdown("""
 <div class="hero">
     <div class="hero-label">
         MOTORCYCLE ROUTES • ADVENTURE • FAMILY
     </div>
-
-    <img
-        class="hero-logo"
-        src="{LOGO_URL}"
-        alt="FAMILY BIKE"
-    >
 
     <p>
         Crea una quedada motera y todos los usuarios registrados
@@ -519,7 +509,6 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
             "No se ha recibido el ID de la quedada."
         )
 
-    # Obtener usuarios que aceptan recibir avisos.
     respuesta_perfiles = (
         supabase.table("profiles")
         .select("id,email_contacto,avisos_email")
@@ -537,7 +526,6 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
 
         profile_id = perfil.get("id")
 
-        # No enviar notificación al organizador.
         if profile_id == creador_id:
             continue
 
@@ -545,7 +533,6 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
             perfil.get("email_contacto") or ""
         ).strip().lower()
 
-        # No crear avisos para correos incorrectos.
         if not email_valido(email_destino):
             continue
 
@@ -564,7 +551,6 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
             "omitidas": len(perfiles)
         }
 
-    # Insertar las notificaciones pendientes.
     respuesta_insert = (
         supabase.table("notificaciones_quedadas")
         .insert(notificaciones)
@@ -1266,7 +1252,6 @@ with tab_quedadas:
 
                 try:
 
-                    # Guardar la quedada y recuperar su ID.
                     respuesta_nueva = (
                         supabase.table("quedadas")
                         .insert(nueva_quedada)
