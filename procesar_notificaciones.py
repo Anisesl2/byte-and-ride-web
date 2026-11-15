@@ -8,9 +8,10 @@ import urllib.error
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
 
-# ---------------------------------
+
+# ==================================================
 # CONFIGURACIÓN
-# ---------------------------------
+# ==================================================
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
@@ -22,16 +23,20 @@ FAMILY_BIKE_URL = os.environ.get(
 )
 
 REMITENTE = "FAMILY BIKE <avisos@send.familybike.es>"
+
 TABLA_NOTIFICACIONES = "notificaciones_quedadas"
 
 MAX_NOTIFICACIONES = 50
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY
+)
 
 
-# ---------------------------------
-# FUNCIONES GENERALES
-# ---------------------------------
+# ==================================================
+# FECHAS
+# ==================================================
 
 def ahora():
     return datetime.now(timezone.utc)
@@ -41,29 +46,46 @@ def fecha_iso(valor):
     return valor.isoformat()
 
 
+# ==================================================
+# NORMALIZAR RESPUESTAS DE SUPABASE
+# ==================================================
+
 def convertir_registros(datos, origen):
-    """
-    Convierte una respuesta de Supabase en una lista
-    de diccionarios, incluso si llega como JSON en texto.
-    """
 
     if datos is None:
         return []
 
+    # Supabase puede devolver los datos como texto JSON.
     if isinstance(datos, str):
+
+        datos = datos.strip()
+
+        # Una respuesta vacía equivale a cero registros.
+        if not datos:
+            print(f"{origen}: respuesta vacía.")
+            return []
+
         try:
             datos = json.loads(datos)
+
         except json.JSONDecodeError as error:
+
             raise RuntimeError(
-                f"{origen}: la respuesta no contiene JSON válido: {error}"
+                f"{origen}: respuesta de texto no válida. "
+                f"Contenido recibido: {repr(datos[:1000])}. "
+                f"Error: {error}"
             )
 
+    # Si llega un único registro, convertirlo en lista.
     if isinstance(datos, dict):
         datos = [datos]
 
     if not isinstance(datos, list):
+
         raise RuntimeError(
-            f"{origen}: formato inesperado: {type(datos).__name__}"
+            f"{origen}: formato inesperado. "
+            f"Tipo recibido: {type(datos).__name__}. "
+            f"Contenido: {repr(datos)[:1000]}"
         )
 
     registros = []
@@ -71,17 +93,23 @@ def convertir_registros(datos, origen):
     for indice, elemento in enumerate(datos):
 
         if isinstance(elemento, str):
+
             try:
                 elemento = json.loads(elemento)
-            except json.JSONDecodeError:
+
+            except json.JSONDecodeError as error:
+
                 raise RuntimeError(
-                    f"{origen}: el registro {indice} no es un JSON válido."
+                    f"{origen}: registro {indice} "
+                    f"no contiene JSON válido: {error}"
                 )
 
         if not isinstance(elemento, dict):
+
             raise RuntimeError(
-                f"{origen}: el registro {indice} no es un diccionario. "
-                f"Tipo recibido: {type(elemento).__name__}"
+                f"{origen}: registro {indice} "
+                f"no es un diccionario. "
+                f"Tipo: {type(elemento).__name__}"
             )
 
         registros.append(elemento)
@@ -89,9 +117,9 @@ def convertir_registros(datos, origen):
     return registros
 
 
-# ---------------------------------
-# ENVÍO DE CORREOS
-# ---------------------------------
+# ==================================================
+# ENVÍO DE EMAIL CON RESEND
+# ==================================================
 
 def enviar_email(
     destinatario,
@@ -121,14 +149,15 @@ def enviar_email(
     )
 
     try:
+
         with urllib.request.urlopen(
             peticion,
             timeout=30
         ) as respuesta:
 
-            return json.loads(
-                respuesta.read().decode("utf-8")
-            )
+            contenido = respuesta.read().decode("utf-8")
+
+            return json.loads(contenido)
 
     except urllib.error.HTTPError as error:
 
@@ -142,14 +171,14 @@ def enviar_email(
         )
 
 
-# ---------------------------------
-# CONSTRUCCIÓN DEL CORREO
-# ---------------------------------
+# ==================================================
+# CONSTRUIR CORREO
+# ==================================================
 
 def construir_correo(quedada):
 
     nombre = html.escape(
-        quedada.get("ruta_nombre") or "Nueva quedada"
+        str(quedada.get("ruta_nombre") or "Nueva quedada")
     )
 
     fecha = html.escape(
@@ -161,11 +190,11 @@ def construir_correo(quedada):
     )
 
     punto = html.escape(
-        quedada.get("punto_encuentro") or ""
+        str(quedada.get("punto_encuentro") or "")
     )
 
     descripcion = html.escape(
-        quedada.get("descripcion") or ""
+        str(quedada.get("descripcion") or "")
     )
 
     enlace = html.escape(
@@ -174,9 +203,9 @@ def construir_correo(quedada):
     )
 
     cuerpo = f"""
-    <div style="background:#101114;color:#f5f5f5;padding:30px;
-    font-family:Arial,sans-serif;border-radius:14px;
-    max-width:600px;margin:auto;">
+    <div style="background:#101114;color:#f5f5f5;
+    padding:30px;font-family:Arial,sans-serif;
+    border-radius:14px;max-width:600px;margin:auto;">
 
         <h1 style="color:#f0a43a;text-align:center;">
             FAMILY BIKE
@@ -196,8 +225,12 @@ def construir_correo(quedada):
             </h2>
 
             <p>📅 <strong>Fecha:</strong> {fecha}</p>
+
             <p>🕘 <strong>Hora:</strong> {hora}</p>
-            <p>📍 <strong>Punto de encuentro:</strong> {punto}</p>
+
+            <p>
+                📍 <strong>Punto de encuentro:</strong> {punto}
+            </p>
 
             <p>{descripcion}</p>
 
@@ -207,8 +240,9 @@ def construir_correo(quedada):
 
             <a href="{enlace}"
             style="display:inline-block;background:#f0a43a;
-            color:#151515;padding:14px 24px;border-radius:8px;
-            text-decoration:none;font-weight:bold;">
+            color:#151515;padding:14px 24px;
+            border-radius:8px;text-decoration:none;
+            font-weight:bold;">
 
                 ENTRAR Y APUNTARME
 
@@ -216,10 +250,11 @@ def construir_correo(quedada):
 
         </p>
 
-        <p style="color:#999da5;font-size:12px;text-align:center;">
+        <p style="color:#999da5;font-size:12px;
+        text-align:center;">
 
-            Recibes este aviso porque tienes activadas las
-            notificaciones de FAMILY BIKE.
+            Recibes este aviso porque tienes activadas
+            las notificaciones de FAMILY BIKE.
 
         </p>
 
@@ -240,9 +275,9 @@ def construir_correo(quedada):
     return cuerpo, texto
 
 
-# ---------------------------------
-# ACTUALIZAR NOTIFICACIONES
-# ---------------------------------
+# ==================================================
+# ACTUALIZAR NOTIFICACIÓN
+# ==================================================
 
 def actualizar_notificacion(notificacion_id, datos):
 
@@ -254,9 +289,9 @@ def actualizar_notificacion(notificacion_id, datos):
     )
 
 
-# ---------------------------------
-# PROCESAMIENTO PRINCIPAL
-# ---------------------------------
+# ==================================================
+# PROCESAR NOTIFICACIONES
+# ==================================================
 
 def procesar():
 
@@ -268,7 +303,15 @@ def procesar():
         ahora_dt - timedelta(minutes=15)
     )
 
-    # Recuperar trabajos bloqueados hace más de 15 minutos.
+    print("--------------------------------")
+    print("FAMILY BIKE - PROCESADOR DE EMAIL")
+    print("--------------------------------")
+
+    # ----------------------------------------------
+    # RECUPERAR PROCESOS BLOQUEADOS
+    # ----------------------------------------------
+
+    print("Comprobando notificaciones bloqueadas...")
 
     (
         supabase.table(TABLA_NOTIFICACIONES)
@@ -282,7 +325,11 @@ def procesar():
         .execute()
     )
 
-    # Recuperar un máximo de 50 notificaciones.
+    # ----------------------------------------------
+    # CONSULTAR NOTIFICACIONES PENDIENTES
+    # ----------------------------------------------
+
+    print("Consultando notificaciones pendientes...")
 
     respuesta = (
         supabase.table(TABLA_NOTIFICACIONES)
@@ -296,8 +343,16 @@ def procesar():
         .execute()
     )
 
-    # IMPORTANTE:
-    # Normalizar la respuesta antes de recorrerla.
+    # Diagnóstico de la respuesta recibida.
+    print(
+        "Tipo de respuesta Supabase:",
+        type(respuesta.data).__name__
+    )
+
+    print(
+        "Contenido de respuesta:",
+        repr(respuesta.data)[:1000]
+    )
 
     notificaciones = convertir_registros(
         respuesta.data,
@@ -309,19 +364,29 @@ def procesar():
     )
 
     if notificaciones:
-
         print(
-            "Primer registro recibido:",
+            "Campos detectados:",
             list(notificaciones[0].keys())
         )
+
+    if notificaciones and len(notificaciones) > MAX_NOTIFICACIONES:
+
+        raise RuntimeError(
+            "Supabase ha devuelto más registros "
+            "de los permitidos."
+        )
+
+    # ----------------------------------------------
+    # CONTADORES
+    # ----------------------------------------------
 
     enviados = 0
     omitidos = 0
     errores = 0
 
-    # ---------------------------------
+    # ----------------------------------------------
     # RECORRER NOTIFICACIONES
-    # ---------------------------------
+    # ----------------------------------------------
 
     for aviso in notificaciones:
 
@@ -342,7 +407,13 @@ def procesar():
             aviso.get("intentos") or 0
         ) + 1
 
-        # Marcar como procesando.
+        print(
+            f"Procesando notificación {aviso_id}"
+        )
+
+        # ------------------------------------------
+        # MARCAR COMO PROCESANDO
+        # ------------------------------------------
 
         actualizar_notificacion(
             aviso_id,
@@ -355,9 +426,9 @@ def procesar():
 
         try:
 
-            # ---------------------------------
-            # COMPROBAR PERFIL
-            # ---------------------------------
+            # --------------------------------------
+            # BUSCAR PERFIL
+            # --------------------------------------
 
             respuesta_perfil = (
                 supabase.table("profiles")
@@ -415,9 +486,9 @@ def procesar():
                 .lower()
             )
 
-            # ---------------------------------
-            # COMPROBAR QUEDADA
-            # ---------------------------------
+            # --------------------------------------
+            # BUSCAR QUEDADA
+            # --------------------------------------
 
             respuesta_quedada = (
                 supabase.table("quedadas")
@@ -469,9 +540,9 @@ def procesar():
                 omitidos += 1
                 continue
 
-            # ---------------------------------
-            # PREPARAR CORREO
-            # ---------------------------------
+            # --------------------------------------
+            # PREPARAR EMAIL
+            # --------------------------------------
 
             actualizar_notificacion(
                 aviso_id,
@@ -484,9 +555,9 @@ def procesar():
                 quedada
             )
 
-            # ---------------------------------
-            # ENVIAR CORREO
-            # ---------------------------------
+            # --------------------------------------
+            # ENVIAR EMAIL
+            # --------------------------------------
 
             resultado = enviar_email(
                 destinatario=destinatario,
@@ -503,9 +574,9 @@ def procesar():
                 clave=f"familybike-quedada-{aviso_id}"
             )
 
-            # ---------------------------------
-            # CONFIRMAR ENVÍO
-            # ---------------------------------
+            # --------------------------------------
+            # MARCAR COMO ENVIADO
+            # --------------------------------------
 
             actualizar_notificacion(
                 aviso_id,
@@ -521,8 +592,8 @@ def procesar():
             enviados += 1
 
             print(
-                f"Correo enviado a {destinatario}: "
-                f"{resultado.get('id')}"
+                f"ENVIADO: {destinatario} "
+                f"| Resend ID: {resultado.get('id')}"
             )
 
         except Exception as error:
@@ -551,42 +622,52 @@ def procesar():
             except Exception as error_bd:
 
                 print(
-                    f"Error guardando el reintento: {error_bd}"
+                    "ERROR ACTUALIZANDO NOTIFICACIÓN:",
+                    error_bd
                 )
 
             errores += 1
 
             print(
-                f"Error en aviso {aviso_id}: {error}"
+                f"ERROR EN AVISO {aviso_id}: {error}"
             )
 
-    # ---------------------------------
-    # RESUMEN
-    # ---------------------------------
+    # ----------------------------------------------
+    # RESUMEN FINAL
+    # ----------------------------------------------
 
-    print("--------------------------------")
-    print("RESUMEN DEL PROCESAMIENTO")
-    print("--------------------------------")
-    print(f"Recuperadas: {len(notificaciones)}")
-    print(f"Enviadas: {enviados}")
-    print(f"Omitidas: {omitidos}")
+    print("")
+    print("================================")
+    print("RESUMEN FAMILY BIKE")
+    print("================================")
+
+    print(
+        f"Notificaciones recuperadas: {len(notificaciones)}"
+    )
+
+    print(f"Correos enviados: {enviados}")
+
+    print(f"Notificaciones omitidas: {omitidos}")
+
     print(f"Errores: {errores}")
-    print("--------------------------------")
+
+    print("================================")
 
 
-# ---------------------------------
-# INICIO
-# ---------------------------------
+# ==================================================
+# EJECUCIÓN
+# ==================================================
 
 if __name__ == "__main__":
 
     try:
+
         procesar()
 
     except Exception as error:
 
-        print(
-            f"ERROR GENERAL DEL PROCESADOR: {error}"
-        )
+        print("")
+        print("ERROR GENERAL DEL PROCESADOR:")
+        print(str(error))
 
         raise
