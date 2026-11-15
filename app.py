@@ -20,6 +20,7 @@ SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 AUTH_DOMAIN = "users.byteandride.invalid"
+BUCKET_FAMILYBIKE = "familybike"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -28,7 +29,6 @@ IMAGEN_PREDETERMINADA = (
     "?auto=format&fit=crop&w=1000&q=80"
 )
 
-# LOGO OFICIAL FAMILY BIKE
 LOGO_URL = (
     "https://nwjnludwqpopcqksntxz.supabase.co/"
     "storage/v1/object/public/familybike/"
@@ -163,22 +163,6 @@ header[data-testid="stHeader"] {
     font-size: 25px;
     font-weight: 700;
     margin: 12px 0 20px 0;
-}
-
-.route-link {
-    display: inline-block;
-    background: var(--amarillo);
-    color: #111111 !important;
-    text-decoration: none !important;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    padding: 11px 16px;
-    border-radius: 7px;
-}
-
-.route-link:hover {
-    background: var(--amarillo-secundario);
 }
 
 /* ESTADÍSTICAS */
@@ -332,10 +316,41 @@ hr {
     border-color: var(--borde) !important;
 }
 
-/* MENSAJES */
+/* MENSAJES DE ERROR Y AVISOS */
 
 div[data-testid="stAlert"] {
-    border-radius: 10px;
+    background: #242424 !important;
+    border: 1px solid #FFD400 !important;
+    border-radius: 10px !important;
+}
+
+div[data-testid="stAlert"] p,
+div[data-testid="stAlert"] span,
+div[data-testid="stAlert"] div,
+div[data-testid="stAlert"] [data-testid="stMarkdownContainer"] {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+}
+
+div[data-testid="stAlert"] svg {
+    color: #FFD400 !important;
+}
+
+div[data-testid="stAlert"] a {
+    color: #FFD400 !important;
+    text-decoration: underline !important;
+}
+
+/* SUBIDA DE FOTOGRAFÍAS */
+
+div[data-testid="stFileUploader"] section {
+    background: #171717 !important;
+    border: 1px dashed #FFD400 !important;
+}
+
+div[data-testid="stFileUploader"] button {
+    color: #111111 !important;
+    background: #FFD400 !important;
 }
 
 </style>
@@ -426,6 +441,59 @@ def cerrar_sesion():
 
 
 # ---------------------------------
+# RESEND: ENVÍO DE CORREO DE PRUEBA
+# ---------------------------------
+
+def enviar_correo_prueba():
+
+    api_key = st.secrets.get("RESEND_API_KEY")
+
+    if not api_key:
+        raise ValueError(
+            "No se encuentra RESEND_API_KEY en los Secrets de Streamlit."
+        )
+
+    resend.api_key = api_key
+
+    resultado = resend.Emails.send({
+        "from": "FAMILY BIKE <onboarding@resend.dev>",
+        "to": ["delivered@resend.dev"],
+        "subject": "Prueba de correo - FAMILY BIKE",
+        "html": """
+            <div style="
+                font-family:Arial,sans-serif;
+                background:#101114;
+                color:white;
+                padding:30px;
+                border-radius:12px;
+            ">
+                <h1 style="color:#FFD400;">
+                    FAMILY BIKE
+                </h1>
+
+                <h2>Prueba de conexión correcta</h2>
+
+                <p>
+                    Resend está conectado correctamente
+                    con nuestra aplicación.
+                </p>
+
+                <p>
+                    El sistema de correo está preparado
+                    para futuras notificaciones de rutas.
+                </p>
+            </div>
+        """,
+        "text": (
+            "FAMILY BIKE: prueba de conexión correcta "
+            "con el servicio Resend."
+        )
+    })
+
+    return resultado
+
+
+# ---------------------------------
 # SUPABASE: CREAR NOTIFICACIONES
 # ---------------------------------
 
@@ -497,6 +565,40 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
         "creadas": creadas,
         "omitidas": len(perfiles) - creadas
     }
+
+
+# ---------------------------------
+# FUNCIONES DE ORDENACIÓN DE RUTAS
+# ---------------------------------
+
+def numero_ruta(ruta):
+
+    nombre = str(
+        ruta.get("nombre", "")
+    ).strip()
+
+    coincidencia = re.search(
+        r"\bruta\s*#?\s*(\d+)",
+        nombre,
+        re.IGNORECASE
+    )
+
+    if coincidencia:
+        return int(coincidencia.group(1))
+
+    return None
+
+
+def ordenar_rutas(lista_rutas):
+
+    return sorted(
+        lista_rutas,
+        key=lambda ruta: (
+            numero_ruta(ruta) is None,
+            numero_ruta(ruta) if numero_ruta(ruta) is not None else 999999,
+            str(ruta.get("nombre", "")).lower()
+        )
+    )
 
 
 # ---------------------------------
@@ -619,8 +721,10 @@ if not autenticado:
 
                 except Exception:
 
-                    st.error("No se ha podido iniciar sesión.")
-                    st.info("Comprueba el usuario y la contraseña.")
+                    st.error(
+                        "No se ha podido iniciar sesión. "
+                        "Comprueba el usuario y la contraseña."
+                    )
 
     # ---------------------------------
     # CREAR CUENTA
@@ -805,6 +909,53 @@ if not usuario_id:
 
 
 # ---------------------------------
+# PANEL DE PRUEBA DE RESEND
+# ---------------------------------
+
+with st.expander("📧 PRUEBA DEL SISTEMA DE CORREO"):
+
+    st.write(
+        "Comprueba que FAMILY BIKE puede conectarse "
+        "correctamente con Resend."
+    )
+
+    st.caption(
+        "Esta prueba utiliza la dirección especial de simulación "
+        "de Resend. No envía un correo a tu bandeja personal."
+    )
+
+    if st.button(
+        "ENVIAR CORREO DE PRUEBA",
+        key="boton_prueba_resend"
+    ):
+
+        try:
+
+            resultado = enviar_correo_prueba()
+
+            email_id = (
+                resultado.get("id")
+                if isinstance(resultado, dict)
+                else getattr(resultado, "id", None)
+            )
+
+            st.success(
+                "¡Conexión con Resend correcta!"
+            )
+
+            if email_id:
+                st.code(f"ID del envío: {email_id}")
+
+        except Exception as e:
+
+            st.error(
+                "No se ha podido enviar la prueba."
+            )
+
+            st.code(str(e))
+
+
+# ---------------------------------
 # CARGAR RUTAS DESDE SUPABASE
 # ---------------------------------
 
@@ -813,11 +964,10 @@ try:
     respuesta = (
         supabase.table("rutas")
         .select("id,nombre,url,imagen_url")
-        .order("id")
         .execute()
     )
 
-    rutas = respuesta.data or []
+    rutas = ordenar_rutas(respuesta.data or [])
 
 except Exception as e:
 
@@ -881,9 +1031,10 @@ with col3:
 # PESTAÑAS PRINCIPALES
 # ---------------------------------
 
-tab_rutas, tab_quedadas = st.tabs([
+tab_rutas, tab_quedadas, tab_garaje = st.tabs([
     "🏍️ EXPLORAR RUTAS",
-    "📅 QUEDADAS MOTERAS"
+    "📅 QUEDADAS MOTERAS",
+    "🏁 MI GARAJE"
 ])
 
 
@@ -938,6 +1089,11 @@ with tab_rutas:
             url_original = ruta.get("url", "")
             imagen = ruta.get("imagen_url")
 
+            numero = numero_ruta(ruta)
+
+            if numero is None:
+                numero = indice + 1
+
             if (
                 not isinstance(imagen, str)
                 or not imagen.startswith(("https://", "http://"))
@@ -955,7 +1111,7 @@ with tab_rutas:
                     f"""
                     <div class="route-card">
                         <div class="route-number">
-                            RUTA {indice + 1:02d}
+                            RUTA {numero:02d}
                         </div>
                         <div class="route-name">
                             {html.escape(nombre)}
@@ -1559,6 +1715,160 @@ with tab_quedadas:
                 '</div>',
                 unsafe_allow_html=True
             )
+
+
+# =================================
+# PESTAÑA MI GARAJE
+# =================================
+
+with tab_garaje:
+
+    st.markdown(
+        '<div class="section-title">MI GARAJE</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        '<div class="section-subtitle">'
+        'Tu moto, tu compañera de aventuras. '
+        'Comparte una fotografía con la comunidad FAMILY BIKE.'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    foto_moto_actual = None
+
+    try:
+
+        respuesta_perfil = (
+            supabase.table("profiles")
+            .select("moto_foto_url")
+            .eq("id", usuario_id)
+            .maybe_single()
+            .execute()
+        )
+
+        perfil_garaje = respuesta_perfil.data or {}
+
+        foto_moto_actual = perfil_garaje.get(
+            "moto_foto_url"
+        )
+
+    except Exception as error:
+
+        st.error(
+            "No se ha podido cargar la información de tu garaje. "
+            "Comprueba que existe la columna moto_foto_url en profiles."
+        )
+
+        st.code(str(error))
+
+    st.markdown("### 🏍️ MI MOTOCICLETA")
+
+    if foto_moto_actual:
+
+        st.image(
+            foto_moto_actual,
+            use_container_width=True,
+            caption="Tu motocicleta en FAMILY BIKE"
+        )
+
+    else:
+
+        st.info(
+            "Todavía no has subido ninguna fotografía de tu moto."
+        )
+
+    st.divider()
+
+    st.markdown("### 📸 SUBIR FOTOGRAFÍA")
+
+    foto_moto = st.file_uploader(
+        "Selecciona una fotografía de tu motocicleta",
+        type=["jpg", "jpeg", "png", "webp"],
+        key="foto_moto_garaje"
+    )
+
+    if foto_moto:
+
+        st.image(
+            foto_moto,
+            caption="Vista previa de tu fotografía",
+            use_container_width=True
+        )
+
+        if st.button(
+            "GUARDAR EN MI GARAJE",
+            use_container_width=True,
+            key="guardar_foto_moto"
+        ):
+
+            try:
+
+                extension = foto_moto.name.rsplit(
+                    ".",
+                    1
+                )[-1].lower()
+
+                nombre_archivo = (
+                    f"garaje/{usuario_id}/moto_"
+                    f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}"
+                    f".{extension}"
+                )
+
+                supabase.storage.from_(BUCKET_FAMILYBIKE).upload(
+                    nombre_archivo,
+                    foto_moto.getvalue(),
+                    file_options={
+                        "content-type": foto_moto.type,
+                        "upsert": "false"
+                    }
+                )
+
+                resultado_url = (
+                    supabase.storage
+                    .from_(BUCKET_FAMILYBIKE)
+                    .get_public_url(nombre_archivo)
+                )
+
+                if isinstance(resultado_url, dict):
+                    url_foto = (
+                        resultado_url.get("publicUrl")
+                        or resultado_url.get("publicURL")
+                    )
+                else:
+                    url_foto = str(resultado_url)
+
+                if not url_foto or not url_foto.startswith("http"):
+                    raise ValueError(
+                        "Supabase no ha devuelto la dirección pública "
+                        "de la fotografía."
+                    )
+
+                supabase.table("profiles").update({
+                    "moto_foto_url": url_foto
+                }).eq(
+                    "id",
+                    usuario_id
+                ).execute()
+
+                st.success(
+                    "¡Fotografía guardada correctamente en tu garaje!"
+                )
+
+                st.rerun()
+
+            except Exception as error:
+
+                st.error(
+                    "No se ha podido guardar la fotografía."
+                )
+
+                st.code(str(error))
+
+    st.caption(
+        "Formatos permitidos: JPG, JPEG, PNG y WEBP."
+    )
 
 
 # ---------------------------------
