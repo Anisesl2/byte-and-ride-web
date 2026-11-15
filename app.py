@@ -229,6 +229,48 @@ header[data-testid="stHeader"] {
     -webkit-text-fill-color: #FFFFFF !important;
 }
 
+/* COMUNIDAD */
+
+.community-card {
+    background: #171717;
+    border: 1px solid #494000;
+    border-radius: 15px;
+    padding: 12px;
+    margin-bottom: 18px;
+    transition: all .2s ease;
+}
+
+.community-card:hover {
+    border-color: #FFD400;
+    transform: translateY(-3px);
+}
+
+.community-name {
+    color: #FFD400 !important;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 25px;
+    font-weight: 800;
+    text-align: center;
+    margin-top: 12px;
+}
+
+.community-label {
+    color: #FFF2A6 !important;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-top: 5px;
+}
+
+.community-you {
+    color: #FFD400 !important;
+    font-size: 11px;
+    font-weight: 800;
+    text-align: center;
+    margin-top: 7px;
+}
+
 /* TIENDA */
 
 .tienda-card {
@@ -1116,10 +1158,11 @@ with col3:
 # PESTAÑAS PRINCIPALES
 # ---------------------------------
 
-tab_rutas, tab_quedadas, tab_garaje, tab_tienda = st.tabs([
+tab_rutas, tab_quedadas, tab_garaje, tab_comunidad, tab_tienda = st.tabs([
     "🏍️ EXPLORAR RUTAS",
     "📅 QUEDADAS MOTERAS",
     "🏁 MI GARAJE",
+    "👥 COMUNIDAD",
     "🛒 TIENDA"
 ])
 
@@ -1975,6 +2018,138 @@ with tab_garaje:
     st.caption(
         "Formatos permitidos: JPG, JPEG, PNG y WEBP."
     )
+
+
+# =================================
+# PESTAÑA COMUNIDAD
+# =================================
+
+with tab_comunidad:
+
+    st.markdown(
+        '<div class="section-title">👥 COMUNIDAD FAMILY BIKE</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div class="section-subtitle">
+            Conoce a otros moteros de FAMILY BIKE y descubre sus motocicletas.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    try:
+
+        respuesta_comunidad = (
+            supabase.table("profiles")
+            .select("id,username,moto_foto_url")
+            .order("username")
+            .execute()
+        )
+
+        todos_los_perfiles = respuesta_comunidad.data or []
+
+        miembros = []
+
+        for perfil in todos_los_perfiles:
+
+            foto = perfil.get("moto_foto_url")
+
+            if (
+                isinstance(foto, str)
+                and foto.startswith(("https://", "http://"))
+            ):
+                miembros.append(perfil)
+
+        st.markdown(
+            f"""
+            <div class="stat-box">
+                <div class="stat-number">{len(miembros)}</div>
+                <div class="stat-label">
+                    MOTEROS CON FOTOGRAFÍA EN SU GARAJE
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.write("")
+
+        if not miembros:
+
+            st.info(
+                "Todavía no hay moteros que hayan subido "
+                "la fotografía de su motocicleta. ¡Sé el primero!"
+            )
+
+        else:
+
+            columnas_miembros = st.columns(3)
+
+            for indice, miembro in enumerate(miembros):
+
+                nombre_miembro = str(
+                    miembro.get("username") or "Motero"
+                )
+
+                foto_miembro = miembro.get("moto_foto_url")
+
+                if (
+                    not isinstance(foto_miembro, str)
+                    or not foto_miembro.startswith(("https://", "http://"))
+                ):
+                    continue
+
+                es_mi_perfil = (
+                    str(miembro.get("id")) == str(usuario_id)
+                )
+
+                with columnas_miembros[indice % 3]:
+
+                    with st.container(border=True):
+
+                        st.image(
+                            foto_miembro,
+                            use_container_width=True
+                        )
+
+                        st.markdown(
+                            f"""
+                            <div class="community-name">
+                                {html.escape(nombre_miembro)}
+                            </div>
+                            <div class="community-label">
+                                🏍️ MIEMBRO FAMILY BIKE
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                        if es_mi_perfil:
+
+                            st.markdown(
+                                """
+                                <div class="community-you">
+                                    ★ TU MOTOCICLETA
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+
+    except Exception as error_comunidad:
+
+        st.error(
+            "No se ha podido cargar la comunidad."
+        )
+
+        st.warning(
+            "Comprueba los permisos de lectura de la tabla profiles "
+            "y que existan las columnas username y moto_foto_url."
+        )
+
+        st.code(str(error_comunidad))
 
 
 # =================================
