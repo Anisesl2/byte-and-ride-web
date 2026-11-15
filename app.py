@@ -331,6 +331,180 @@ def enviar_correo_prueba():
 
 
 # ---------------------------------
+# RESEND: NOTIFICACIONES DE QUEDADAS
+# ---------------------------------
+
+def enviar_notificaciones_quedada(quedada):
+
+    api_key = st.secrets.get("RESEND_API_KEY")
+
+    if not api_key:
+        raise ValueError(
+            "No se encuentra RESEND_API_KEY en los Secrets."
+        )
+
+    resend.api_key = api_key
+
+    creador_id = quedada["creador_id"]
+
+    # Obtener perfiles que aceptan recibir avisos
+    respuesta_perfiles = (
+        supabase.table("profiles")
+        .select("id,username,email_contacto,avisos_email")
+        .eq("avisos_email", True)
+        .execute()
+    )
+
+    perfiles = respuesta_perfiles.data or []
+
+    enviados = 0
+    errores = 0
+    omitidos = 0
+
+    nombre_ruta = html.escape(
+        str(quedada["ruta_nombre"])
+    )
+
+    fecha = html.escape(
+        str(quedada["fecha"])
+    )
+
+    hora = html.escape(
+        str(quedada["hora"])[:5]
+    )
+
+    punto_encuentro = html.escape(
+        str(quedada["punto_encuentro"])
+    )
+
+    descripcion = html.escape(
+        str(quedada.get("descripcion") or "")
+    )
+
+    # Enviar correo individual a cada usuario
+    for perfil in perfiles:
+
+        # Excluir al organizador
+        if perfil["id"] == creador_id:
+            continue
+
+        email_destino = (
+            perfil.get("email_contacto") or ""
+        ).strip().lower()
+
+        username = html.escape(
+            str(perfil.get("username") or "Motero")
+        )
+
+        # Comprobar dirección de correo
+        if not email_valido(email_destino):
+
+            omitidos += 1
+            continue
+
+        try:
+
+            resend.Emails.send({
+                "from": "FAMILY BIKE <quedadas@familybike.es>",
+                "to": [email_destino],
+                "subject": (
+                    f"Nueva quedada motera: "
+                    f"{quedada['ruta_nombre']}"
+                ),
+
+                "html": f"""
+                <div style="
+                    font-family:Arial,sans-serif;
+                    background:#101114;
+                    color:#f5f5f5;
+                    padding:30px;
+                    border-radius:12px;
+                ">
+
+                    <h1 style="color:#f0a43a;">
+                        🏍️ FAMILY BIKE
+                    </h1>
+
+                    <h2>¡Hola, {username}!</h2>
+
+                    <p>
+                        Se ha publicado una nueva quedada motera
+                        en FAMILY BIKE.
+                    </p>
+
+                    <div style="
+                        background:#1b1e24;
+                        padding:20px;
+                        border-radius:10px;
+                    ">
+
+                        <h2 style="color:#f0a43a;">
+                            {nombre_ruta}
+                        </h2>
+
+                        <p>
+                            <strong>📅 Fecha:</strong> {fecha}
+                        </p>
+
+                        <p>
+                            <strong>🕘 Hora:</strong> {hora}
+                        </p>
+
+                        <p>
+                            <strong>📍 Punto de encuentro:</strong>
+                            {punto_encuentro}
+                        </p>
+
+                        <p>
+                            {descripcion}
+                        </p>
+
+                    </div>
+
+                    <p style="margin-top:25px;">
+                        ¡Anímate a compartir carretera con
+                        otros moteros!
+                    </p>
+
+                    <p style="color:#f0a43a;">
+                        FAMILY BIKE
+                    </p>
+
+                </div>
+                """,
+
+                "text": (
+                    f"Hola {perfil.get('username', 'Motero')}!\n\n"
+                    f"Nueva quedada motera: {quedada['ruta_nombre']}\n"
+                    f"Fecha: {quedada['fecha']}\n"
+                    f"Hora: {str(quedada['hora'])[:5]}\n"
+                    f"Punto de encuentro: "
+                    f"{quedada['punto_encuentro']}\n"
+                    f"Descripción: "
+                    f"{quedada.get('descripcion') or ''}\n\n"
+                    "FAMILY BIKE"
+                )
+            })
+
+            enviados += 1
+
+        except Exception as error:
+
+            errores += 1
+
+            print(
+                f"Error enviando correo a "
+                f"{email_destino}: {error}"
+            )
+
+    return {
+        "enviados": enviados,
+        "errores": errores,
+        "omitidos": omitidos
+    }
+
+
+# ---------------------------------
 # RESTAURAR SESIÓN
 # ---------------------------------
 
@@ -1017,6 +1191,7 @@ with tab_quedadas:
 
                 try:
 
+                    # Primero guardar la quedada en Supabase
                     supabase.table("quedadas").insert(
                         nueva_quedada
                     ).execute()
@@ -1024,6 +1199,63 @@ with tab_quedadas:
                     st.success(
                         "¡Quedada publicada correctamente!"
                     )
+
+                    # ---------------------------------
+                    # ENVIAR NOTIFICACIONES AUTOMÁTICAS
+                    # ---------------------------------
+
+                    try:
+
+                        resultado_emails = (
+                            enviar_notificaciones_quedada(
+                                nueva_quedada
+                            )
+                        )
+
+                        enviados = resultado_emails["enviados"]
+                        errores = resultado_emails["errores"]
+                        omitidos = resultado_emails["omitidos"]
+
+                        if enviados > 0:
+
+                            st.success(
+                                f"📧 Se han enviado "
+                                f"{enviados} notificaciones "
+                                f"por correo electrónico."
+                            )
+
+                        else:
+
+                            st.info(
+                                "No había usuarios con avisos "
+                                "activados a los que enviar "
+                                "la notificación."
+                            )
+
+                        if errores > 0:
+
+                            st.warning(
+                                f"{errores} correos no se pudieron "
+                                f"enviar. Consulta los registros "
+                                f"de Resend."
+                            )
+
+                        if omitidos > 0:
+
+                            st.caption(
+                                f"{omitidos} usuarios omitidos "
+                                f"por no tener un correo válido."
+                            )
+
+                    except Exception as error_email:
+
+                        st.warning(
+                            "La quedada se ha publicado correctamente, "
+                            "pero no se han podido enviar las "
+                            "notificaciones por correo."
+                        )
+
+                        st.code(str(error_email))
 
                     st.rerun()
 
