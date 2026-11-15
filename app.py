@@ -426,59 +426,6 @@ def cerrar_sesion():
 
 
 # ---------------------------------
-# RESEND: ENVÍO DE CORREO DE PRUEBA
-# ---------------------------------
-
-def enviar_correo_prueba():
-
-    api_key = st.secrets.get("RESEND_API_KEY")
-
-    if not api_key:
-        raise ValueError(
-            "No se encuentra RESEND_API_KEY en los Secrets de Streamlit."
-        )
-
-    resend.api_key = api_key
-
-    resultado = resend.Emails.send({
-        "from": "FAMILY BIKE <onboarding@resend.dev>",
-        "to": ["delivered@resend.dev"],
-        "subject": "Prueba de correo - FAMILY BIKE",
-        "html": """
-            <div style="
-                font-family:Arial,sans-serif;
-                background:#101114;
-                color:white;
-                padding:30px;
-                border-radius:12px;
-            ">
-                <h1 style="color:#FFD400;">
-                    FAMILY BIKE
-                </h1>
-
-                <h2>Prueba de conexión correcta</h2>
-
-                <p>
-                    Resend está conectado correctamente
-                    con nuestra aplicación.
-                </p>
-
-                <p>
-                    El sistema de correo está preparado
-                    para futuras notificaciones de rutas.
-                </p>
-            </div>
-        """,
-        "text": (
-            "FAMILY BIKE: prueba de conexión correcta "
-            "con el servicio Resend."
-        )
-    })
-
-    return resultado
-
-
-# ---------------------------------
 # SUPABASE: CREAR NOTIFICACIONES
 # ---------------------------------
 
@@ -845,53 +792,6 @@ with col_salir:
 
         cerrar_sesion()
         st.rerun()
-
-
-# ---------------------------------
-# PANEL DE PRUEBA DE RESEND
-# ---------------------------------
-
-with st.expander("📧 PRUEBA DEL SISTEMA DE CORREO"):
-
-    st.write(
-        "Comprueba que FAMILY BIKE puede conectarse "
-        "correctamente con Resend."
-    )
-
-    st.caption(
-        "Esta prueba utiliza la dirección especial de simulación "
-        "de Resend. No envía un correo a tu bandeja personal."
-    )
-
-    if st.button(
-        "ENVIAR CORREO DE PRUEBA",
-        key="boton_prueba_resend"
-    ):
-
-        try:
-
-            resultado = enviar_correo_prueba()
-
-            email_id = (
-                resultado.get("id")
-                if isinstance(resultado, dict)
-                else getattr(resultado, "id", None)
-            )
-
-            st.success(
-                "¡Conexión con Resend correcta!"
-            )
-
-            if email_id:
-                st.code(f"ID del envío: {email_id}")
-
-        except Exception as e:
-
-            st.error(
-                "No se ha podido enviar la prueba."
-            )
-
-            st.code(str(e))
 
 
 if not usuario_id:
