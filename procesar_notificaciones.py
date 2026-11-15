@@ -55,12 +55,10 @@ def convertir_registros(datos, origen):
     if datos is None:
         return []
 
-    # Supabase puede devolver los datos como texto JSON.
     if isinstance(datos, str):
 
         datos = datos.strip()
 
-        # Una respuesta vacía equivale a cero registros.
         if not datos:
             print(f"{origen}: respuesta vacía.")
             return []
@@ -71,12 +69,10 @@ def convertir_registros(datos, origen):
         except json.JSONDecodeError as error:
 
             raise RuntimeError(
-                f"{origen}: respuesta de texto no válida. "
-                f"Contenido recibido: {repr(datos[:1000])}. "
-                f"Error: {error}"
+                f"{origen}: respuesta no válida. "
+                f"{repr(datos[:1000])}. Error: {error}"
             )
 
-    # Si llega un único registro, convertirlo en lista.
     if isinstance(datos, dict):
         datos = [datos]
 
@@ -84,8 +80,7 @@ def convertir_registros(datos, origen):
 
         raise RuntimeError(
             f"{origen}: formato inesperado. "
-            f"Tipo recibido: {type(datos).__name__}. "
-            f"Contenido: {repr(datos)[:1000]}"
+            f"Tipo: {type(datos).__name__}"
         )
 
     registros = []
@@ -108,8 +103,7 @@ def convertir_registros(datos, origen):
 
             raise RuntimeError(
                 f"{origen}: registro {indice} "
-                f"no es un diccionario. "
-                f"Tipo: {type(elemento).__name__}"
+                f"no es un diccionario."
             )
 
         registros.append(elemento)
@@ -168,6 +162,12 @@ def enviar_email(
 
         raise RuntimeError(
             f"Resend HTTP {error.code}: {detalle}"
+        )
+
+    except urllib.error.URLError as error:
+
+        raise RuntimeError(
+            f"Error de conexión con Resend: {error}"
         )
 
 
@@ -343,7 +343,6 @@ def procesar():
         .execute()
     )
 
-    # Diagnóstico de la respuesta recibida.
     print(
         "Tipo de respuesta Supabase:",
         type(respuesta.data).__name__
@@ -369,7 +368,7 @@ def procesar():
             list(notificaciones[0].keys())
         )
 
-    if notificaciones and len(notificaciones) > MAX_NOTIFICACIONES:
+    if len(notificaciones) > MAX_NOTIFICACIONES:
 
         raise RuntimeError(
             "Supabase ha devuelto más registros "
@@ -652,6 +651,19 @@ def procesar():
     print(f"Errores: {errores}")
 
     print("================================")
+
+    # ----------------------------------------------
+    # INFORMAR DE ERRORES A GITHUB ACTIONS
+    # ----------------------------------------------
+
+    if errores > 0:
+
+        raise RuntimeError(
+            f"El procesador ha terminado con {errores} errores. "
+            f"Enviados: {enviados}. "
+            f"Omitidos: {omitidos}. "
+            "Consulta los detalles anteriores."
+        )
 
 
 # ==================================================
