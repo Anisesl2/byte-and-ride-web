@@ -3,7 +3,7 @@ import streamlit as st
 import html
 import re
 import resend
-from datetime import date, time
+from datetime import date, time, datetime, timezone
 from supabase import create_client
 
 # ---------------------------------
@@ -331,176 +331,83 @@ def enviar_correo_prueba():
 
 
 # ---------------------------------
-# RESEND: NOTIFICACIONES DE QUEDADAS
+# SUPABASE: CREAR NOTIFICACIONES
 # ---------------------------------
 
-def enviar_notificaciones_quedada(quedada):
+def crear_notificaciones_quedada(quedada_id, creador_id):
 
-    api_key = st.secrets.get("RESEND_API_KEY")
+    """
+    Crea las notificaciones pendientes en Supabase.
 
-    if not api_key:
+    No envía correos desde Streamlit.
+    El envío lo realizará procesar_notificaciones.py
+    mediante GitHub Actions.
+    """
+
+    if not quedada_id:
         raise ValueError(
-            "No se encuentra RESEND_API_KEY en los Secrets."
+            "No se ha recibido el ID de la quedada."
         )
 
-    resend.api_key = api_key
-
-    creador_id = quedada["creador_id"]
-
-    # Obtener perfiles que aceptan recibir avisos
+    # Obtener usuarios que aceptan recibir avisos.
     respuesta_perfiles = (
         supabase.table("profiles")
-        .select("id,username,email_contacto,avisos_email")
+        .select("id,email_contacto,avisos_email")
         .eq("avisos_email", True)
         .execute()
     )
 
     perfiles = respuesta_perfiles.data or []
 
-    enviados = 0
-    errores = 0
-    omitidos = 0
+    notificaciones = []
 
-    nombre_ruta = html.escape(
-        str(quedada["ruta_nombre"])
-    )
+    # Fecha UTC para que el workflow pueda procesarlas
+    # desde el primer momento.
+    ahora_utc = datetime.now(timezone.utc).isoformat()
 
-    fecha = html.escape(
-        str(quedada["fecha"])
-    )
-
-    hora = html.escape(
-        str(quedada["hora"])[:5]
-    )
-
-    punto_encuentro = html.escape(
-        str(quedada["punto_encuentro"])
-    )
-
-    descripcion = html.escape(
-        str(quedada.get("descripcion") or "")
-    )
-
-    # Enviar correo individual a cada usuario
     for perfil in perfiles:
 
-        # Excluir al organizador
-        if perfil["id"] == creador_id:
+        profile_id = perfil.get("id")
+
+        # No enviar notificación al organizador.
+        if profile_id == creador_id:
             continue
 
         email_destino = (
             perfil.get("email_contacto") or ""
         ).strip().lower()
 
-        username = html.escape(
-            str(perfil.get("username") or "Motero")
-        )
-
-        # Comprobar dirección de correo
+        # No crear avisos para correos incorrectos.
         if not email_valido(email_destino):
-
-            omitidos += 1
             continue
 
-        try:
+        notificaciones.append({
+            "quedada_id": quedada_id,
+            "profile_id": profile_id,
+            "email_destino": email_destino,
+            "estado": "pendiente",
+            "intentos": 0,
+            "proximo_intento": ahora_utc
+        })
 
-            resend.Emails.send({
-                "from": "FAMILY BIKE <quedadas@familybike.es>",
-                "to": [email_destino],
-                "subject": (
-                    f"Nueva quedada motera: "
-                    f"{quedada['ruta_nombre']}"
-                ),
+    if not notificaciones:
+        return {
+            "creadas": 0,
+            "omitidas": len(perfiles)
+        }
 
-                "html": f"""
-                <div style="
-                    font-family:Arial,sans-serif;
-                    background:#101114;
-                    color:#f5f5f5;
-                    padding:30px;
-                    border-radius:12px;
-                ">
+    # Insertar las notificaciones pendientes.
+    respuesta_insert = (
+        supabase.table("notificaciones_quedadas")
+        .insert(notificaciones)
+        .execute()
+    )
 
-                    <h1 style="color:#f0a43a;">
-                        🏍️ FAMILY BIKE
-                    </h1>
-
-                    <h2>¡Hola, {username}!</h2>
-
-                    <p>
-                        Se ha publicado una nueva quedada motera
-                        en FAMILY BIKE.
-                    </p>
-
-                    <div style="
-                        background:#1b1e24;
-                        padding:20px;
-                        border-radius:10px;
-                    ">
-
-                        <h2 style="color:#f0a43a;">
-                            {nombre_ruta}
-                        </h2>
-
-                        <p>
-                            <strong>📅 Fecha:</strong> {fecha}
-                        </p>
-
-                        <p>
-                            <strong>🕘 Hora:</strong> {hora}
-                        </p>
-
-                        <p>
-                            <strong>📍 Punto de encuentro:</strong>
-                            {punto_encuentro}
-                        </p>
-
-                        <p>
-                            {descripcion}
-                        </p>
-
-                    </div>
-
-                    <p style="margin-top:25px;">
-                        ¡Anímate a compartir carretera con
-                        otros moteros!
-                    </p>
-
-                    <p style="color:#f0a43a;">
-                        FAMILY BIKE
-                    </p>
-
-                </div>
-                """,
-
-                "text": (
-                    f"Hola {perfil.get('username', 'Motero')}!\n\n"
-                    f"Nueva quedada motera: {quedada['ruta_nombre']}\n"
-                    f"Fecha: {quedada['fecha']}\n"
-                    f"Hora: {str(quedada['hora'])[:5]}\n"
-                    f"Punto de encuentro: "
-                    f"{quedada['punto_encuentro']}\n"
-                    f"Descripción: "
-                    f"{quedada.get('descripcion') or ''}\n\n"
-                    "FAMILY BIKE"
-                )
-            })
-
-            enviados += 1
-
-        except Exception as error:
-
-            errores += 1
-
-            print(
-                f"Error enviando correo a "
-                f"{email_destino}: {error}"
-            )
+    creadas = len(respuesta_insert.data or [])
 
     return {
-        "enviados": enviados,
-        "errores": errores,
-        "omitidos": omitidos
+        "creadas": creadas,
+        "omitidas": len(perfiles) - creadas
     }
 
 
@@ -1191,71 +1098,80 @@ with tab_quedadas:
 
                 try:
 
-                    # Primero guardar la quedada en Supabase
-                    supabase.table("quedadas").insert(
-                        nueva_quedada
-                    ).execute()
+                    # Guardar la quedada y recuperar su ID.
+                    respuesta_nueva = (
+                        supabase.table("quedadas")
+                        .insert(nueva_quedada)
+                        .execute()
+                    )
+
+                    filas_guardadas = respuesta_nueva.data or []
+
+                    if not filas_guardadas:
+                        raise ValueError(
+                            "Supabase no ha devuelto la quedada creada. "
+                            "No se pueden generar las notificaciones."
+                        )
+
+                    quedada_guardada = filas_guardadas[0]
+                    quedada_id = quedada_guardada.get("id")
+
+                    if not quedada_id:
+                        raise ValueError(
+                            "La quedada se ha guardado, pero no se ha "
+                            "recibido su identificador."
+                        )
 
                     st.success(
                         "¡Quedada publicada correctamente!"
                     )
 
                     # ---------------------------------
-                    # ENVIAR NOTIFICACIONES AUTOMÁTICAS
+                    # CREAR AVISOS PENDIENTES
                     # ---------------------------------
 
                     try:
 
-                        resultado_emails = (
-                            enviar_notificaciones_quedada(
-                                nueva_quedada
+                        resultado_avisos = (
+                            crear_notificaciones_quedada(
+                                quedada_id=quedada_id,
+                                creador_id=usuario_id
                             )
                         )
 
-                        enviados = resultado_emails["enviados"]
-                        errores = resultado_emails["errores"]
-                        omitidos = resultado_emails["omitidos"]
+                        creadas = resultado_avisos["creadas"]
+                        omitidas = resultado_avisos["omitidas"]
 
-                        if enviados > 0:
+                        if creadas > 0:
 
                             st.success(
-                                f"📧 Se han enviado "
-                                f"{enviados} notificaciones "
-                                f"por correo electrónico."
+                                f"📬 Se han registrado {creadas} "
+                                "notificaciones pendientes. "
+                                "GitHub Actions se encargará de enviarlas."
                             )
 
                         else:
 
                             st.info(
-                                "No había usuarios con avisos "
-                                "activados a los que enviar "
-                                "la notificación."
+                                "La quedada se ha publicado, pero no hay "
+                                "usuarios con avisos activados y correo válido."
                             )
 
-                        if errores > 0:
-
-                            st.warning(
-                                f"{errores} correos no se pudieron "
-                                f"enviar. Consulta los registros "
-                                f"de Resend."
-                            )
-
-                        if omitidos > 0:
+                        if omitidas > 0:
 
                             st.caption(
-                                f"{omitidos} usuarios omitidos "
-                                f"por no tener un correo válido."
+                                f"{omitidas} perfiles no han generado "
+                                "una notificación."
                             )
 
-                    except Exception as error_email:
+                    except Exception as error_avisos:
 
                         st.warning(
                             "La quedada se ha publicado correctamente, "
-                            "pero no se han podido enviar las "
-                            "notificaciones por correo."
+                            "pero no se han podido crear las notificaciones."
                         )
 
-                        st.code(str(error_email))
+                        st.code(str(error_avisos))
 
                     st.rerun()
 
