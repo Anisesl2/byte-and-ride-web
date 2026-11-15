@@ -28,11 +28,10 @@ IMAGEN_PREDETERMINADA = (
     "?auto=format&fit=crop&w=1000&q=80"
 )
 
-# LOGO OFICIAL FAMILY BIKE
 LOGO_URL = (
     "https://nwjnludwqpopcqksntxz.supabase.co/"
     "storage/v1/object/public/familybike/"
-    "https://nwjnludwqpopcqksntxz.supabase.co/storage/v1/object/public/familybike/d09209c7-76d5-48d6-8475-a8cc5230498e.jpeg"
+    "d09209c7-76d5-48d6-8475-a8cc5230498e.jpeg"
 )
 
 
