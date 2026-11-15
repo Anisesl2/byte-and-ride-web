@@ -20,6 +20,7 @@ SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 AUTH_DOMAIN = "users.byteandride.invalid"
 BUCKET_FAMILYBIKE = "familybike"
+TIENDA_URL = "https://payhip.com/b/YWPxa"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -228,6 +229,30 @@ header[data-testid="stHeader"] {
     -webkit-text-fill-color: #FFFFFF !important;
 }
 
+/* TIENDA */
+
+.tienda-card {
+    background: linear-gradient(135deg, #171717, #292929);
+    border: 1px solid #FFD400;
+    border-radius: 18px;
+    padding: 28px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.tienda-titulo {
+    color: #FFD400 !important;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+}
+
+.tienda-texto {
+    color: #FFF2A6 !important;
+    font-size: 16px;
+    margin-top: 12px;
+}
+
 /* PIE DE PÁGINA */
 
 .footer {
@@ -362,7 +387,7 @@ hr {
     border-color: var(--borde) !important;
 }
 
-/* MENSAJES DE ERROR, AVISO E INFORMACIÓN */
+/* MENSAJES */
 
 div[data-testid="stAlert"] {
     background: #292929 !important;
@@ -396,19 +421,7 @@ div[data-testid="stAlert"] a {
     text-decoration: underline !important;
 }
 
-/* MENSAJES DE LOGIN Y REGISTRO */
-
-div[data-testid="stForm"] div[data-testid="stAlert"] {
-    background: #292929 !important;
-    border: 2px solid #FFD400 !important;
-}
-
-div[data-testid="stForm"] div[data-testid="stAlert"] * {
-    color: #FFFFFF !important;
-    -webkit-text-fill-color: #FFFFFF !important;
-}
-
-/* CAPTIONS Y TEXTOS SECUNDARIOS */
+/* CAPTIONS */
 
 [data-testid="stCaptionContainer"],
 [data-testid="stCaptionContainer"] p,
@@ -954,7 +967,7 @@ try:
         "moto_foto_url"
     )
 
-except Exception as error:
+except Exception:
 
     st.warning(
         "No se ha podido cargar la fotografía del garaje. "
@@ -1103,10 +1116,11 @@ with col3:
 # PESTAÑAS PRINCIPALES
 # ---------------------------------
 
-tab_rutas, tab_quedadas, tab_garaje = st.tabs([
+tab_rutas, tab_quedadas, tab_garaje, tab_tienda = st.tabs([
     "🏍️ EXPLORAR RUTAS",
     "📅 QUEDADAS MOTERAS",
-    "🏁 MI GARAJE"
+    "🏁 MI GARAJE",
+    "🛒 TIENDA"
 ])
 
 
@@ -1169,7 +1183,6 @@ with tab_rutas:
             url_original = ruta.get("url", "")
             imagen = ruta.get("imagen_url")
 
-            # Numeración correlativa sin depender del ID
             numero = indice + 1
 
             if (
@@ -1405,9 +1418,7 @@ with tab_quedadas:
                         "¡Quedada publicada correctamente!"
                     )
 
-                    # ---------------------------------
                     # CREAR AVISOS PENDIENTES
-                    # ---------------------------------
 
                     try:
 
@@ -1963,6 +1974,56 @@ with tab_garaje:
 
     st.caption(
         "Formatos permitidos: JPG, JPEG, PNG y WEBP."
+    )
+
+
+# =================================
+# PESTAÑA TIENDA
+# =================================
+
+with tab_tienda:
+
+    st.markdown(
+        '<div class="section-title">🛒 TIENDA FAMILY BIKE</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div class="section-subtitle">
+            Accede a nuestra tienda y descubre los productos disponibles.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div class="tienda-card">
+            <div class="tienda-titulo">
+                🏍️ TIENDA FAMILY BIKE
+            </div>
+            <div class="tienda-texto">
+                Equípate para tus próximas aventuras.
+                Visita nuestra tienda y descubre lo que tenemos preparado.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    col_izquierda, col_boton, col_derecha = st.columns([1, 2, 1])
+
+    with col_boton:
+
+        st.link_button(
+            "🛒 ENTRAR EN LA TIENDA",
+            TIENDA_URL,
+            use_container_width=True
+        )
+
+    st.caption(
+        "La tienda se abrirá en Payhip."
     )
 
 
