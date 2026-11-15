@@ -1,7 +1,9 @@
+
 import streamlit as st
 import html
 import re
 import resend
+import hashlib
 from datetime import date, time, datetime, timezone
 from supabase import create_client
 
@@ -31,8 +33,50 @@ IMAGEN_PREDETERMINADA = (
 LOGO_URL = (
     "https://nwjnludwqpopcqksntxz.supabase.co/"
     "storage/v1/object/public/familybike/"
-    "316e4e3c-b185-459b-b5d2-944d34cad79e.jpeg"
+    "d09209c7-76d5-48d6-8475-a8cc5230498e.jpeg"
 )
+
+
+# ---------------------------------
+# FOTOGRAFÍAS AUTOMÁTICAS
+# ---------------------------------
+
+def imagen_automatica(identificador):
+
+    """
+    Genera una fotografía automática y estable para cada ruta.
+    El mismo identificador siempre genera la misma imagen.
+    """
+
+    clave = str(identificador)
+
+    numero = int(
+        hashlib.sha256(
+            clave.encode("utf-8")
+        ).hexdigest()[:8],
+        16
+    )
+
+    return (
+        "https://loremflickr.com/900/600/"
+        "motorcycle,road,mountain,landscape"
+        f"?lock={numero}"
+    )
+
+
+def obtener_imagen_ruta(ruta):
+
+    imagen = ruta.get("imagen_url")
+
+    if (
+        isinstance(imagen, str)
+        and imagen.startswith(("https://", "http://"))
+    ):
+        return imagen
+
+    identificador = ruta.get("id") or ruta.get("nombre", "ruta")
+
+    return imagen_automatica(identificador)
 
 
 # ---------------------------------
@@ -202,6 +246,35 @@ header[data-testid="stHeader"] {
     letter-spacing: 1px;
 }
 
+/* BOTÓN DE RUTAS DISPONIBLES */
+
+div.st-key-ir_rutas button {
+    background: var(--negro-card) !important;
+    color: var(--amarillo) !important;
+    border: 1px solid var(--borde) !important;
+    border-radius: 12px !important;
+    min-height: 100px;
+    font-size: 19px !important;
+    font-weight: 800 !important;
+    white-space: normal !important;
+}
+
+div.st-key-ir_rutas button:hover {
+    background: var(--negro-hover) !important;
+    border-color: var(--amarillo) !important;
+    color: var(--amarillo) !important;
+}
+
+/* NAVEGACIÓN */
+
+div[data-testid="stRadio"] > div {
+    gap: 12px;
+}
+
+div[data-testid="stRadio"] label {
+    color: var(--amarillo-suave) !important;
+}
+
 /* QUEDADAS */
 
 .event-card {
@@ -286,7 +359,7 @@ div[data-baseweb="menu"] li {
     border-color: var(--amarillo-secundario);
 }
 
-/* PESTAÑAS */
+/* PESTAÑAS Y SELECTORES */
 
 button[data-baseweb="tab"] {
     color: var(--amarillo-suave) !important;
@@ -342,16 +415,13 @@ div[data-testid="stAlert"] {
 
 
 # ---------------------------------
-# PORTADA - SOLO LOGO
+# PORTADA - LOGO
 # ---------------------------------
 
 col_izquierda, col_logo, col_derecha = st.columns([1, 2, 1])
 
 with col_logo:
-    st.image(
-        LOGO_URL,
-        width=320
-    )
+    st.image(LOGO_URL, width=320)
 
 
 # ---------------------------------
@@ -485,7 +555,6 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
 
     """
     Crea las notificaciones pendientes en Supabase.
-
     No envía correos desde Streamlit.
     El envío se realizará manualmente desde Google Colab.
     """
@@ -950,16 +1019,18 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
 
-    st.markdown(f"""
-    <div class="stat-box">
-        <div class="stat-number">{len(rutas)}</div>
-        <div class="stat-label">RUTAS DISPONIBLES</div>
-    </div>
-    """, unsafe_allow_html=True)
+    if st.button(
+        f"🏍️ {len(rutas)} RUTAS DISPONIBLES\n\nVER TODAS LAS RUTAS →",
+        key="ir_rutas",
+        use_container_width=True
+    ):
+
+        st.session_state["seccion_principal"] = "🏍️ EXPLORAR RUTAS"
+        st.rerun()
 
 with col2:
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="stat-box">
         <div class="stat-number">🏍️</div>
         <div class="stat-label">ESPÍRITU MOTERO</div>
@@ -977,20 +1048,29 @@ with col3:
 
 
 # ---------------------------------
-# PESTAÑAS PRINCIPALES
+# NAVEGACIÓN PRINCIPAL
 # ---------------------------------
 
-tab_rutas, tab_quedadas = st.tabs([
-    "🏍️ EXPLORAR RUTAS",
-    "📅 QUEDADAS MOTERAS"
-])
+if "seccion_principal" not in st.session_state:
+    st.session_state["seccion_principal"] = "🏍️ EXPLORAR RUTAS"
+
+seccion = st.radio(
+    "Sección principal",
+    [
+        "🏍️ EXPLORAR RUTAS",
+        "📅 QUEDADAS MOTERAS"
+    ],
+    horizontal=True,
+    key="seccion_principal",
+    label_visibility="collapsed"
+)
 
 
 # =================================
-# PESTAÑA DE RUTAS
+# SECCIÓN DE RUTAS
 # =================================
 
-with tab_rutas:
+if seccion == "🏍️ EXPLORAR RUTAS":
 
     st.markdown(
         '<div class="section-title">EXPLORA LAS RUTAS</div>',
@@ -1035,13 +1115,9 @@ with tab_rutas:
 
             nombre = ruta.get("nombre", "Ruta sin nombre")
             url_original = ruta.get("url", "")
-            imagen = ruta.get("imagen_url")
 
-            if (
-                not isinstance(imagen, str)
-                or not imagen.startswith(("https://", "http://"))
-            ):
-                imagen = IMAGEN_PREDETERMINADA
+            # Cada ruta obtiene su propia imagen automática
+            imagen = obtener_imagen_ruta(ruta)
 
             with columnas[indice % 3]:
 
@@ -1077,10 +1153,10 @@ with tab_rutas:
 
 
 # =================================
-# PESTAÑA DE QUEDADAS
+# SECCIÓN DE QUEDADAS
 # =================================
 
-with tab_quedadas:
+elif seccion == "📅 QUEDADAS MOTERAS":
 
     st.markdown(
         '<div class="section-title">QUEDADAS MOTERAS</div>',
@@ -1218,8 +1294,14 @@ with tab_quedadas:
                         {}
                     )
 
-                    imagen_final = (
-                        ruta_seleccionada.get("imagen_url") or ""
+                    imagen_final = obtener_imagen_ruta(
+                        ruta_seleccionada
+                    ) if ruta_seleccionada else ""
+
+                elif not imagen_final:
+
+                    imagen_final = imagen_automatica(
+                        f"quedada-{nombre_final}"
                     )
 
                 nueva_quedada = {
@@ -1460,7 +1542,9 @@ with tab_quedadas:
                 or not imagen.startswith(("https://", "http://"))
             ):
 
-                imagen = IMAGEN_PREDETERMINADA
+                imagen = imagen_automatica(
+                    f"quedada-{qid}"
+                )
 
             st.markdown(
                 '<div class="event-card">',
