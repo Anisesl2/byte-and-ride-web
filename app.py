@@ -343,7 +343,7 @@ div[data-testid="stAlert"] {
 
 
 # ---------------------------------
-# PORTADA - LOGO CORREGIDO
+# PORTADA - SOLO LOGO
 # ---------------------------------
 
 col_izquierda, col_logo, col_derecha = st.columns([1, 2, 1])
@@ -353,19 +353,6 @@ with col_logo:
         LOGO_URL,
         width=320
     )
-
-st.markdown("""
-<div class="hero">
-    <div class="hero-label">
-        MOTORCYCLE ROUTES • ADVENTURE • FAMILY
-    </div>
-
-    <p>
-        Crea una quedada motera y todos los usuarios registrados
-        la recibirán en su correo electrónico.
-    </p>
-</div>
-""", unsafe_allow_html=True)
 
 
 # ---------------------------------
