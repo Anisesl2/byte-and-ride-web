@@ -103,7 +103,7 @@ def convertir_registros(datos, origen):
 
             raise RuntimeError(
                 f"{origen}: registro {indice} "
-                f"no es un diccionario."
+                "no es un diccionario."
             )
 
         registros.append(elemento)
@@ -137,6 +137,11 @@ def enviar_email(
         headers={
             "Authorization": f"Bearer {RESEND_API_KEY}",
             "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": (
+                "FamilyBike-Notifications/1.0 "
+                "(https://familybike.es)"
+            ),
             "Idempotency-Key": clave
         },
         method="POST"
@@ -151,7 +156,15 @@ def enviar_email(
 
             contenido = respuesta.read().decode("utf-8")
 
-            return json.loads(contenido)
+            try:
+                return json.loads(contenido)
+
+            except json.JSONDecodeError:
+
+                raise RuntimeError(
+                    "Resend ha devuelto una respuesta "
+                    f"que no es JSON válido: {contenido[:1000]}"
+                )
 
     except urllib.error.HTTPError as error:
 
@@ -160,8 +173,17 @@ def enviar_email(
             errors="replace"
         )
 
+        cf_ray = error.headers.get("CF-Ray", "No disponible")
+
+        servidor = error.headers.get(
+            "Server",
+            "No identificado"
+        )
+
         raise RuntimeError(
-            f"Resend HTTP {error.code}: {detalle}"
+            f"Resend HTTP {error.code}: {detalle}. "
+            f"Servidor: {servidor}. "
+            f"CF-Ray: {cf_ray}"
         )
 
     except urllib.error.URLError as error:
@@ -281,12 +303,14 @@ def construir_correo(quedada):
 
 def actualizar_notificacion(notificacion_id, datos):
 
-    (
+    respuesta = (
         supabase.table(TABLA_NOTIFICACIONES)
         .update(datos)
         .eq("id", notificacion_id)
         .execute()
     )
+
+    return respuesta
 
 
 # ==================================================
@@ -307,10 +331,6 @@ def procesar():
     print("FAMILY BIKE - PROCESADOR DE EMAIL")
     print("--------------------------------")
 
-    # ----------------------------------------------
-    # RECUPERAR PROCESOS BLOQUEADOS
-    # ----------------------------------------------
-
     print("Comprobando notificaciones bloqueadas...")
 
     (
@@ -324,10 +344,6 @@ def procesar():
         .lt("procesando_desde", limite)
         .execute()
     )
-
-    # ----------------------------------------------
-    # CONSULTAR NOTIFICACIONES PENDIENTES
-    # ----------------------------------------------
 
     print("Consultando notificaciones pendientes...")
 
@@ -375,17 +391,9 @@ def procesar():
             "de los permitidos."
         )
 
-    # ----------------------------------------------
-    # CONTADORES
-    # ----------------------------------------------
-
     enviados = 0
     omitidos = 0
     errores = 0
-
-    # ----------------------------------------------
-    # RECORRER NOTIFICACIONES
-    # ----------------------------------------------
 
     for aviso in notificaciones:
 
@@ -409,10 +417,6 @@ def procesar():
         print(
             f"Procesando notificación {aviso_id}"
         )
-
-        # ------------------------------------------
-        # MARCAR COMO PROCESANDO
-        # ------------------------------------------
 
         actualizar_notificacion(
             aviso_id,
@@ -606,6 +610,8 @@ def procesar():
                 ahora() + timedelta(minutes=minutos)
             )
 
+            detalle_error = str(error)[:2000]
+
             try:
 
                 actualizar_notificacion(
@@ -614,21 +620,25 @@ def procesar():
                         "estado": "pendiente",
                         "procesando_desde": None,
                         "proximo_intento": proximo,
-                        "error_detalle": str(error)[:2000]
+                        "error_detalle": detalle_error
                     }
+                )
+
+                print(
+                    f"ERROR GUARDADO EN SUPABASE: {aviso_id}"
                 )
 
             except Exception as error_bd:
 
                 print(
                     "ERROR ACTUALIZANDO NOTIFICACIÓN:",
-                    error_bd
+                    repr(error_bd)
                 )
 
             errores += 1
 
             print(
-                f"ERROR EN AVISO {aviso_id}: {error}"
+                f"ERROR EN AVISO {aviso_id}: {detalle_error}"
             )
 
     # ----------------------------------------------
@@ -651,10 +661,6 @@ def procesar():
     print(f"Errores: {errores}")
 
     print("================================")
-
-    # ----------------------------------------------
-    # INFORMAR DE ERRORES A GITHUB ACTIONS
-    # ----------------------------------------------
 
     if errores > 0:
 
