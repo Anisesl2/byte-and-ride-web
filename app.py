@@ -1501,11 +1501,80 @@ try:
 
     perfil_garaje = respuesta_perfil.data or {}
     foto_moto_actual = perfil_garaje.get("moto_foto_url")
+    if perfil_garaje.get("username"):
+        st.session_state["username"] = perfil_garaje["username"]
+        username_actual = perfil_garaje["username"]
 
 except Exception:
     st.warning(
         "No se ha podido cargar la fotografía del garaje."
     )
+
+
+# =========================================================
+# EDICIÓN DE PERFIL (GOOGLE Y USUARIO/CONTRASEÑA)
+# =========================================================
+
+if st.session_state.get("seccion_activa") == "perfil":
+    st.markdown("## 👤 EDITAR MI PERFIL")
+    st.info("Puedes cambiar tu nombre público sin cambiar tu cuenta de acceso ni perder tus rutas, garaje o permisos.")
+
+    with st.form("formulario_editar_nombre", clear_on_submit=False):
+        nombre_nuevo = st.text_input(
+            "Nombre de usuario público",
+            value=username_actual,
+            max_chars=24,
+            help="Entre 3 y 24 caracteres: letras minúsculas, números y guion bajo."
+        )
+        guardar_nombre = st.form_submit_button(
+            "GUARDAR NOMBRE DE USUARIO", use_container_width=True
+        )
+
+    if guardar_nombre:
+        nombre_nuevo = nombre_nuevo.strip().lower()
+        if not re.fullmatch(r"[a-z0-9_]{3,24}", nombre_nuevo):
+            st.error("El nombre debe tener entre 3 y 24 caracteres y solo letras minúsculas, números o guion bajo.")
+        elif nombre_nuevo == username_actual:
+            st.info("Ya estás utilizando ese nombre.")
+        else:
+            try:
+                # Comprobación informativa; la unicidad definitiva debe
+                # estar garantizada por una restricción UNIQUE en PostgreSQL.
+                existe = (
+                    supabase.table("profiles")
+                    .select("id")
+                    .eq("username", nombre_nuevo)
+                    .limit(1)
+                    .execute()
+                )
+                if any(fila.get("id") != usuario_id for fila in (existe.data or [])):
+                    st.error("Ese nombre de usuario ya está ocupado. Elige otro.")
+                else:
+                    resultado = (
+                        supabase.table("profiles")
+                        .update({"username": nombre_nuevo})
+                        .eq("id", usuario_id)
+                        .select("id,username")
+                        .execute()
+                    )
+                    filas = resultado.data or []
+                    if not filas or filas[0].get("username") != nombre_nuevo:
+                        st.error("No se ha podido actualizar el perfil. Revisa las políticas RLS de Supabase.")
+                    else:
+                        st.session_state["username"] = nombre_nuevo
+                        st.session_state["aviso_perfil_actualizado"] = True
+                        st.rerun()
+            except Exception as error:
+                # Evitar mostrar detalles internos de la base de datos.
+                if "23505" in str(error) or "duplicate key" in str(error).lower():
+                    st.error("Ese nombre de usuario ya está ocupado.")
+                else:
+                    st.error("No se ha podido guardar el nombre. Comprueba la conexión y los permisos de tu perfil.")
+
+    if st.session_state.pop("aviso_perfil_actualizado", False):
+        st.success("Nombre de usuario actualizado correctamente. Tu cuenta sigue vinculada al mismo acceso.")
+
+    st.caption("La fotografía de tu motocicleta se sigue gestionando desde MI GARAJE.")
 
 
 # =========================================================
@@ -1735,6 +1804,16 @@ if st.session_state["seccion_activa"] == "menu":
             st.rerun()
 
     st.write("")
+
+    # PERFIL PERSONAL
+    if st.button(
+        "👤  EDITAR MI PERFIL",
+        key="menu_editar_perfil",
+        type="secondary",
+        use_container_width=True
+    ):
+        st.session_state["seccion_activa"] = "perfil"
+        st.rerun()
 
     # FILA 3: TIENDA
     if st.button(
