@@ -37,7 +37,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # OAuth Google PKCE: los verificadores se guardan temporalmente en el servidor.
 # No se guardan tokens ni verificadores en la URL del navegador.
-GOOGLE_REDIRECT_URL = "https://familybike.es/"
+GOOGLE_REDIRECT_URL = "https://byte-and-ride-web-bbzmzh8vkhdgmhztvreddr.streamlit.app/"
 
 
 @st.cache_resource
