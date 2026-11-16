@@ -1,12 +1,13 @@
+
 import streamlit as st
 import html
 import re
 from datetime import date, time, datetime, timezone
 from supabase import create_client
 
-# ---------------------------------
+# =================================
 # CONFIGURACIÓN
-# ---------------------------------
+# =================================
 
 st.set_page_config(
     page_title="FAMILY BIKE | Rutas en moto",
@@ -35,9 +36,9 @@ LOGO_URL = (
 )
 
 
-# ---------------------------------
+# =================================
 # DISEÑO
-# ---------------------------------
+# =================================
 
 st.markdown("""
 <style>
@@ -64,7 +65,6 @@ html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
 
-.stApp,
 .stApp p,
 .stApp label,
 .stApp span,
@@ -74,11 +74,6 @@ html, body, [class*="css"] {
 
 h1, h2, h3, h4, h5, h6 {
     color: var(--amarillo) !important;
-}
-
-.stCaption,
-[data-testid="stCaptionContainer"] {
-    color: var(--amarillo-suave) !important;
 }
 
 header[data-testid="stHeader"] {
@@ -100,7 +95,6 @@ header[data-testid="stHeader"] {
     padding: 35px;
     margin-bottom: 30px;
     text-align: center;
-    box-shadow: 0 8px 30px rgba(255, 212, 0, 0.08);
 }
 
 .hero-label {
@@ -113,7 +107,6 @@ header[data-testid="stHeader"] {
 .hero p {
     color: var(--amarillo-suave) !important;
     font-size: 17px;
-    margin-bottom: 0;
 }
 
 /* TÍTULOS */
@@ -132,7 +125,7 @@ header[data-testid="stHeader"] {
     margin-bottom: 22px;
 }
 
-/* TARJETAS DE RUTAS */
+/* RUTAS */
 
 .route-card {
     background: var(--negro-card);
@@ -141,12 +134,10 @@ header[data-testid="stHeader"] {
     padding: 22px;
     min-height: 175px;
     margin-bottom: 18px;
-    transition: all .2s ease;
 }
 
 .route-card:hover {
     border-color: var(--amarillo);
-    transform: translateY(-3px);
 }
 
 .route-number {
@@ -196,6 +187,14 @@ header[data-testid="stHeader"] {
     margin-bottom: 18px;
 }
 
+.schedule-card {
+    background: #222222;
+    border: 1px solid #FFD400;
+    border-radius: 10px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
 /* GARAJE */
 
 .garaje-card {
@@ -224,8 +223,6 @@ header[data-testid="stHeader"] {
 .garaje-card span,
 .garaje-card strong {
     color: #FFFFFF !important;
-    opacity: 1 !important;
-    -webkit-text-fill-color: #FFFFFF !important;
 }
 
 /* COMUNIDAD */
@@ -236,12 +233,6 @@ header[data-testid="stHeader"] {
     border-radius: 15px;
     padding: 12px;
     margin-bottom: 18px;
-    transition: all .2s ease;
-}
-
-.community-card:hover {
-    border-color: #FFD400;
-    transform: translateY(-3px);
 }
 
 .community-name {
@@ -257,7 +248,6 @@ header[data-testid="stHeader"] {
     color: #FFF2A6 !important;
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 1px;
     text-align: center;
     margin-top: 5px;
 }
@@ -294,7 +284,7 @@ header[data-testid="stHeader"] {
     margin-top: 12px;
 }
 
-/* PIE DE PÁGINA */
+/* PIE */
 
 .footer {
     text-align: center;
@@ -309,11 +299,10 @@ header[data-testid="stHeader"] {
     color: var(--amarillo) !important;
 }
 
-/* CAMPOS DE TEXTO */
+/* CAMPOS */
 
 div[data-testid="stTextInput"] input,
 div[data-testid="stTextInputRootElement"] input,
-div[data-testid="stTextInput"] input[type="password"],
 div[data-testid="stTextArea"] textarea {
     background: var(--negro-card) !important;
     color: #FFFFFF !important;
@@ -343,10 +332,7 @@ div[data-baseweb="select"] > div {
     color: var(--amarillo-suave);
 }
 
-div[data-baseweb="popover"] {
-    background: var(--negro-card);
-}
-
+div[data-baseweb="popover"],
 div[data-baseweb="menu"] {
     background: var(--negro-card);
 }
@@ -366,7 +352,6 @@ div[data-baseweb="menu"] li {
     border: 1px solid var(--amarillo);
     border-radius: 9px;
     font-weight: 800;
-    transition: all .2s ease;
 }
 
 .stButton > button:hover,
@@ -391,10 +376,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
 /* CHECKBOX Y RADIO */
 
 div[data-testid="stCheckbox"] label,
-div[data-testid="stRadio"] label {
-    color: var(--amarillo-suave) !important;
-}
-
+div[data-testid="stRadio"] label,
 div[data-testid="stCheckbox"] label *,
 div[data-testid="stRadio"] label * {
     color: var(--amarillo-suave) !important;
@@ -422,13 +404,7 @@ div[data-testid="stForm"] {
     padding: 18px;
 }
 
-/* SEPARADORES */
-
-hr {
-    border-color: var(--borde) !important;
-}
-
-/* MENSAJES */
+/* MENSAJES GENERALES */
 
 div[data-testid="stAlert"] {
     background: #292929 !important;
@@ -443,8 +419,7 @@ div[data-testid="stAlert"] p,
 div[data-testid="stAlert"] span,
 div[data-testid="stAlert"] div,
 div[data-testid="stAlert"] li,
-div[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
-div[data-testid="stAlert"] [data-testid="stMarkdownContainer"] p {
+div[data-testid="stAlert"] [data-testid="stMarkdownContainer"] * {
     color: #FFFFFF !important;
     opacity: 1 !important;
     visibility: visible !important;
@@ -456,10 +431,38 @@ div[data-testid="stAlert"] svg {
     fill: #FFD400 !important;
 }
 
-div[data-testid="stAlert"] a {
-    color: #FFD400 !important;
-    -webkit-text-fill-color: #FFD400 !important;
-    text-decoration: underline !important;
+/* ERRORES: CONTRASTE REFORZADO */
+
+div[data-testid="stAlert"]:has(svg[data-testid="stIconError"]),
+div[data-testid="stAlert"]:has([data-testid="stIconError"]) {
+    background: #421515 !important;
+    border: 2px solid #FF5555 !important;
+}
+
+div[data-testid="stAlert"]:has(svg[data-testid="stIconError"]) *,
+div[data-testid="stAlert"]:has([data-testid="stIconError"]) * {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    opacity: 1 !important;
+}
+
+/* MENSAJE DE ERROR DE ACCESO PERSONALIZADO */
+
+.login-error {
+    background: #421515;
+    border: 2px solid #FF5555;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 12px 0;
+    color: #FFFFFF !important;
+    font-weight: 600;
+}
+
+.login-error strong,
+.login-error p,
+.login-error span {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
 }
 
 /* CAPTIONS */
@@ -495,23 +498,28 @@ div[data-testid="stFileUploader"] button {
     background: #FFD400 !important;
 }
 
+hr {
+    border-color: var(--borde) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
 
-# ---------------------------------
-# PORTADA - LOGO
-# ---------------------------------
+# =================================
+# FUNCIONES GENERALES
+# =================================
 
-col_izquierda, col_logo, col_derecha = st.columns([1, 2, 1])
+def mostrar_error_login(mensaje):
+    st.markdown(
+        f"""
+        <div class="login-error">
+            ⚠️ <strong>Error de acceso</strong>
+            <p>{html.escape(str(mensaje))}</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-with col_logo:
-    st.image(LOGO_URL, width=320)
-
-
-# ---------------------------------
-# FUNCIONES DE AUTENTICACIÓN
-# ---------------------------------
 
 def email_interno(username):
     return f"{username}@{AUTH_DOMAIN}"
@@ -520,7 +528,7 @@ def email_interno(username):
 def email_valido(email):
     return bool(
         re.fullmatch(
-            r"[^@\s]+@[^@\s]+\.[^@\s]+",
+            r"[^@\\s]+@[^@\\s]+\\.[^@\\s]+",
             email.strip()
         )
     )
@@ -550,7 +558,7 @@ def guardar_sesion(response, username):
 
 def guardar_datos_contacto(user_id, email_contacto, avisos_email):
 
-    respuesta = (
+    return (
         supabase.table("profiles")
         .update({
             "email_contacto": email_contacto.strip().lower(),
@@ -559,8 +567,6 @@ def guardar_datos_contacto(user_id, email_contacto, avisos_email):
         .eq("id", user_id)
         .execute()
     )
-
-    return respuesta
 
 
 def cerrar_sesion():
@@ -579,21 +585,63 @@ def cerrar_sesion():
         st.session_state.pop(key, None)
 
 
-# ---------------------------------
-# SUPABASE: CREAR NOTIFICACIONES
-# ---------------------------------
+def subir_archivo_storage(archivo, carpeta, nombre_base):
+
+    if not archivo:
+        return None
+
+    extension = archivo.name.rsplit(".", 1)[-1].lower()
+
+    extensiones_permitidas = ["jpg", "jpeg", "png", "webp"]
+
+    if extension not in extensiones_permitidas:
+        raise ValueError("Formato de imagen no permitido.")
+
+    nombre_archivo = (
+        f"{carpeta}/{nombre_base}_"
+        f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}"
+        f".{extension}"
+    )
+
+    supabase.storage.from_(BUCKET_FAMILYBIKE).upload(
+        nombre_archivo,
+        archivo.getvalue(),
+        file_options={
+            "content-type": archivo.type,
+            "upsert": "false"
+        }
+    )
+
+    resultado_url = (
+        supabase.storage
+        .from_(BUCKET_FAMILYBIKE)
+        .get_public_url(nombre_archivo)
+    )
+
+    if isinstance(resultado_url, dict):
+        url = (
+            resultado_url.get("publicUrl")
+            or resultado_url.get("publicURL")
+        )
+    else:
+        url = str(resultado_url)
+
+    if not url or not url.startswith("http"):
+        raise ValueError(
+            "Supabase no ha devuelto la dirección pública de la imagen."
+        )
+
+    return url
+
+
+# =================================
+# NOTIFICACIONES DE QUEDADAS
+# =================================
 
 def crear_notificaciones_quedada(quedada_id, creador_id):
 
-    """
-    Crea notificaciones pendientes en Supabase.
-    El envío de correos se gestiona desde Google Colab.
-    """
-
     if not quedada_id:
-        raise ValueError(
-            "No se ha recibido el ID de la quedada."
-        )
+        raise ValueError("No se ha recibido el ID de la quedada.")
 
     respuesta_perfiles = (
         supabase.table("profiles")
@@ -642,26 +690,22 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
         .execute()
     )
 
-    creadas = len(respuesta_insert.data or [])
-
     return {
-        "creadas": creadas,
-        "omitidas": len(perfiles) - creadas
+        "creadas": len(respuesta_insert.data or []),
+        "omitidas": len(perfiles) - len(respuesta_insert.data or [])
     }
 
 
-# ---------------------------------
-# FUNCIONES DE ORDENACIÓN DE RUTAS
-# ---------------------------------
+# =================================
+# RUTAS
+# =================================
 
 def numero_ruta(ruta):
 
-    nombre = str(
-        ruta.get("nombre", "")
-    ).strip()
+    nombre = str(ruta.get("nombre", "")).strip()
 
     coincidencia = re.search(
-        r"\bruta\s*#?\s*(\d+)",
+        r"\\bruta\\s*#?\\s*(\\d+)",
         nombre,
         re.IGNORECASE
     )
@@ -684,9 +728,9 @@ def ordenar_rutas(lista_rutas):
     )
 
 
-# ---------------------------------
+# =================================
 # RESTAURAR SESIÓN
-# ---------------------------------
+# =================================
 
 autenticado = False
 
@@ -726,9 +770,9 @@ if (
         cerrar_sesion()
 
 
-# ---------------------------------
-# REGISTRO E INICIO DE SESIÓN
-# ---------------------------------
+# =================================
+# LOGIN Y REGISTRO
+# =================================
 
 if not autenticado:
 
@@ -748,10 +792,6 @@ if not autenticado:
         "INICIAR SESIÓN",
         "CREAR CUENTA"
     ])
-
-    # ---------------------------------
-    # INICIAR SESIÓN
-    # ---------------------------------
 
     with tab_login:
 
@@ -778,13 +818,13 @@ if not autenticado:
 
             if not username or not password_login:
 
-                st.error(
+                mostrar_error_login(
                     "Introduce tu usuario y contraseña."
                 )
 
             elif not re.fullmatch(r"[a-z0-9_]{3,24}", username):
 
-                st.error(
+                mostrar_error_login(
                     "El nombre de usuario no es válido."
                 )
 
@@ -799,28 +839,21 @@ if not autenticado:
 
                     if guardar_sesion(response, username):
 
-                        st.success(
-                            "Sesión iniciada correctamente."
-                        )
-
+                        st.success("Sesión iniciada correctamente.")
                         st.rerun()
 
                     else:
 
-                        st.error(
+                        mostrar_error_login(
                             "Supabase no ha devuelto una sesión."
                         )
 
                 except Exception:
 
-                    st.error(
-                        "No se ha podido iniciar sesión. "
-                        "Comprueba el usuario y la contraseña."
+                    mostrar_error_login(
+                        "Usuario o contraseña incorrectos. "
+                        "Comprueba tus datos e inténtalo de nuevo."
                     )
-
-    # ---------------------------------
-    # CREAR CUENTA
-    # ---------------------------------
 
     with tab_registro:
 
@@ -868,26 +901,26 @@ if not autenticado:
 
             if not re.fullmatch(r"[a-z0-9_]{3,24}", username):
 
-                st.error(
+                mostrar_error_login(
                     "El usuario debe tener entre 3 y 24 caracteres. "
                     "Utiliza letras, números o guion bajo."
                 )
 
             elif not email_valido(email_real):
 
-                st.error(
+                mostrar_error_login(
                     "Introduce una dirección de correo electrónico válida."
                 )
 
             elif len(nueva_password) < 8:
 
-                st.error(
+                mostrar_error_login(
                     "La contraseña debe tener al menos 8 caracteres."
                 )
 
             elif nueva_password != repetir_password:
 
-                st.error(
+                mostrar_error_login(
                     "Las contraseñas no coinciden."
                 )
 
@@ -931,11 +964,6 @@ if not autenticado:
                                 "podido guardar los datos de contacto."
                             )
 
-                            st.warning(
-                                "Comprueba que has ejecutado el SQL de "
-                                "configuración de profiles."
-                            )
-
                             st.code(str(error_perfil))
 
                     else:
@@ -943,18 +971,12 @@ if not autenticado:
                         st.warning(
                             "Supabase ha recibido el registro, pero no ha "
                             "devuelto una sesión. Inicia sesión con tu usuario "
-                            "y contraseña. El correo de contacto tendrá que "
-                            "guardarse después de iniciar sesión."
+                            "y contraseña."
                         )
 
                 except Exception as e:
 
                     st.error("ERROR AL CREAR LA CUENTA")
-
-                    st.write(
-                        "Supabase ha devuelto el siguiente mensaje:"
-                    )
-
                     st.code(str(e))
 
     st.markdown("""
@@ -968,9 +990,9 @@ if not autenticado:
     st.stop()
 
 
-# ---------------------------------
+# =================================
 # USUARIO AUTENTICADO
-# ---------------------------------
+# =================================
 
 usuario_id = st.session_state.get("user_id")
 username_actual = st.session_state["username"]
@@ -981,13 +1003,12 @@ if not usuario_id:
         "No se ha podido identificar tu usuario. "
         "Vuelve a iniciar sesión."
     )
-
     st.stop()
 
 
-# ---------------------------------
-# CARGAR PERFIL Y FOTO DE MOTO
-# ---------------------------------
+# =================================
+# PERFIL Y FOTO DE MOTO
+# =================================
 
 perfil_garaje = {}
 foto_moto_actual = None
@@ -1003,22 +1024,18 @@ try:
     )
 
     perfil_garaje = respuesta_perfil.data or {}
-
-    foto_moto_actual = perfil_garaje.get(
-        "moto_foto_url"
-    )
+    foto_moto_actual = perfil_garaje.get("moto_foto_url")
 
 except Exception:
 
     st.warning(
-        "No se ha podido cargar la fotografía del garaje. "
-        "Comprueba la configuración de profiles."
+        "No se ha podido cargar la fotografía del garaje."
     )
 
 
-# ---------------------------------
-# CABECERA DEL USUARIO
-# ---------------------------------
+# =================================
+# CABECERA
+# =================================
 
 col_usuario, col_moto, col_salir = st.columns([2, 2, 1])
 
@@ -1029,8 +1046,7 @@ with col_usuario:
         <div class="garaje-card">
             <div class="garaje-titulo">🏍️ MI GARAJE</div>
             <div class="garaje-subtitulo">
-                Usuario:
-                <strong>{html.escape(username_actual)}</strong>
+                Usuario: <strong>{html.escape(username_actual)}</strong>
             </div>
             <div class="garaje-subtitulo">
                 Bienvenido a FAMILY BIKE
@@ -1069,18 +1085,14 @@ with col_moto:
 
 with col_salir:
 
-    if st.button(
-        "CERRAR SESIÓN",
-        use_container_width=True
-    ):
-
+    if st.button("CERRAR SESIÓN", use_container_width=True):
         cerrar_sesion()
         st.rerun()
 
 
-# ---------------------------------
-# CARGAR RUTAS DESDE SUPABASE
-# ---------------------------------
+# =================================
+# CARGAR RUTAS
+# =================================
 
 try:
 
@@ -1094,17 +1106,14 @@ try:
 
 except Exception as e:
 
-    st.error(
-        "No se han podido cargar las rutas desde Supabase."
-    )
-
+    st.error("No se han podido cargar las rutas desde Supabase.")
     st.code(str(e))
     st.stop()
 
 
-# ---------------------------------
+# =================================
 # ESTADÍSTICAS
-# ---------------------------------
+# =================================
 
 try:
 
@@ -1119,7 +1128,6 @@ try:
     total_quedadas = respuesta_quedadas.count or 0
 
 except Exception:
-
     total_quedadas = 0
 
 
@@ -1153,9 +1161,9 @@ with col3:
     """, unsafe_allow_html=True)
 
 
-# ---------------------------------
-# PESTAÑAS PRINCIPALES
-# ---------------------------------
+# =================================
+# PESTAÑAS
+# =================================
 
 tab_rutas, tab_quedadas, tab_garaje, tab_comunidad, tab_tienda = st.tabs([
     "🏍️ EXPLORAR RUTAS",
@@ -1167,7 +1175,7 @@ tab_rutas, tab_quedadas, tab_garaje, tab_comunidad, tab_tienda = st.tabs([
 
 
 # =================================
-# PESTAÑA DE RUTAS
+# EXPLORAR RUTAS
 # =================================
 
 with tab_rutas:
@@ -1197,55 +1205,39 @@ with tab_rutas:
 
     if not rutas:
 
-        st.warning(
-            "Todavía no hay rutas disponibles."
-        )
+        st.warning("Todavía no hay rutas disponibles.")
 
     elif not rutas_filtradas:
 
-        st.info(
-            "No hay rutas que coincidan con tu búsqueda."
-        )
+        st.info("No hay rutas que coincidan con tu búsqueda.")
 
     else:
 
-        st.caption(
-            f"Mostrando {len(rutas_filtradas)} rutas"
-        )
+        st.caption(f"Mostrando {len(rutas_filtradas)} rutas")
 
         columnas = st.columns(3)
 
         for indice, ruta in enumerate(rutas_filtradas):
 
-            nombre = ruta.get(
-                "nombre",
-                "Ruta sin nombre"
-            )
-
+            nombre = ruta.get("nombre", "Ruta sin nombre")
             url_original = ruta.get("url", "")
             imagen = ruta.get("imagen_url")
-
-            numero = indice + 1
 
             if (
                 not isinstance(imagen, str)
                 or not imagen.startswith(("https://", "http://"))
             ):
-
                 imagen = IMAGEN_PREDETERMINADA
 
             with columnas[indice % 3]:
 
-                st.image(
-                    imagen,
-                    use_container_width=True
-                )
+                st.image(imagen, use_container_width=True)
 
                 st.markdown(
                     f"""
                     <div class="route-card">
                         <div class="route-number">
-                            RUTA {numero:02d}
+                            RUTA {indice + 1:02d}
                         </div>
                         <div class="route-name">
                             {html.escape(nombre)}
@@ -1268,7 +1260,7 @@ with tab_rutas:
 
 
 # =================================
-# PESTAÑA DE QUEDADAS
+# QUEDADAS MOTERAS
 # =================================
 
 with tab_quedadas:
@@ -1289,10 +1281,7 @@ with tab_quedadas:
     # CREAR QUEDADA
     # ---------------------------------
 
-    with st.expander(
-        "➕ CREAR UNA NUEVA QUEDADA",
-        expanded=False
-    ):
+    with st.expander("➕ CREAR UNA NUEVA QUEDADA", expanded=False):
 
         nombres_rutas = [
             ruta.get("nombre", "Ruta sin nombre")
@@ -1307,10 +1296,7 @@ with tab_quedadas:
                 horizontal=True
             )
 
-            if (
-                tipo_destino == "Ruta del catálogo"
-                and nombres_rutas
-            ):
+            if tipo_destino == "Ruta del catálogo" and nombres_rutas:
 
                 ruta_elegida = st.selectbox(
                     "Selecciona una ruta",
@@ -1335,14 +1321,61 @@ with tab_quedadas:
                 format="DD/MM/YYYY"
             )
 
+            st.markdown("#### 🕘 HORARIOS DE SALIDA")
+
+            st.caption(
+                "El primer horario es obligatorio. Puedes añadir "
+                "hasta dos horarios adicionales."
+            )
+
             hora_quedada = st.time_input(
-                "Hora de salida",
-                value=time(9, 0)
+                "Primera hora de salida",
+                value=time(9, 0),
+                key="hora_principal"
             )
 
             punto_encuentro = st.text_input(
-                "Punto de encuentro",
+                "Primer punto de encuentro",
                 placeholder="Ejemplo: Gasolinera de San Fernando"
+            )
+
+            st.divider()
+
+            segunda_salida = st.checkbox(
+                "Añadir un segundo horario de salida"
+            )
+
+            hora_segunda = st.time_input(
+                "Segunda hora",
+                value=time(10, 0),
+                key="hora_segunda"
+            )
+
+            punto_segundo = st.text_input(
+                "Punto de encuentro del segundo horario",
+                placeholder="Ejemplo: Área de servicio de Jerez"
+            )
+
+            tercera_salida = st.checkbox(
+                "Añadir un tercer horario de salida"
+            )
+
+            hora_tercera = st.time_input(
+                "Tercera hora",
+                value=time(11, 0),
+                key="hora_tercera"
+            )
+
+            punto_tercero = st.text_input(
+                "Punto de encuentro del tercer horario",
+                placeholder="Ejemplo: Rotonda de entrada a Arcos"
+            )
+
+            st.divider()
+
+            telefono_organizador = st.text_input(
+                "Teléfono de contacto del organizador",
+                placeholder="Ejemplo: 600123456"
             )
 
             descripcion = st.text_area(
@@ -1353,13 +1386,21 @@ with tab_quedadas:
                 )
             )
 
-            imagen_quedada = st.text_input(
-                "URL de una fotografía (opcional)",
-                placeholder="https://..."
+            cartel_quedada = st.file_uploader(
+                "📸 Cartel o fotografía de la quedada",
+                type=["jpg", "jpeg", "png", "webp"],
+                help="Sube el cartel de la ruta desde tu dispositivo."
             )
 
             publicar = st.form_submit_button(
                 "PUBLICAR QUEDADA",
+                use_container_width=True
+            )
+
+        if cartel_quedada:
+            st.image(
+                cartel_quedada,
+                caption="Vista previa del cartel",
                 use_container_width=True
             )
 
@@ -1371,65 +1412,104 @@ with tab_quedadas:
                 else destino_libre.strip()
             )
 
+            telefono_limpio = re.sub(
+                r"[^0-9+]",
+                "",
+                telefono_organizador.strip()
+            )
+
+            horarios_nuevos = [
+                {
+                    "hora": hora_quedada.strftime("%H:%M:%S"),
+                    "punto_encuentro": punto_encuentro.strip()
+                }
+            ]
+
+            if segunda_salida:
+
+                horarios_nuevos.append({
+                    "hora": hora_segunda.strftime("%H:%M:%S"),
+                    "punto_encuentro": punto_segundo.strip()
+                })
+
+            if tercera_salida:
+
+                horarios_nuevos.append({
+                    "hora": hora_tercera.strftime("%H:%M:%S"),
+                    "punto_encuentro": punto_tercero.strip()
+                })
+
             if not nombre_final:
 
-                st.error(
-                    "Introduce el nombre de la ruta o destino."
-                )
+                st.error("Introduce el nombre de la ruta o destino.")
 
             elif not punto_encuentro.strip():
 
-                st.error(
-                    "Indica el punto de encuentro."
-                )
+                st.error("Indica el primer punto de encuentro.")
 
-            elif (
-                imagen_quedada.strip()
-                and not imagen_quedada.strip().startswith(
-                    ("https://", "http://")
-                )
-            ):
+            elif segunda_salida and not punto_segundo.strip():
 
-                st.error(
-                    "La dirección de la fotografía no es válida."
-                )
+                st.error("Indica el punto de encuentro del segundo horario.")
+
+            elif tercera_salida and not punto_tercero.strip():
+
+                st.error("Indica el punto de encuentro del tercer horario.")
+
+            elif len(telefono_limpio) > 20:
+
+                st.error("El teléfono introducido no es válido.")
+
+            elif telefono_limpio and len(re.sub(r"\\D", "", telefono_limpio)) < 9:
+
+                st.error("Introduce un teléfono de contacto válido.")
 
             else:
 
-                imagen_final = imagen_quedada.strip()
-
-                if (
-                    tipo_destino == "Ruta del catálogo"
-                    and not imagen_final
-                ):
-
-                    ruta_seleccionada = next(
-                        (
-                            r for r in rutas
-                            if r.get("nombre") == nombre_final
-                        ),
-                        {}
-                    )
-
-                    imagen_final = (
-                        ruta_seleccionada.get("imagen_url") or ""
-                    )
-
-                nueva_quedada = {
-                    "creador_id": usuario_id,
-                    "ruta_nombre": nombre_final,
-                    "es_ruta_catalogo": (
-                        tipo_destino == "Ruta del catálogo"
-                    ),
-                    "fecha": fecha_quedada.isoformat(),
-                    "hora": hora_quedada.strftime("%H:%M:%S"),
-                    "punto_encuentro": punto_encuentro.strip(),
-                    "descripcion": descripcion.strip(),
-                    "imagen_url": imagen_final,
-                    "estado": "abierta"
-                }
-
                 try:
+
+                    imagen_catalogo = ""
+
+                    if tipo_destino == "Ruta del catálogo":
+
+                        ruta_seleccionada = next(
+                            (
+                                r for r in rutas
+                                if r.get("nombre") == nombre_final
+                            ),
+                            {}
+                        )
+
+                        imagen_catalogo = (
+                            ruta_seleccionada.get("imagen_url") or ""
+                        )
+
+                    # SUBIR CARTEL A STORAGE
+
+                    cartel_url = ""
+
+                    if cartel_quedada:
+
+                        cartel_url = subir_archivo_storage(
+                            cartel_quedada,
+                            f"quedadas/{usuario_id}",
+                            "cartel"
+                        )
+
+                    nueva_quedada = {
+                        "creador_id": usuario_id,
+                        "ruta_nombre": nombre_final,
+                        "es_ruta_catalogo": (
+                            tipo_destino == "Ruta del catálogo"
+                        ),
+                        "fecha": fecha_quedada.isoformat(),
+                        "hora": horarios_nuevos[0]["hora"],
+                        "punto_encuentro": horarios_nuevos[0]["punto_encuentro"],
+                        "descripcion": descripcion.strip(),
+                        "imagen_url": cartel_url or imagen_catalogo,
+                        "cartel_url": cartel_url,
+                        "telefono_organizador": telefono_limpio,
+                        "estado": "abierta"
+                    }
 
                     respuesta_nueva = (
                         supabase.table("quedadas")
@@ -1440,35 +1520,43 @@ with tab_quedadas:
                     filas_guardadas = respuesta_nueva.data or []
 
                     if not filas_guardadas:
-
                         raise ValueError(
-                            "Supabase no ha devuelto la quedada creada. "
-                            "No se pueden generar las notificaciones."
+                            "Supabase no ha devuelto la quedada creada."
                         )
 
                     quedada_guardada = filas_guardadas[0]
                     quedada_id = quedada_guardada.get("id")
 
                     if not quedada_id:
-
                         raise ValueError(
-                            "La quedada se ha guardado, pero no se ha "
-                            "recibido su identificador."
+                            "No se ha recibido el identificador de la quedada."
                         )
 
-                    st.success(
-                        "¡Quedada publicada correctamente!"
-                    )
+                    # GUARDAR TODOS LOS HORARIOS
 
-                    # CREAR AVISOS PENDIENTES
+                    filas_horarios = []
+
+                    for horario in horarios_nuevos:
+
+                        filas_horarios.append({
+                            "quedada_id": quedada_id,
+                            "hora": horario["hora"],
+                            "punto_encuentro": horario["punto_encuentro"]
+                        })
+
+                    supabase.table("horarios_quedadas").insert(
+                        filas_horarios
+                    ).execute()
+
+                    st.success("¡Quedada publicada correctamente!")
+
+                    # GENERAR NOTIFICACIONES
 
                     try:
 
-                        resultado_avisos = (
-                            crear_notificaciones_quedada(
-                                quedada_id=quedada_id,
-                                creador_id=usuario_id
-                            )
+                        resultado_avisos = crear_notificaciones_quedada(
+                            quedada_id=quedada_id,
+                            creador_id=usuario_id
                         )
 
                         creadas = resultado_avisos["creadas"]
@@ -1499,20 +1587,16 @@ with tab_quedadas:
                     except Exception as error_avisos:
 
                         st.warning(
-                            "La quedada se ha publicado correctamente, "
-                            "pero no se han podido crear las notificaciones."
+                            "La quedada se ha publicado, pero no se han "
+                            "podido crear las notificaciones."
                         )
-
                         st.code(str(error_avisos))
 
                     st.rerun()
 
                 except Exception as e:
 
-                    st.error(
-                        "No se ha podido publicar la quedada."
-                    )
-
+                    st.error("No se ha podido publicar la quedada.")
                     st.code(str(e))
 
 
@@ -1527,7 +1611,8 @@ with tab_quedadas:
             .select(
                 "id,creador_id,ruta_nombre,es_ruta_catalogo,"
                 "fecha,hora,punto_encuentro,descripcion,"
-                "imagen_url,estado,created_at"
+                "imagen_url,cartel_url,telefono_organizador,"
+                "estado,created_at"
             )
             .eq("estado", "abierta")
             .gte("fecha", date.today().isoformat())
@@ -1539,12 +1624,46 @@ with tab_quedadas:
 
     except Exception as e:
 
-        st.error(
-            "No se han podido cargar las quedadas."
-        )
-
+        st.error("No se han podido cargar las quedadas.")
         st.code(str(e))
         quedadas = []
+
+
+    # ---------------------------------
+    # CARGAR HORARIOS
+    # ---------------------------------
+
+    horarios_por_quedada = {}
+
+    if quedadas:
+
+        ids_quedadas = [q["id"] for q in quedadas]
+
+        try:
+
+            respuesta_horarios = (
+                supabase.table("horarios_quedadas")
+                .select("id,quedada_id,hora,punto_encuentro")
+                .in_("quedada_id", ids_quedadas)
+                .order("hora")
+                .execute()
+            )
+
+            for horario in respuesta_horarios.data or []:
+
+                qid = horario["quedada_id"]
+
+                horarios_por_quedada.setdefault(
+                    qid, []
+                ).append(horario)
+
+        except Exception as e:
+
+            st.warning(
+                "No se han podido cargar los horarios adicionales. "
+                "Se intentará mostrar el horario principal de cada quedada."
+            )
+            st.code(str(e))
 
 
     # ---------------------------------
@@ -1552,27 +1671,22 @@ with tab_quedadas:
     # ---------------------------------
 
     asistentes_por_quedada = {}
-    nombres_usuarios = {}
+    perfiles_usuarios = {}
 
     if quedadas:
 
-        ids_quedadas = [
-            q["id"] for q in quedadas
-        ]
+        ids_quedadas = [q["id"] for q in quedadas]
 
         try:
 
             respuesta_asistentes = (
                 supabase.table("asistentes")
-                .select("quedada_id,usuario_id")
+                .select("quedada_id,usuario_id,horario_id")
                 .in_("quedada_id", ids_quedadas)
                 .execute()
             )
 
-            todos_asistentes = (
-                respuesta_asistentes.data or []
-            )
-
+            todos_asistentes = respuesta_asistentes.data or []
             ids_usuarios = set()
 
             for asistente in todos_asistentes:
@@ -1582,7 +1696,7 @@ with tab_quedadas:
 
                 asistentes_por_quedada.setdefault(
                     qid, []
-                ).append(uid)
+                ).append(asistente)
 
                 ids_usuarios.add(uid)
 
@@ -1594,24 +1708,21 @@ with tab_quedadas:
 
                 respuesta_perfiles = (
                     supabase.table("profiles")
-                    .select("id,username")
+                    .select("id,username,moto_foto_url")
                     .in_("id", list(ids_usuarios))
                     .execute()
                 )
 
                 for perfil in respuesta_perfiles.data or []:
 
-                    nombres_usuarios[perfil["id"]] = (
-                        perfil.get("username", "Motero")
-                    )
+                    perfiles_usuarios[perfil["id"]] = perfil
 
-        except Exception:
+        except Exception as e:
 
             st.warning(
-                "No se han podido cargar todos los nombres "
-                "de los asistentes. Comprueba los permisos "
-                "de la tabla profiles."
+                "No se han podido cargar todos los asistentes y sus fotografías."
             )
+            st.code(str(e))
 
 
     # ---------------------------------
@@ -1634,26 +1745,49 @@ with tab_quedadas:
             qid = quedada["id"]
             creador_id = quedada["creador_id"]
 
-            asistentes = asistentes_por_quedada.get(
-                qid,
-                []
+            asistentes = asistentes_por_quedada.get(qid, [])
+
+            mi_inscripcion = next(
+                (
+                    a for a in asistentes
+                    if str(a["usuario_id"]) == str(usuario_id)
+                ),
+                None
             )
 
-            estoy_apuntado = usuario_id in asistentes
-
-            creador_nombre = nombres_usuarios.get(
+            creador_perfil = perfiles_usuarios.get(
                 creador_id,
+                {}
+            )
+
+            creador_nombre = creador_perfil.get(
+                "username",
                 "Motero"
             )
 
-            imagen = quedada.get("imagen_url")
+            imagen = (
+                quedada.get("cartel_url")
+                or quedada.get("imagen_url")
+            )
 
             if (
                 not isinstance(imagen, str)
                 or not imagen.startswith(("https://", "http://"))
             ):
-
                 imagen = IMAGEN_PREDETERMINADA
+
+            horarios = horarios_por_quedada.get(qid, [])
+
+            # COMPATIBILIDAD CON QUEDADAS ANTIGUAS
+
+            if not horarios:
+
+                horarios = [{
+                    "id": None,
+                    "quedada_id": qid,
+                    "hora": quedada.get("hora", "09:00:00"),
+                    "punto_encuentro": quedada.get("punto_encuentro", "")
+                }]
 
             st.markdown(
                 '<div class="event-card">',
@@ -1674,20 +1808,48 @@ with tab_quedadas:
             )
 
             st.markdown(
-                f"🕘 **Hora:** {str(quedada['hora'])[:5]}"
-            )
-
-            st.markdown(
-                f"📍 **Punto de encuentro:** "
-                f"{html.escape(quedada['punto_encuentro'])}"
-            )
-
-            st.markdown(
                 f"👤 **Organiza:** {html.escape(creador_nombre)}"
             )
 
+            telefono = quedada.get("telefono_organizador") or ""
+
+            if telefono:
+
+                telefono_seguro = re.sub(
+                    r"[^0-9+]",
+                    "",
+                    str(telefono)
+                )
+
+                st.markdown(
+                    f"📞 **Teléfono del organizador:** "
+                    f"[{html.escape(telefono)}](tel:{telefono_seguro})"
+                )
+
             if quedada.get("descripcion"):
                 st.write(quedada["descripcion"])
+
+            # MOSTRAR HORARIOS
+
+            st.markdown("### 🕘 HORARIOS Y PUNTOS DE SALIDA")
+
+            for indice_horario, horario in enumerate(horarios):
+
+                hora_texto = str(horario.get("hora", ""))[:5]
+                punto_texto = horario.get("punto_encuentro", "")
+
+                st.markdown(
+                    f"""
+                    <div class="schedule-card">
+                        <strong>🏍️ Salida {indice_horario + 1}</strong><br>
+                        🕘 {html.escape(hora_texto)}<br>
+                        📍 {html.escape(punto_texto)}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            # ENLACE A LA RUTA
 
             if quedada.get("es_ruta_catalogo"):
 
@@ -1701,10 +1863,7 @@ with tab_quedadas:
 
                 if ruta_correspondiente:
 
-                    url_ruta = ruta_correspondiente.get(
-                        "url",
-                        ""
-                    )
+                    url_ruta = ruta_correspondiente.get("url", "")
 
                     if (
                         isinstance(url_ruta, str)
@@ -1722,32 +1881,155 @@ with tab_quedadas:
                 f"**🏍️ Moteros apuntados: {len(asistentes)}**"
             )
 
-            with st.expander("Ver quién va"):
+            # MOSTRAR ASISTENTES CON FOTO
+
+            with st.expander("👥 VER QUIÉN VA"):
 
                 if asistentes:
 
-                    for uid in asistentes:
+                    for asistente in asistentes:
 
-                        nombre_asistente = nombres_usuarios.get(
+                        uid = asistente["usuario_id"]
+
+                        perfil_asistente = perfiles_usuarios.get(
                             uid,
+                            {}
+                        )
+
+                        nombre_asistente = perfil_asistente.get(
+                            "username",
                             "Motero"
                         )
 
-                        st.write(
-                            f"🏍️ {nombre_asistente}"
+                        foto_asistente = perfil_asistente.get(
+                            "moto_foto_url"
                         )
+
+                        horario_asistente = next(
+                            (
+                                h for h in horarios
+                                if h.get("id") == asistente.get("horario_id")
+                            ),
+                            None
+                        )
+
+                        if horario_asistente:
+
+                            hora_asistente = str(
+                                horario_asistente.get("hora", "")
+                            )[:5]
+
+                        else:
+
+                            hora_asistente = str(
+                                quedada.get("hora", "")
+                            )[:5]
+
+                        col_foto, col_nombre = st.columns([1, 4])
+
+                        with col_foto:
+
+                            if (
+                                isinstance(foto_asistente, str)
+                                and foto_asistente.startswith(("https://", "http://"))
+                            ):
+
+                                st.image(
+                                    foto_asistente,
+                                    width=75
+                                )
+
+                            else:
+
+                                st.markdown("🏍️")
+
+                        with col_nombre:
+
+                            st.markdown(
+                                f"**{html.escape(nombre_asistente)}**"
+                            )
+
+                            st.caption(
+                                f"Salida: {hora_asistente}"
+                            )
 
                 else:
 
-                    st.write(
-                        "Todavía no hay asistentes."
-                    )
+                    st.write("Todavía no hay asistentes.")
+
+            # INSCRIPCIÓN Y CAMBIO DE HORARIO
+
+            st.markdown("### 🏍️ PARTICIPAR EN ESTA QUEDADA")
+
+            opciones_horarios = []
+
+            for indice_horario, horario in enumerate(horarios):
+
+                hora_texto = str(horario.get("hora", ""))[:5]
+                punto_texto = horario.get("punto_encuentro", "")
+
+                opciones_horarios.append(
+                    f"Salida {indice_horario + 1} · {hora_texto} · {punto_texto}"
+                )
+
+            horario_actual_id = (
+                mi_inscripcion.get("horario_id")
+                if mi_inscripcion
+                else None
+            )
+
+            indice_actual = 0
+
+            for indice_horario, horario in enumerate(horarios):
+
+                if horario.get("id") == horario_actual_id:
+                    indice_actual = indice_horario
+                    break
+
+            horario_elegido = st.selectbox(
+                "Selecciona tu horario de salida",
+                options=list(range(len(horarios))),
+                format_func=lambda i: opciones_horarios[i],
+                index=indice_actual,
+                key=f"horario_usuario_{qid}"
+            )
 
             col_apuntarse, col_estado = st.columns([2, 2])
 
             with col_apuntarse:
 
-                if estoy_apuntado:
+                if mi_inscripcion:
+
+                    if st.button(
+                        "ACTUALIZAR MI HORARIO",
+                        key=f"actualizar_{qid}",
+                        use_container_width=True
+                    ):
+
+                        try:
+
+                            horario_seleccionado = horarios[horario_elegido]
+
+                            supabase.table("asistentes").update({
+                                "horario_id": horario_seleccionado.get("id")
+                            }).eq(
+                                "quedada_id", qid
+                            ).eq(
+                                "usuario_id", usuario_id
+                            ).execute()
+
+                            st.success(
+                                "Tu horario de salida se ha actualizado."
+                            )
+
+                            st.rerun()
+
+                        except Exception as e:
+
+                            st.error(
+                                "No se ha podido actualizar tu horario."
+                            )
+                            st.code(str(e))
 
                     if st.button(
                         "CANCELAR MI ASISTENCIA",
@@ -1757,18 +2039,13 @@ with tab_quedadas:
 
                         try:
 
-                            (
-                                supabase.table("asistentes")
-                                .delete()
-                                .eq("quedada_id", qid)
-                                .eq("usuario_id", usuario_id)
-                                .execute()
-                            )
+                            supabase.table("asistentes").delete().eq(
+                                "quedada_id", qid
+                            ).eq(
+                                "usuario_id", usuario_id
+                            ).execute()
 
-                            st.success(
-                                "Has cancelado tu asistencia."
-                            )
-
+                            st.success("Has cancelado tu asistencia.")
                             st.rerun()
 
                         except Exception as e:
@@ -1776,7 +2053,6 @@ with tab_quedadas:
                             st.error(
                                 "No se ha podido cancelar la asistencia."
                             )
-
                             st.code(str(e))
 
                 else:
@@ -1789,9 +2065,12 @@ with tab_quedadas:
 
                         try:
 
+                            horario_seleccionado = horarios[horario_elegido]
+
                             supabase.table("asistentes").insert({
                                 "quedada_id": qid,
-                                "usuario_id": usuario_id
+                                "usuario_id": usuario_id,
+                                "horario_id": horario_seleccionado.get("id")
                             }).execute()
 
                             st.success(
@@ -1805,16 +2084,13 @@ with tab_quedadas:
                             st.error(
                                 "No se ha podido registrar tu asistencia."
                             )
-
                             st.code(str(e))
 
             with col_estado:
 
                 if creador_id == usuario_id:
 
-                    st.caption(
-                        "Esta es tu quedada"
-                    )
+                    st.caption("Esta es tu quedada.")
 
                     if st.button(
                         "CANCELAR QUEDADA",
@@ -1824,36 +2100,27 @@ with tab_quedadas:
 
                         try:
 
-                            (
-                                supabase.table("quedadas")
-                                .update({"estado": "cancelada"})
-                                .eq("id", qid)
-                                .eq("creador_id", usuario_id)
-                                .execute()
-                            )
+                            supabase.table("quedadas").update({
+                                "estado": "cancelada"
+                            }).eq(
+                                "id", qid
+                            ).eq(
+                                "creador_id", usuario_id
+                            ).execute()
 
-                            st.success(
-                                "Quedada cancelada."
-                            )
-
+                            st.success("Quedada cancelada.")
                             st.rerun()
 
                         except Exception as e:
 
-                            st.error(
-                                "No se ha podido cancelar la quedada."
-                            )
-
+                            st.error("No se ha podido cancelar la quedada.")
                             st.code(str(e))
 
-            st.markdown(
-                '</div>',
-                unsafe_allow_html=True
-            )
+            st.markdown('</div>', unsafe_allow_html=True)
 
 
 # =================================
-# PESTAÑA MI GARAJE
+# MI GARAJE
 # =================================
 
 with tab_garaje:
@@ -1946,52 +2213,11 @@ with tab_garaje:
 
             try:
 
-                extension = foto_moto.name.rsplit(
-                    ".",
-                    1
-                )[-1].lower()
-
-                nombre_archivo = (
-                    f"garaje/{usuario_id}/moto_"
-                    f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}"
-                    f".{extension}"
+                url_foto = subir_archivo_storage(
+                    foto_moto,
+                    f"garaje/{usuario_id}",
+                    "moto"
                 )
-
-                supabase.storage.from_(BUCKET_FAMILYBIKE).upload(
-                    nombre_archivo,
-                    foto_moto.getvalue(),
-                    file_options={
-                        "content-type": foto_moto.type,
-                        "upsert": "false"
-                    }
-                )
-
-                resultado_url = (
-                    supabase.storage
-                    .from_(BUCKET_FAMILYBIKE)
-                    .get_public_url(nombre_archivo)
-                )
-
-                if isinstance(resultado_url, dict):
-
-                    url_foto = (
-                        resultado_url.get("publicUrl")
-                        or resultado_url.get("publicURL")
-                    )
-
-                else:
-
-                    url_foto = str(resultado_url)
-
-                if (
-                    not url_foto
-                    or not url_foto.startswith("http")
-                ):
-
-                    raise ValueError(
-                        "Supabase no ha devuelto la dirección pública "
-                        "de la fotografía."
-                    )
 
                 supabase.table("profiles").update({
                     "moto_foto_url": url_foto
@@ -2008,19 +2234,14 @@ with tab_garaje:
 
             except Exception as error:
 
-                st.error(
-                    "No se ha podido guardar la fotografía."
-                )
-
+                st.error("No se ha podido guardar la fotografía.")
                 st.code(str(error))
 
-    st.caption(
-        "Formatos permitidos: JPG, JPEG, PNG y WEBP."
-    )
+    st.caption("Formatos permitidos: JPG, JPEG, PNG y WEBP.")
 
 
 # =================================
-# PESTAÑA COMUNIDAD
+# COMUNIDAD
 # =================================
 
 with tab_comunidad:
@@ -2050,17 +2271,13 @@ with tab_comunidad:
 
         todos_los_perfiles = respuesta_comunidad.data or []
 
-        miembros = []
-
-        for perfil in todos_los_perfiles:
-
-            foto = perfil.get("moto_foto_url")
-
+        miembros = [
+            perfil for perfil in todos_los_perfiles
             if (
-                isinstance(foto, str)
-                and foto.startswith(("https://", "http://"))
-            ):
-                miembros.append(perfil)
+                isinstance(perfil.get("moto_foto_url"), str)
+                and perfil["moto_foto_url"].startswith(("https://", "http://"))
+            )
+        ]
 
         st.markdown(
             f"""
@@ -2094,12 +2311,6 @@ with tab_comunidad:
                 )
 
                 foto_miembro = miembro.get("moto_foto_url")
-
-                if (
-                    not isinstance(foto_miembro, str)
-                    or not foto_miembro.startswith(("https://", "http://"))
-                ):
-                    continue
 
                 es_mi_perfil = (
                     str(miembro.get("id")) == str(usuario_id)
@@ -2139,9 +2350,7 @@ with tab_comunidad:
 
     except Exception as error_comunidad:
 
-        st.error(
-            "No se ha podido cargar la comunidad."
-        )
+        st.error("No se ha podido cargar la comunidad.")
 
         st.warning(
             "Comprueba los permisos de lectura de la tabla profiles "
@@ -2152,7 +2361,7 @@ with tab_comunidad:
 
 
 # =================================
-# PESTAÑA TIENDA
+# TIENDA
 # =================================
 
 with tab_tienda:
@@ -2196,14 +2405,12 @@ with tab_tienda:
             use_container_width=True
         )
 
-    st.caption(
-        "La tienda se abrirá en Payhip."
-    )
+    st.caption("La tienda se abrirá en Payhip.")
 
 
-# ---------------------------------
+# =================================
 # PIE DE PÁGINA
-# ---------------------------------
+# =================================
 
 st.markdown("""
 <div class="footer">
