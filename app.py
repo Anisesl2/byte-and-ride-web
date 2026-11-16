@@ -2,7 +2,15 @@ import streamlit as st
 import streamlit.components.v1 as components
 import html
 import re
-from urllib.parse import urlparse, unquote
+import base64
+import hashlib
+import json
+import secrets
+import threading
+import time as time_module
+from urllib.parse import urlparse, unquote, urlencode, quote
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 from datetime import date, time, datetime, timezone
 from supabase import create_client
 
@@ -26,6 +34,144 @@ TIENDA_URL = "https://payhip.com/b/YWPxa"
 FACEBOOK_URL = "https://m.facebook.com/groups/1646146103973952/?ref=share"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# OAuth Google PKCE: los verificadores se guardan temporalmente en el servidor.
+# No se guardan tokens ni verificadores en la URL del navegador.
+GOOGLE_REDIRECT_URL = "https://familybike.es/"
+
+
+@st.cache_resource
+def almacen_oauth_google():
+    return {"flujos": {}, "lock": threading.RLock()}
+
+
+def iniciar_google_oauth():
+    nonce = secrets.token_urlsafe(32)
+    verifier = secrets.token_urlsafe(64)
+    challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(verifier.encode("ascii")).digest()
+    ).rstrip(b"=").decode("ascii")
+
+    almacen = almacen_oauth_google()
+    with almacen["lock"]:
+        ahora = time_module.time()
+        for clave, registro in list(almacen["flujos"].items()):
+            if ahora - registro["creado"] > 600:
+                almacen["flujos"].pop(clave, None)
+        almacen["flujos"][nonce] = {
+            "verifier": verifier, "creado": ahora
+        }
+
+    retorno = GOOGLE_REDIRECT_URL + "?" + urlencode({"fb_oauth": nonce})
+    parametros = urlencode({
+        "provider": "google",
+        "redirect_to": retorno,
+        "code_challenge": challenge,
+        "code_challenge_method": "s256",
+    })
+    return SUPABASE_URL.rstrip("/") + "/auth/v1/authorize?" + parametros
+
+
+def completar_google_oauth():
+    codigo = st.query_params.get("code")
+    nonce = st.query_params.get("fb_oauth")
+    error_google = st.query_params.get("error_description") or st.query_params.get("error")
+
+    if not nonce and not error_google:
+        return None
+
+    if error_google:
+        st.query_params.clear()
+        return "Google ha cancelado el acceso o ha devuelto un error. Inténtalo de nuevo."
+
+    if not codigo or not nonce:
+        st.query_params.clear()
+        return "No se ha recibido el código de autorización de Google."
+
+    almacen = almacen_oauth_google()
+    with almacen["lock"]:
+        registro = almacen["flujos"].pop(nonce, None)
+
+    if not registro or time_module.time() - registro["creado"] > 600:
+        st.query_params.clear()
+        return "El acceso de Google ha caducado. Pulsa de nuevo el botón."
+
+    try:
+        datos = json.dumps({
+            "auth_code": codigo,
+            "code_verifier": registro["verifier"]
+        }).encode("utf-8")
+        peticion = Request(
+            SUPABASE_URL.rstrip("/") + "/auth/v1/token?grant_type=pkce",
+            data=datos,
+            headers={
+                "apikey": SUPABASE_KEY,
+                "Content-Type": "application/json"
+            },
+            method="POST"
+        )
+        with urlopen(peticion, timeout=20) as respuesta:
+            sesion = json.load(respuesta)
+
+        access_token = sesion["access_token"]
+        refresh_token = sesion["refresh_token"]
+        # Verificar la identidad en Supabase, sin confiar en parámetros del navegador.
+        supabase.auth.set_session(access_token, refresh_token)
+        usuario = supabase.auth.get_user().user
+        if usuario is None:
+            raise ValueError("Supabase no ha confirmado la identidad.")
+
+        metadata = getattr(usuario, "user_metadata", {}) or {}
+        email_real = (getattr(usuario, "email", "") or "").strip().lower()
+        base = re.sub(r"[^a-z0-9_]", "_", email_real.split("@")[0])
+        base = base.strip("_")[:14] or "motero"
+        username_propuesto = (base + "_" + usuario.id.replace("-", "")[:8])[:24]
+        username = metadata.get("username") or username_propuesto
+
+        # Si existe el perfil, se respeta su nombre. Si no, se intenta crearlo.
+        # La tabla puede tener un trigger de creación automática: en ese caso
+        # no se duplica el registro.
+        try:
+            perfil = (
+                supabase.table("profiles")
+                .select("username")
+                .eq("id", usuario.id)
+                .maybe_single()
+                .execute()
+            )
+            if perfil.data:
+                username = perfil.data.get("username") or username
+                if not perfil.data.get("username"):
+                    supabase.table("profiles").update({
+                        "username": username
+                    }).eq("id", usuario.id).execute()
+            else:
+                supabase.table("profiles").insert({
+                    "id": usuario.id,
+                    "username": username,
+                    "email_contacto": email_real,
+                    "avisos_email": False
+                }).execute()
+        except Exception:
+            # No bloquear una autenticación válida por permisos RLS del perfil.
+            pass
+
+        st.session_state["access_token"] = access_token
+        st.session_state["refresh_token"] = refresh_token
+        st.session_state["user_id"] = usuario.id
+        st.session_state["username"] = username
+        st.session_state["seccion_activa"] = "menu"
+        st.query_params.clear()
+        st.rerun()
+
+    except HTTPError as error:
+        st.query_params.clear()
+        return "No se ha podido completar el acceso con Google (HTTP {}).".format(error.code)
+    except Exception:
+        st.query_params.clear()
+        return "No se ha podido completar el acceso con Google. Inténtalo de nuevo."
+
+
 
 IMAGEN_PREDETERMINADA = (
     "https://images.unsplash.com/photo-1558981806-ec527fa84c39"
@@ -900,6 +1046,10 @@ def ordenar_rutas(lista_rutas):
     )
 
 
+# El callback de Google debe procesarse antes de restaurar la sesión.
+error_acceso_google = completar_google_oauth()
+
+
 # =========================================================
 # RESTAURAR SESIÓN
 # =========================================================
@@ -964,12 +1114,22 @@ if not autenticado:
         unsafe_allow_html=True
     )
 
+    if error_acceso_google:
+        st.error(error_acceso_google)
+
     tab_login, tab_registro = st.tabs([
         "INICIAR SESIÓN",
         "CREAR CUENTA"
     ])
 
     with tab_login:
+
+        st.link_button(
+            "CONTINUAR CON GOOGLE",
+            iniciar_google_oauth(),
+            use_container_width=True
+        )
+        st.caption("O entra con tu usuario y contraseña de siempre.")
 
         with st.form("form_login"):
 
@@ -1025,6 +1185,13 @@ if not autenticado:
                     )
 
     with tab_registro:
+
+        st.link_button(
+            "REGISTRARME CON GOOGLE",
+            iniciar_google_oauth(),
+            use_container_width=True
+        )
+        st.caption("O crea tu cuenta con usuario y contraseña.")
 
         st.caption(
             "El correo indicado será tu dirección de contacto. "
