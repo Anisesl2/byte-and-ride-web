@@ -1,13 +1,12 @@
-
 import streamlit as st
 import html
 import re
 from datetime import date, time, datetime, timezone
 from supabase import create_client
 
-# =================================
+# ---------------------------------
 # CONFIGURACIÓN
-# =================================
+# ---------------------------------
 
 st.set_page_config(
     page_title="FAMILY BIKE | Rutas en moto",
@@ -36,9 +35,9 @@ LOGO_URL = (
 )
 
 
-# =================================
+# ---------------------------------
 # DISEÑO
-# =================================
+# ---------------------------------
 
 st.markdown("""
 <style>
@@ -47,6 +46,7 @@ st.markdown("""
 :root {
     --negro: #0B0B0B;
     --negro-card: #171717;
+    --negro-hover: #222222;
     --amarillo: #FFD400;
     --amarillo-secundario: #F0B900;
     --amarillo-suave: #FFF2A6;
@@ -76,6 +76,11 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--amarillo) !important;
 }
 
+.stCaption,
+[data-testid="stCaptionContainer"] {
+    color: var(--amarillo-suave) !important;
+}
+
 header[data-testid="stHeader"] {
     background: transparent;
 }
@@ -86,6 +91,8 @@ header[data-testid="stHeader"] {
     padding-bottom: 3rem;
 }
 
+/* PORTADA */
+
 .hero {
     background: linear-gradient(110deg, #080808, #202020);
     border: 1px solid var(--amarillo);
@@ -93,7 +100,23 @@ header[data-testid="stHeader"] {
     padding: 35px;
     margin-bottom: 30px;
     text-align: center;
+    box-shadow: 0 8px 30px rgba(255, 212, 0, 0.08);
 }
+
+.hero-label {
+    color: var(--amarillo) !important;
+    letter-spacing: 5px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.hero p {
+    color: var(--amarillo-suave) !important;
+    font-size: 17px;
+    margin-bottom: 0;
+}
+
+/* TÍTULOS */
 
 .section-title {
     font-family: 'Barlow Condensed', sans-serif;
@@ -109,24 +132,21 @@ header[data-testid="stHeader"] {
     margin-bottom: 22px;
 }
 
-.route-card,
-.event-card,
-.garaje-card,
-.community-card,
-.stat-box,
-.tienda-card,
-.collaborator-card {
+/* TARJETAS DE RUTAS */
+
+.route-card {
     background: var(--negro-card);
     border: 1px solid var(--borde);
     border-radius: 15px;
-    padding: 20px;
+    padding: 22px;
+    min-height: 175px;
     margin-bottom: 18px;
+    transition: all .2s ease;
 }
 
-.route-card:hover,
-.community-card:hover,
-.collaborator-card:hover {
+.route-card:hover {
     border-color: var(--amarillo);
+    transform: translateY(-3px);
 }
 
 .route-number {
@@ -136,17 +156,21 @@ header[data-testid="stHeader"] {
     letter-spacing: 2px;
 }
 
-.route-name,
-.garaje-titulo,
-.community-name,
-.tienda-titulo {
-    color: var(--amarillo) !important;
+.route-name {
+    color: var(--amarillo-suave) !important;
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 25px;
-    font-weight: 800;
+    font-weight: 700;
+    margin: 12px 0 20px 0;
 }
 
+/* ESTADÍSTICAS */
+
 .stat-box {
+    background: var(--negro-card);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 18px;
     text-align: center;
 }
 
@@ -156,32 +180,121 @@ header[data-testid="stHeader"] {
     font-weight: 800;
 }
 
-.stat-label,
-.garaje-subtitulo,
-.community-label {
+.stat-label {
     color: var(--amarillo-suave) !important;
     font-size: 12px;
+    letter-spacing: 1px;
+}
+
+/* QUEDADAS */
+
+.event-card {
+    background: var(--negro-card);
+    border: 1px solid var(--borde);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 18px;
+}
+
+/* GARAJE */
+
+.garaje-card {
+    background: #171717;
+    border: 1px solid #FFD400;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 10px 0 18px 0;
+}
+
+.garaje-titulo {
+    color: #FFD400 !important;
+    font-size: 23px;
+    font-weight: 800;
+    font-family: 'Barlow Condensed', sans-serif;
+}
+
+.garaje-subtitulo {
+    color: #FFF2A6 !important;
+    font-size: 14px;
+    margin-top: 7px;
+}
+
+.garaje-card p,
+.garaje-card div,
+.garaje-card span,
+.garaje-card strong {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* COMUNIDAD */
+
+.community-card {
+    background: #171717;
+    border: 1px solid #494000;
+    border-radius: 15px;
+    padding: 12px;
+    margin-bottom: 18px;
+    transition: all .2s ease;
+}
+
+.community-card:hover {
+    border-color: #FFD400;
+    transform: translateY(-3px);
 }
 
 .community-name {
+    color: #FFD400 !important;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 25px;
+    font-weight: 800;
     text-align: center;
     margin-top: 12px;
 }
 
 .community-label {
-    text-align: center;
+    color: #FFF2A6 !important;
+    font-size: 11px;
     font-weight: 700;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-top: 5px;
 }
 
-.tienda-card {
+.community-you {
+    color: #FFD400 !important;
+    font-size: 11px;
+    font-weight: 800;
     text-align: center;
+    margin-top: 7px;
+}
+
+/* TIENDA */
+
+.tienda-card {
+    background: linear-gradient(135deg, #171717, #292929);
+    border: 1px solid #FFD400;
+    border-radius: 18px;
     padding: 28px;
-    border-color: var(--amarillo);
+    text-align: center;
+    margin: 20px 0;
 }
 
 .tienda-titulo {
+    color: #FFD400 !important;
+    font-family: 'Barlow Condensed', sans-serif;
     font-size: 32px;
+    font-weight: 800;
 }
+
+.tienda-texto {
+    color: #FFF2A6 !important;
+    font-size: 16px;
+    margin-top: 12px;
+}
+
+/* PIE DE PÁGINA */
 
 .footer {
     text-align: center;
@@ -196,7 +309,11 @@ header[data-testid="stHeader"] {
     color: var(--amarillo) !important;
 }
 
+/* CAMPOS DE TEXTO */
+
 div[data-testid="stTextInput"] input,
+div[data-testid="stTextInputRootElement"] input,
+div[data-testid="stTextInput"] input[type="password"],
 div[data-testid="stTextArea"] textarea {
     background: var(--negro-card) !important;
     color: #FFFFFF !important;
@@ -209,12 +326,36 @@ div[data-testid="stTextInput"] input::placeholder,
 div[data-testid="stTextArea"] textarea::placeholder {
     color: #BDBDBD !important;
     -webkit-text-fill-color: #BDBDBD !important;
+    opacity: 1 !important;
 }
+
+div[data-testid="stTextInput"] input:focus,
+div[data-testid="stTextArea"] textarea:focus {
+    border-color: var(--amarillo);
+    box-shadow: 0 0 0 1px var(--amarillo);
+}
+
+/* SELECTORES */
 
 div[data-baseweb="select"] > div {
     background: var(--negro-card);
     border-color: var(--borde);
+    color: var(--amarillo-suave);
 }
+
+div[data-baseweb="popover"] {
+    background: var(--negro-card);
+}
+
+div[data-baseweb="menu"] {
+    background: var(--negro-card);
+}
+
+div[data-baseweb="menu"] li {
+    color: var(--amarillo-suave);
+}
+
+/* BOTONES */
 
 .stButton > button,
 .stFormSubmitButton > button,
@@ -225,14 +366,18 @@ div[data-baseweb="select"] > div {
     border: 1px solid var(--amarillo);
     border-radius: 9px;
     font-weight: 800;
+    transition: all .2s ease;
 }
 
 .stButton > button:hover,
 .stFormSubmitButton > button:hover,
 .stLinkButton > a:hover {
     background: var(--amarillo-secundario);
+    color: #111111 !important;
     border-color: var(--amarillo-secundario);
 }
+
+/* PESTAÑAS */
 
 button[data-baseweb="tab"] {
     color: var(--amarillo-suave) !important;
@@ -243,36 +388,91 @@ button[data-baseweb="tab"][aria-selected="true"] {
     border-bottom-color: var(--amarillo) !important;
 }
 
+/* CHECKBOX Y RADIO */
+
 div[data-testid="stCheckbox"] label,
 div[data-testid="stRadio"] label {
     color: var(--amarillo-suave) !important;
 }
 
-div[data-testid="stExpander"],
+div[data-testid="stCheckbox"] label *,
+div[data-testid="stRadio"] label * {
+    color: var(--amarillo-suave) !important;
+}
+
+/* EXPANDERS */
+
+div[data-testid="stExpander"] {
+    background: var(--negro-card);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+}
+
+div[data-testid="stExpander"] summary,
+div[data-testid="stExpander"] summary span {
+    color: var(--amarillo) !important;
+}
+
+/* FORMULARIOS */
+
 div[data-testid="stForm"] {
     background: var(--negro-card);
     border: 1px solid var(--borde);
     border-radius: 12px;
-    padding: 12px;
+    padding: 18px;
 }
+
+/* SEPARADORES */
+
+hr {
+    border-color: var(--borde) !important;
+}
+
+/* MENSAJES */
 
 div[data-testid="stAlert"] {
     background: #292929 !important;
     border: 2px solid #FFD400 !important;
     border-radius: 12px !important;
+    padding: 14px 16px !important;
+    opacity: 1 !important;
 }
 
 div[data-testid="stAlert"] *,
 div[data-testid="stAlert"] p,
-div[data-testid="stAlert"] span {
+div[data-testid="stAlert"] span,
+div[data-testid="stAlert"] div,
+div[data-testid="stAlert"] li,
+div[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
+div[data-testid="stAlert"] [data-testid="stMarkdownContainer"] p {
     color: #FFFFFF !important;
+    opacity: 1 !important;
+    visibility: visible !important;
     -webkit-text-fill-color: #FFFFFF !important;
 }
 
-[data-testid="stCaptionContainer"],
-[data-testid="stCaptionContainer"] p {
-    color: #FFF2A6 !important;
+div[data-testid="stAlert"] svg {
+    color: #FFD400 !important;
+    fill: #FFD400 !important;
 }
+
+div[data-testid="stAlert"] a {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+    text-decoration: underline !important;
+}
+
+/* CAPTIONS */
+
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p,
+.stCaption {
+    color: #FFF2A6 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #FFF2A6 !important;
+}
+
+/* SUBIDA DE FOTOGRAFÍAS */
 
 div[data-testid="stFileUploader"] {
     background: #171717 !important;
@@ -281,21 +481,27 @@ div[data-testid="stFileUploader"] {
     padding: 12px !important;
 }
 
-div[data-testid="stFileUploader"] * {
+div[data-testid="stFileUploader"] *,
+div[data-testid="stFileUploader"] section,
+div[data-testid="stFileUploader"] small {
     color: #FFFFFF !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #FFFFFF !important;
 }
 
 div[data-testid="stFileUploader"] button {
     color: #111111 !important;
+    -webkit-text-fill-color: #111111 !important;
     background: #FFD400 !important;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
 
-# =================================
-# PORTADA
-# =================================
+# ---------------------------------
+# PORTADA - LOGO
+# ---------------------------------
 
 col_izquierda, col_logo, col_derecha = st.columns([1, 2, 1])
 
@@ -303,9 +509,9 @@ with col_logo:
     st.image(LOGO_URL, width=320)
 
 
-# =================================
-# AUTENTICACIÓN
-# =================================
+# ---------------------------------
+# FUNCIONES DE AUTENTICACIÓN
+# ---------------------------------
 
 def email_interno(username):
     return f"{username}@{AUTH_DOMAIN}"
@@ -339,19 +545,12 @@ def guardar_sesion(response, username):
     if user is not None:
         st.session_state["user_id"] = user.id
 
-        metadata = getattr(user, "user_metadata", {}) or {}
-
-        st.session_state["tipo_cuenta"] = metadata.get(
-            "tipo_cuenta",
-            "motero"
-        )
-
     return True
 
 
 def guardar_datos_contacto(user_id, email_contacto, avisos_email):
 
-    return (
+    respuesta = (
         supabase.table("profiles")
         .update({
             "email_contacto": email_contacto.strip().lower(),
@@ -360,6 +559,8 @@ def guardar_datos_contacto(user_id, email_contacto, avisos_email):
         .eq("id", user_id)
         .execute()
     )
+
+    return respuesta
 
 
 def cerrar_sesion():
@@ -373,113 +574,26 @@ def cerrar_sesion():
         "access_token",
         "refresh_token",
         "username",
-        "user_id",
-        "tipo_cuenta"
+        "user_id"
     ]:
         st.session_state.pop(key, None)
 
 
-# =================================
-# FUNCIONES DE COLABORADORES
-# =================================
-
-def obtener_colaborador(usuario_id):
-
-    respuesta = (
-        supabase.table("colaboradores")
-        .select("*")
-        .eq("usuario_id", usuario_id)
-        .maybe_single()
-        .execute()
-    )
-
-    return respuesta.data or {}
-
-
-def guardar_colaborador(usuario_id, datos):
-
-    existente = obtener_colaborador(usuario_id)
-
-    datos_guardar = dict(datos)
-
-    if existente:
-
-        return (
-            supabase.table("colaboradores")
-            .update(datos_guardar)
-            .eq("usuario_id", usuario_id)
-            .execute()
-        )
-
-    datos_guardar["usuario_id"] = usuario_id
-
-    return (
-        supabase.table("colaboradores")
-        .insert(datos_guardar)
-        .execute()
-    )
-
-
-def subir_foto_colaborador(archivo, usuario_id):
-
-    extension = archivo.name.rsplit(".", 1)[-1].lower()
-
-    if extension not in ["jpg", "jpeg", "png", "webp"]:
-        raise ValueError("Formato de imagen no permitido.")
-
-    nombre_archivo = (
-        f"colaboradores/{usuario_id}/"
-        f"negocio_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}"
-        f".{extension}"
-    )
-
-    supabase.storage.from_(BUCKET_FAMILYBIKE).upload(
-        nombre_archivo,
-        archivo.getvalue(),
-        file_options={
-            "content-type": archivo.type,
-            "upsert": "false"
-        }
-    )
-
-    resultado = (
-        supabase.storage
-        .from_(BUCKET_FAMILYBIKE)
-        .get_public_url(nombre_archivo)
-    )
-
-    if isinstance(resultado, dict):
-        url = (
-            resultado.get("publicUrl")
-            or resultado.get("publicURL")
-        )
-    else:
-        url = str(resultado)
-
-    if not url or not url.startswith("http"):
-        raise ValueError("No se ha podido obtener la URL de la imagen.")
-
-    return url
-
-
-def validar_url(url):
-
-    url = (url or "").strip()
-
-    if not url:
-        return True
-
-    return url.startswith(("https://", "http://"))
-
-
-# =================================
-# NOTIFICACIONES DE QUEDADAS
-# =================================
+# ---------------------------------
+# SUPABASE: CREAR NOTIFICACIONES
+# ---------------------------------
 
 def crear_notificaciones_quedada(quedada_id, creador_id):
 
+    """
+    Crea notificaciones pendientes en Supabase.
+    El envío de correos se gestiona desde Google Colab.
+    """
+
     if not quedada_id:
-        raise ValueError("No se ha recibido el ID de la quedada.")
+        raise ValueError(
+            "No se ha recibido el ID de la quedada."
+        )
 
     respuesta_perfiles = (
         supabase.table("profiles")
@@ -536,13 +650,15 @@ def crear_notificaciones_quedada(quedada_id, creador_id):
     }
 
 
-# =================================
-# ORDENACIÓN DE RUTAS
-# =================================
+# ---------------------------------
+# FUNCIONES DE ORDENACIÓN DE RUTAS
+# ---------------------------------
 
 def numero_ruta(ruta):
 
-    nombre = str(ruta.get("nombre", "")).strip()
+    nombre = str(
+        ruta.get("nombre", "")
+    ).strip()
 
     coincidencia = re.search(
         r"\bruta\s*#?\s*(\d+)",
@@ -568,9 +684,9 @@ def ordenar_rutas(lista_rutas):
     )
 
 
-# =================================
+# ---------------------------------
 # RESTAURAR SESIÓN
-# =================================
+# ---------------------------------
 
 autenticado = False
 
@@ -591,22 +707,18 @@ if (
 
         st.session_state["user_id"] = usuario_actual.id
 
-        metadata = getattr(
-            usuario_actual,
-            "user_metadata",
-            {}
-        ) or {}
-
         if not st.session_state.get("username"):
+
+            metadata = getattr(
+                usuario_actual,
+                "user_metadata",
+                {}
+            ) or {}
+
             st.session_state["username"] = metadata.get(
                 "username",
                 "motero"
             )
-
-        st.session_state["tipo_cuenta"] = metadata.get(
-            "tipo_cuenta",
-            "motero"
-        )
 
         autenticado = True
 
@@ -614,9 +726,9 @@ if (
         cerrar_sesion()
 
 
-# =================================
+# ---------------------------------
 # REGISTRO E INICIO DE SESIÓN
-# =================================
+# ---------------------------------
 
 if not autenticado:
 
@@ -627,7 +739,7 @@ if not autenticado:
 
     st.markdown(
         '<div class="section-subtitle">'
-        'Regístrate o inicia sesión para descubrir FAMILY BIKE.'
+        'Regístrate o inicia sesión para descubrir nuestras rutas.'
         '</div>',
         unsafe_allow_html=True
     )
@@ -638,7 +750,7 @@ if not autenticado:
     ])
 
     # ---------------------------------
-    # LOGIN
+    # INICIAR SESIÓN
     # ---------------------------------
 
     with tab_login:
@@ -666,11 +778,15 @@ if not autenticado:
 
             if not username or not password_login:
 
-                st.error("Introduce tu usuario y contraseña.")
+                st.error(
+                    "Introduce tu usuario y contraseña."
+                )
 
             elif not re.fullmatch(r"[a-z0-9_]{3,24}", username):
 
-                st.error("El nombre de usuario no es válido.")
+                st.error(
+                    "El nombre de usuario no es válido."
+                )
 
             else:
 
@@ -683,7 +799,10 @@ if not autenticado:
 
                     if guardar_sesion(response, username):
 
-                        st.success("Sesión iniciada correctamente.")
+                        st.success(
+                            "Sesión iniciada correctamente."
+                        )
+
                         st.rerun()
 
                     else:
@@ -700,23 +819,17 @@ if not autenticado:
                     )
 
     # ---------------------------------
-    # REGISTRO
+    # CREAR CUENTA
     # ---------------------------------
 
     with tab_registro:
 
         st.caption(
             "El correo indicado será tu dirección de contacto. "
-            "Accederás con tu nombre de usuario y contraseña."
+            "Seguirás accediendo con tu nombre de usuario y contraseña."
         )
 
         with st.form("form_registro"):
-
-            tipo_cuenta = st.radio(
-                "¿Cómo quieres registrarte?",
-                ["Motero", "Empresa colaboradora"],
-                horizontal=True
-            )
 
             nuevo_usuario = st.text_input(
                 "Elige un nombre de usuario",
@@ -774,15 +887,11 @@ if not autenticado:
 
             elif nueva_password != repetir_password:
 
-                st.error("Las contraseñas no coinciden.")
+                st.error(
+                    "Las contraseñas no coinciden."
+                )
 
             else:
-
-                tipo_guardado = (
-                    "empresa"
-                    if tipo_cuenta == "Empresa colaboradora"
-                    else "motero"
-                )
 
                 try:
 
@@ -791,8 +900,7 @@ if not autenticado:
                         "password": nueva_password,
                         "options": {
                             "data": {
-                                "username": username,
-                                "tipo_cuenta": tipo_guardado
+                                "username": username
                             }
                         }
                     })
@@ -810,14 +918,9 @@ if not autenticado:
                             )
 
                             st.success(
-                                "¡Cuenta creada correctamente!"
+                                "¡Cuenta creada correctamente! "
+                                "Tu correo y tus preferencias se han guardado."
                             )
-
-                            if tipo_guardado == "empresa":
-                                st.info(
-                                    "Tu cuenta de empresa está creada. "
-                                    "Ya puedes completar tu ficha de colaborador."
-                                )
 
                             st.rerun()
 
@@ -828,18 +931,30 @@ if not autenticado:
                                 "podido guardar los datos de contacto."
                             )
 
+                            st.warning(
+                                "Comprueba que has ejecutado el SQL de "
+                                "configuración de profiles."
+                            )
+
                             st.code(str(error_perfil))
 
                     else:
 
                         st.warning(
                             "Supabase ha recibido el registro, pero no ha "
-                            "devuelto una sesión. Inicia sesión cuando puedas."
+                            "devuelto una sesión. Inicia sesión con tu usuario "
+                            "y contraseña. El correo de contacto tendrá que "
+                            "guardarse después de iniciar sesión."
                         )
 
                 except Exception as e:
 
                     st.error("ERROR AL CREAR LA CUENTA")
+
+                    st.write(
+                        "Supabase ha devuelto el siguiente mensaje:"
+                    )
+
                     st.code(str(e))
 
     st.markdown("""
@@ -853,13 +968,12 @@ if not autenticado:
     st.stop()
 
 
-# =================================
+# ---------------------------------
 # USUARIO AUTENTICADO
-# =================================
+# ---------------------------------
 
 usuario_id = st.session_state.get("user_id")
-username_actual = st.session_state.get("username", "motero")
-tipo_cuenta_actual = st.session_state.get("tipo_cuenta", "motero")
+username_actual = st.session_state["username"]
 
 if not usuario_id:
 
@@ -871,9 +985,9 @@ if not usuario_id:
     st.stop()
 
 
-# =================================
+# ---------------------------------
 # CARGAR PERFIL Y FOTO DE MOTO
-# =================================
+# ---------------------------------
 
 perfil_garaje = {}
 foto_moto_actual = None
@@ -890,38 +1004,33 @@ try:
 
     perfil_garaje = respuesta_perfil.data or {}
 
-    foto_moto_actual = perfil_garaje.get("moto_foto_url")
+    foto_moto_actual = perfil_garaje.get(
+        "moto_foto_url"
+    )
 
 except Exception:
 
     st.warning(
-        "No se ha podido cargar la fotografía del garaje."
+        "No se ha podido cargar la fotografía del garaje. "
+        "Comprueba la configuración de profiles."
     )
 
 
-# =================================
+# ---------------------------------
 # CABECERA DEL USUARIO
-# =================================
+# ---------------------------------
 
 col_usuario, col_moto, col_salir = st.columns([2, 2, 1])
 
 with col_usuario:
 
-    tipo_etiqueta = (
-        "EMPRESA COLABORADORA"
-        if tipo_cuenta_actual == "empresa"
-        else "MOTERO"
-    )
-
     st.markdown(
         f"""
         <div class="garaje-card">
-            <div class="garaje-titulo">🏍️ FAMILY BIKE</div>
+            <div class="garaje-titulo">🏍️ MI GARAJE</div>
             <div class="garaje-subtitulo">
-                Usuario: <strong>{html.escape(username_actual)}</strong>
-            </div>
-            <div class="garaje-subtitulo">
-                Tipo de cuenta: {tipo_etiqueta}
+                Usuario:
+                <strong>{html.escape(username_actual)}</strong>
             </div>
             <div class="garaje-subtitulo">
                 Bienvenido a FAMILY BIKE
@@ -941,7 +1050,7 @@ with col_moto:
             use_container_width=True
         )
 
-    elif tipo_cuenta_actual == "motero":
+    else:
 
         st.markdown(
             """
@@ -950,6 +1059,9 @@ with col_moto:
                 <div class="garaje-subtitulo">
                     Todavía no has añadido una fotografía.
                 </div>
+                <div class="garaje-subtitulo">
+                    Puedes subirla desde la pestaña Mi garaje.
+                </div>
             </div>
             """,
             unsafe_allow_html=True
@@ -957,15 +1069,18 @@ with col_moto:
 
 with col_salir:
 
-    if st.button("CERRAR SESIÓN", use_container_width=True):
+    if st.button(
+        "CERRAR SESIÓN",
+        use_container_width=True
+    ):
 
         cerrar_sesion()
         st.rerun()
 
 
-# =================================
-# CARGAR RUTAS
-# =================================
+# ---------------------------------
+# CARGAR RUTAS DESDE SUPABASE
+# ---------------------------------
 
 try:
 
@@ -979,14 +1094,17 @@ try:
 
 except Exception as e:
 
-    st.error("No se han podido cargar las rutas.")
+    st.error(
+        "No se han podido cargar las rutas desde Supabase."
+    )
+
     st.code(str(e))
     st.stop()
 
 
-# =================================
+# ---------------------------------
 # ESTADÍSTICAS
-# =================================
+# ---------------------------------
 
 try:
 
@@ -1035,22 +1153,21 @@ with col3:
     """, unsafe_allow_html=True)
 
 
-# =================================
+# ---------------------------------
 # PESTAÑAS PRINCIPALES
-# =================================
+# ---------------------------------
 
-tab_rutas, tab_quedadas, tab_garaje, tab_comunidad, tab_colaboradores, tab_tienda = st.tabs([
+tab_rutas, tab_quedadas, tab_garaje, tab_comunidad, tab_tienda = st.tabs([
     "🏍️ EXPLORAR RUTAS",
     "📅 QUEDADAS MOTERAS",
     "🏁 MI GARAJE",
     "👥 COMUNIDAD",
-    "🤝 COLABORADORES",
     "🛒 TIENDA"
 ])
 
 
 # =================================
-# EXPLORAR RUTAS
+# PESTAÑA DE RUTAS
 # =================================
 
 with tab_rutas:
@@ -1062,7 +1179,7 @@ with tab_rutas:
 
     st.markdown(
         '<div class="section-subtitle">'
-        'Encuentra tu próximo destino y disfruta de la carretera.'
+        'Encuentra tu próximo destino y sal a disfrutar de la carretera.'
         '</div>',
         unsafe_allow_html=True
     )
@@ -1080,39 +1197,55 @@ with tab_rutas:
 
     if not rutas:
 
-        st.warning("Todavía no hay rutas disponibles.")
+        st.warning(
+            "Todavía no hay rutas disponibles."
+        )
 
     elif not rutas_filtradas:
 
-        st.info("No hay rutas que coincidan con tu búsqueda.")
+        st.info(
+            "No hay rutas que coincidan con tu búsqueda."
+        )
 
     else:
 
-        st.caption(f"Mostrando {len(rutas_filtradas)} rutas")
+        st.caption(
+            f"Mostrando {len(rutas_filtradas)} rutas"
+        )
 
         columnas = st.columns(3)
 
         for indice, ruta in enumerate(rutas_filtradas):
 
-            nombre = ruta.get("nombre", "Ruta sin nombre")
+            nombre = ruta.get(
+                "nombre",
+                "Ruta sin nombre"
+            )
+
             url_original = ruta.get("url", "")
             imagen = ruta.get("imagen_url")
+
+            numero = indice + 1
 
             if (
                 not isinstance(imagen, str)
                 or not imagen.startswith(("https://", "http://"))
             ):
+
                 imagen = IMAGEN_PREDETERMINADA
 
             with columnas[indice % 3]:
 
-                st.image(imagen, use_container_width=True)
+                st.image(
+                    imagen,
+                    use_container_width=True
+                )
 
                 st.markdown(
                     f"""
                     <div class="route-card">
                         <div class="route-number">
-                            RUTA {indice + 1:02d}
+                            RUTA {numero:02d}
                         </div>
                         <div class="route-name">
                             {html.escape(nombre)}
@@ -1122,7 +1255,10 @@ with tab_rutas:
                     unsafe_allow_html=True
                 )
 
-                if validar_url(url_original) and url_original:
+                if (
+                    isinstance(url_original, str)
+                    and url_original.startswith(("https://", "http://"))
+                ):
 
                     st.link_button(
                         "VER RECORRIDO ↗",
@@ -1132,7 +1268,7 @@ with tab_rutas:
 
 
 # =================================
-# QUEDADAS MOTERAS
+# PESTAÑA DE QUEDADAS
 # =================================
 
 with tab_quedadas:
@@ -1153,7 +1289,10 @@ with tab_quedadas:
     # CREAR QUEDADA
     # ---------------------------------
 
-    with st.expander("➕ CREAR UNA NUEVA QUEDADA"):
+    with st.expander(
+        "➕ CREAR UNA NUEVA QUEDADA",
+        expanded=False
+    ):
 
         nombres_rutas = [
             ruta.get("nombre", "Ruta sin nombre")
@@ -1168,7 +1307,10 @@ with tab_quedadas:
                 horizontal=True
             )
 
-            if tipo_destino == "Ruta del catálogo" and nombres_rutas:
+            if (
+                tipo_destino == "Ruta del catálogo"
+                and nombres_rutas
+            ):
 
                 ruta_elegida = st.selectbox(
                     "Selecciona una ruta",
@@ -1205,7 +1347,10 @@ with tab_quedadas:
 
             descripcion = st.text_area(
                 "Descripción de la salida",
-                placeholder="Cuenta cómo será la ruta, kilómetros, paradas..."
+                placeholder=(
+                    "Cuenta cómo será la ruta, kilómetros, "
+                    "paradas, recomendaciones..."
+                )
             )
 
             imagen_quedada = st.text_input(
@@ -1228,21 +1373,35 @@ with tab_quedadas:
 
             if not nombre_final:
 
-                st.error("Introduce el nombre de la ruta o destino.")
+                st.error(
+                    "Introduce el nombre de la ruta o destino."
+                )
 
             elif not punto_encuentro.strip():
 
-                st.error("Indica el punto de encuentro.")
+                st.error(
+                    "Indica el punto de encuentro."
+                )
 
-            elif not validar_url(imagen_quedada):
+            elif (
+                imagen_quedada.strip()
+                and not imagen_quedada.strip().startswith(
+                    ("https://", "http://")
+                )
+            ):
 
-                st.error("La dirección de la fotografía no es válida.")
+                st.error(
+                    "La dirección de la fotografía no es válida."
+                )
 
             else:
 
                 imagen_final = imagen_quedada.strip()
 
-                if tipo_destino == "Ruta del catálogo" and not imagen_final:
+                if (
+                    tipo_destino == "Ruta del catálogo"
+                    and not imagen_final
+                ):
 
                     ruta_seleccionada = next(
                         (
@@ -1252,7 +1411,9 @@ with tab_quedadas:
                         {}
                     )
 
-                    imagen_final = ruta_seleccionada.get("imagen_url") or ""
+                    imagen_final = (
+                        ruta_seleccionada.get("imagen_url") or ""
+                    )
 
                 nueva_quedada = {
                     "creador_id": usuario_id,
@@ -1279,20 +1440,35 @@ with tab_quedadas:
                     filas_guardadas = respuesta_nueva.data or []
 
                     if not filas_guardadas:
-                        raise ValueError("No se ha recibido la quedada creada.")
 
-                    quedada_id = filas_guardadas[0].get("id")
+                        raise ValueError(
+                            "Supabase no ha devuelto la quedada creada. "
+                            "No se pueden generar las notificaciones."
+                        )
+
+                    quedada_guardada = filas_guardadas[0]
+                    quedada_id = quedada_guardada.get("id")
 
                     if not quedada_id:
-                        raise ValueError("No se ha recibido el ID de la quedada.")
 
-                    st.success("¡Quedada publicada correctamente!")
+                        raise ValueError(
+                            "La quedada se ha guardado, pero no se ha "
+                            "recibido su identificador."
+                        )
+
+                    st.success(
+                        "¡Quedada publicada correctamente!"
+                    )
+
+                    # CREAR AVISOS PENDIENTES
 
                     try:
 
-                        resultado_avisos = crear_notificaciones_quedada(
-                            quedada_id=quedada_id,
-                            creador_id=usuario_id
+                        resultado_avisos = (
+                            crear_notificaciones_quedada(
+                                quedada_id=quedada_id,
+                                creador_id=usuario_id
+                            )
                         )
 
                         creadas = resultado_avisos["creadas"]
@@ -1302,17 +1478,19 @@ with tab_quedadas:
 
                             st.success(
                                 f"📬 Se han registrado {creadas} "
-                                "notificaciones pendientes."
+                                "notificaciones pendientes. "
+                                "Puedes enviarlas desde Google Colab."
                             )
 
                         else:
 
                             st.info(
-                                "No hay usuarios con avisos activados "
-                                "y correo válido."
+                                "La quedada se ha publicado, pero no hay "
+                                "usuarios con avisos activados y correo válido."
                             )
 
                         if omitidas > 0:
+
                             st.caption(
                                 f"{omitidas} perfiles no han generado "
                                 "una notificación."
@@ -1321,8 +1499,8 @@ with tab_quedadas:
                     except Exception as error_avisos:
 
                         st.warning(
-                            "La quedada se publicó, pero no se pudieron "
-                            "crear las notificaciones."
+                            "La quedada se ha publicado correctamente, "
+                            "pero no se han podido crear las notificaciones."
                         )
 
                         st.code(str(error_avisos))
@@ -1331,7 +1509,10 @@ with tab_quedadas:
 
                 except Exception as e:
 
-                    st.error("No se ha podido publicar la quedada.")
+                    st.error(
+                        "No se ha podido publicar la quedada."
+                    )
+
                     st.code(str(e))
 
 
@@ -1358,13 +1539,16 @@ with tab_quedadas:
 
     except Exception as e:
 
-        st.error("No se han podido cargar las quedadas.")
+        st.error(
+            "No se han podido cargar las quedadas."
+        )
+
         st.code(str(e))
         quedadas = []
 
 
     # ---------------------------------
-    # ASISTENTES Y PERFILES
+    # CARGAR ASISTENTES Y PERFILES
     # ---------------------------------
 
     asistentes_por_quedada = {}
@@ -1372,7 +1556,9 @@ with tab_quedadas:
 
     if quedadas:
 
-        ids_quedadas = [q["id"] for q in quedadas]
+        ids_quedadas = [
+            q["id"] for q in quedadas
+        ]
 
         try:
 
@@ -1383,7 +1569,10 @@ with tab_quedadas:
                 .execute()
             )
 
-            todos_asistentes = respuesta_asistentes.data or []
+            todos_asistentes = (
+                respuesta_asistentes.data or []
+            )
+
             ids_usuarios = set()
 
             for asistente in todos_asistentes:
@@ -1391,10 +1580,15 @@ with tab_quedadas:
                 qid = asistente["quedada_id"]
                 uid = asistente["usuario_id"]
 
-                asistentes_por_quedada.setdefault(qid, []).append(uid)
+                asistentes_por_quedada.setdefault(
+                    qid, []
+                ).append(uid)
+
                 ids_usuarios.add(uid)
 
-            ids_usuarios.update(q["creador_id"] for q in quedadas)
+            ids_usuarios.update(
+                q["creador_id"] for q in quedadas
+            )
 
             if ids_usuarios:
 
@@ -1415,7 +1609,8 @@ with tab_quedadas:
 
             st.warning(
                 "No se han podido cargar todos los nombres "
-                "de los asistentes."
+                "de los asistentes. Comprueba los permisos "
+                "de la tabla profiles."
             )
 
 
@@ -1439,7 +1634,11 @@ with tab_quedadas:
             qid = quedada["id"]
             creador_id = quedada["creador_id"]
 
-            asistentes = asistentes_por_quedada.get(qid, [])
+            asistentes = asistentes_por_quedada.get(
+                qid,
+                []
+            )
+
             estoy_apuntado = usuario_id in asistentes
 
             creador_nombre = nombres_usuarios.get(
@@ -1453,159 +1652,208 @@ with tab_quedadas:
                 not isinstance(imagen, str)
                 or not imagen.startswith(("https://", "http://"))
             ):
+
                 imagen = IMAGEN_PREDETERMINADA
 
-            with st.container(border=True):
+            st.markdown(
+                '<div class="event-card">',
+                unsafe_allow_html=True
+            )
 
-                st.image(imagen, use_container_width=True)
+            st.image(
+                imagen,
+                use_container_width=True
+            )
 
-                st.markdown(
-                    f"## 🏍️ {html.escape(quedada['ruta_nombre'])}"
+            st.markdown(
+                f"## 🏍️ {html.escape(quedada['ruta_nombre'])}"
+            )
+
+            st.markdown(
+                f"📅 **Fecha:** {quedada['fecha']}"
+            )
+
+            st.markdown(
+                f"🕘 **Hora:** {str(quedada['hora'])[:5]}"
+            )
+
+            st.markdown(
+                f"📍 **Punto de encuentro:** "
+                f"{html.escape(quedada['punto_encuentro'])}"
+            )
+
+            st.markdown(
+                f"👤 **Organiza:** {html.escape(creador_nombre)}"
+            )
+
+            if quedada.get("descripcion"):
+                st.write(quedada["descripcion"])
+
+            if quedada.get("es_ruta_catalogo"):
+
+                ruta_correspondiente = next(
+                    (
+                        r for r in rutas
+                        if r.get("nombre") == quedada["ruta_nombre"]
+                    ),
+                    None
                 )
 
-                st.markdown(f"📅 **Fecha:** {quedada['fecha']}")
-                st.markdown(f"🕘 **Hora:** {str(quedada['hora'])[:5]}")
+                if ruta_correspondiente:
 
-                st.markdown(
-                    f"📍 **Punto de encuentro:** "
-                    f"{html.escape(quedada['punto_encuentro'])}"
-                )
-
-                st.markdown(
-                    f"👤 **Organiza:** {html.escape(creador_nombre)}"
-                )
-
-                if quedada.get("descripcion"):
-                    st.write(quedada["descripcion"])
-
-                if quedada.get("es_ruta_catalogo"):
-
-                    ruta_correspondiente = next(
-                        (
-                            r for r in rutas
-                            if r.get("nombre") == quedada["ruta_nombre"]
-                        ),
-                        None
+                    url_ruta = ruta_correspondiente.get(
+                        "url",
+                        ""
                     )
 
-                    if ruta_correspondiente:
+                    if (
+                        isinstance(url_ruta, str)
+                        and url_ruta.startswith(("https://", "http://"))
+                    ):
 
-                        url_ruta = ruta_correspondiente.get("url", "")
+                        st.link_button(
+                            "VER RECORRIDO EN GOOGLE MAPS ↗",
+                            url_ruta
+                        )
 
-                        if validar_url(url_ruta) and url_ruta:
+            st.divider()
 
-                            st.link_button(
-                                "VER RECORRIDO EN GOOGLE MAPS ↗",
-                                url_ruta
+            st.markdown(
+                f"**🏍️ Moteros apuntados: {len(asistentes)}**"
+            )
+
+            with st.expander("Ver quién va"):
+
+                if asistentes:
+
+                    for uid in asistentes:
+
+                        nombre_asistente = nombres_usuarios.get(
+                            uid,
+                            "Motero"
+                        )
+
+                        st.write(
+                            f"🏍️ {nombre_asistente}"
+                        )
+
+                else:
+
+                    st.write(
+                        "Todavía no hay asistentes."
+                    )
+
+            col_apuntarse, col_estado = st.columns([2, 2])
+
+            with col_apuntarse:
+
+                if estoy_apuntado:
+
+                    if st.button(
+                        "CANCELAR MI ASISTENCIA",
+                        key=f"salir_{qid}",
+                        use_container_width=True
+                    ):
+
+                        try:
+
+                            (
+                                supabase.table("asistentes")
+                                .delete()
+                                .eq("quedada_id", qid)
+                                .eq("usuario_id", usuario_id)
+                                .execute()
                             )
 
-                st.divider()
-
-                st.markdown(
-                    f"**🏍️ Moteros apuntados: {len(asistentes)}**"
-                )
-
-                with st.expander("Ver quién va"):
-
-                    if asistentes:
-
-                        for uid in asistentes:
-                            st.write(
-                                f"🏍️ {nombres_usuarios.get(uid, 'Motero')}"
+                            st.success(
+                                "Has cancelado tu asistencia."
                             )
 
-                    else:
-                        st.write("Todavía no hay asistentes.")
+                            st.rerun()
 
-                col_apuntarse, col_estado = st.columns([2, 2])
+                        except Exception as e:
 
-                with col_apuntarse:
+                            st.error(
+                                "No se ha podido cancelar la asistencia."
+                            )
 
-                    if estoy_apuntado:
+                            st.code(str(e))
 
-                        if st.button(
-                            "CANCELAR MI ASISTENCIA",
-                            key=f"salir_{qid}",
-                            use_container_width=True
-                        ):
+                else:
 
-                            try:
+                    if st.button(
+                        "🏍️ ME APUNTO",
+                        key=f"apuntarme_{qid}",
+                        use_container_width=True
+                    ):
 
-                                (
-                                    supabase.table("asistentes")
-                                    .delete()
-                                    .eq("quedada_id", qid)
-                                    .eq("usuario_id", usuario_id)
-                                    .execute()
-                                )
+                        try:
 
-                                st.success("Has cancelado tu asistencia.")
-                                st.rerun()
+                            supabase.table("asistentes").insert({
+                                "quedada_id": qid,
+                                "usuario_id": usuario_id
+                            }).execute()
 
-                            except Exception as e:
+                            st.success(
+                                "¡Ya estás apuntado a la quedada!"
+                            )
 
-                                st.error("No se ha podido cancelar.")
-                                st.code(str(e))
+                            st.rerun()
 
-                    else:
+                        except Exception as e:
 
-                        if st.button(
-                            "🏍️ ME APUNTO",
-                            key=f"apuntarme_{qid}",
-                            use_container_width=True
-                        ):
+                            st.error(
+                                "No se ha podido registrar tu asistencia."
+                            )
 
-                            try:
+                            st.code(str(e))
 
-                                supabase.table("asistentes").insert({
-                                    "quedada_id": qid,
-                                    "usuario_id": usuario_id
-                                }).execute()
+            with col_estado:
 
-                                st.success("¡Ya estás apuntado!")
-                                st.rerun()
+                if creador_id == usuario_id:
 
-                            except Exception as e:
+                    st.caption(
+                        "Esta es tu quedada"
+                    )
 
-                                st.error(
-                                    "No se ha podido registrar tu asistencia."
-                                )
+                    if st.button(
+                        "CANCELAR QUEDADA",
+                        key=f"cancelar_{qid}",
+                        use_container_width=True
+                    ):
 
-                                st.code(str(e))
+                        try:
 
-                with col_estado:
+                            (
+                                supabase.table("quedadas")
+                                .update({"estado": "cancelada"})
+                                .eq("id", qid)
+                                .eq("creador_id", usuario_id)
+                                .execute()
+                            )
 
-                    if creador_id == usuario_id:
+                            st.success(
+                                "Quedada cancelada."
+                            )
 
-                        st.caption("Esta es tu quedada")
+                            st.rerun()
 
-                        if st.button(
-                            "CANCELAR QUEDADA",
-                            key=f"cancelar_{qid}",
-                            use_container_width=True
-                        ):
+                        except Exception as e:
 
-                            try:
+                            st.error(
+                                "No se ha podido cancelar la quedada."
+                            )
 
-                                (
-                                    supabase.table("quedadas")
-                                    .update({"estado": "cancelada"})
-                                    .eq("id", qid)
-                                    .eq("creador_id", usuario_id)
-                                    .execute()
-                                )
+                            st.code(str(e))
 
-                                st.success("Quedada cancelada.")
-                                st.rerun()
-
-                            except Exception as e:
-
-                                st.error("No se ha podido cancelar.")
-                                st.code(str(e))
+            st.markdown(
+                '</div>',
+                unsafe_allow_html=True
+            )
 
 
 # =================================
-# MI GARAJE
+# PESTAÑA MI GARAJE
 # =================================
 
 with tab_garaje:
@@ -1644,14 +1892,35 @@ with tab_garaje:
 
     else:
 
-        st.info(
-            "Todavía no tienes una fotografía de tu motocicleta."
+        st.markdown(
+            """
+            <div class="garaje-card">
+                <div class="garaje-titulo">
+                    🏍️ TODAVÍA NO TIENES UNA FOTOGRAFÍA
+                </div>
+                <p>
+                    Añade una imagen de tu motocicleta para que
+                    aparezca en tu garaje cada vez que entres.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
     st.divider()
 
     st.markdown(
         '<div class="garaje-titulo">📸 AÑADIR O CAMBIAR FOTOGRAFÍA</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div class="garaje-subtitulo">
+            Selecciona una fotografía de tu moto.
+            Si ya tienes una guardada, podrás sustituirla.
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -1665,7 +1934,7 @@ with tab_garaje:
 
         st.image(
             foto_moto,
-            caption="Vista previa",
+            caption="Vista previa de la fotografía",
             use_container_width=True
         )
 
@@ -1677,7 +1946,10 @@ with tab_garaje:
 
             try:
 
-                extension = foto_moto.name.rsplit(".", 1)[-1].lower()
+                extension = foto_moto.name.rsplit(
+                    ".",
+                    1
+                )[-1].lower()
 
                 nombre_archivo = (
                     f"garaje/{usuario_id}/moto_"
@@ -1711,26 +1983,44 @@ with tab_garaje:
 
                     url_foto = str(resultado_url)
 
-                if not url_foto or not url_foto.startswith("http"):
-                    raise ValueError("No se ha recibido la URL de la fotografía.")
+                if (
+                    not url_foto
+                    or not url_foto.startswith("http")
+                ):
+
+                    raise ValueError(
+                        "Supabase no ha devuelto la dirección pública "
+                        "de la fotografía."
+                    )
 
                 supabase.table("profiles").update({
                     "moto_foto_url": url_foto
-                }).eq("id", usuario_id).execute()
+                }).eq(
+                    "id",
+                    usuario_id
+                ).execute()
 
-                st.success("¡Fotografía guardada correctamente!")
+                st.success(
+                    "¡Fotografía guardada correctamente en tu garaje!"
+                )
+
                 st.rerun()
 
             except Exception as error:
 
-                st.error("No se ha podido guardar la fotografía.")
+                st.error(
+                    "No se ha podido guardar la fotografía."
+                )
+
                 st.code(str(error))
 
-    st.caption("Formatos permitidos: JPG, JPEG, PNG y WEBP.")
+    st.caption(
+        "Formatos permitidos: JPG, JPEG, PNG y WEBP."
+    )
 
 
 # =================================
-# COMUNIDAD
+# PESTAÑA COMUNIDAD
 # =================================
 
 with tab_comunidad:
@@ -1741,9 +2031,11 @@ with tab_comunidad:
     )
 
     st.markdown(
-        '<div class="section-subtitle">'
-        'Conoce a otros moteros y descubre sus motocicletas.'
-        '</div>',
+        """
+        <div class="section-subtitle">
+            Conoce a otros moteros de FAMILY BIKE y descubre sus motocicletas.
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -1782,11 +2074,13 @@ with tab_comunidad:
             unsafe_allow_html=True
         )
 
+        st.write("")
+
         if not miembros:
 
             st.info(
                 "Todavía no hay moteros que hayan subido "
-                "la fotografía de su motocicleta."
+                "la fotografía de su motocicleta. ¡Sé el primero!"
             )
 
         else:
@@ -1800,6 +2094,12 @@ with tab_comunidad:
                 )
 
                 foto_miembro = miembro.get("moto_foto_url")
+
+                if (
+                    not isinstance(foto_miembro, str)
+                    or not foto_miembro.startswith(("https://", "http://"))
+                ):
+                    continue
 
                 es_mi_perfil = (
                     str(miembro.get("id")) == str(usuario_id)
@@ -1827,315 +2127,32 @@ with tab_comunidad:
                         )
 
                         if es_mi_perfil:
-                            st.caption("★ TU MOTOCICLETA")
+
+                            st.markdown(
+                                """
+                                <div class="community-you">
+                                    ★ TU MOTOCICLETA
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
 
     except Exception as error_comunidad:
 
-        st.error("No se ha podido cargar la comunidad.")
+        st.error(
+            "No se ha podido cargar la comunidad."
+        )
+
+        st.warning(
+            "Comprueba los permisos de lectura de la tabla profiles "
+            "y que existan las columnas username y moto_foto_url."
+        )
+
         st.code(str(error_comunidad))
 
 
 # =================================
-# COLABORADORES FAMILY BIKE
-# =================================
-
-with tab_colaboradores:
-
-    st.markdown(
-        '<div class="section-title">🤝 COLABORADORES FAMILY BIKE</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="section-subtitle">'
-        'Negocios y empresas que apoyan a nuestra comunidad motera.'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    # ---------------------------------
-    # PANEL DE EMPRESA
-    # ---------------------------------
-
-    if tipo_cuenta_actual == "empresa":
-
-        st.markdown("### 🏢 PANEL DE MI NEGOCIO")
-
-        try:
-
-            colaborador = obtener_colaborador(usuario_id)
-
-        except Exception as error:
-
-            colaborador = {}
-
-            st.error("No se ha podido cargar tu ficha.")
-            st.code(str(error))
-
-
-        if colaborador.get("imagen_url"):
-
-            st.image(
-                colaborador["imagen_url"],
-                width=260,
-                caption="Imagen actual de tu negocio"
-            )
-
-        with st.form("form_editar_colaborador"):
-
-            nombre_empresa = st.text_input(
-                "Nombre comercial",
-                value=colaborador.get("nombre", "")
-            )
-
-            descripcion_empresa = st.text_area(
-                "Descripción de tu negocio",
-                value=colaborador.get("descripcion", ""),
-                placeholder="Presenta tu empresa a la comunidad motera..."
-            )
-
-            servicios_empresa = st.text_area(
-                "Productos, servicios y ofertas",
-                value=colaborador.get("servicios", ""),
-                placeholder="Taller, neumáticos, accesorios, equipamiento..."
-            )
-
-            direccion_empresa = st.text_input(
-                "Dirección",
-                value=colaborador.get("direccion", "")
-            )
-
-            telefono_empresa = st.text_input(
-                "Teléfono",
-                value=colaborador.get("telefono", "")
-            )
-
-            whatsapp_empresa = st.text_input(
-                "WhatsApp",
-                value=colaborador.get("whatsapp", "")
-            )
-
-            web_empresa = st.text_input(
-                "Página web",
-                value=colaborador.get("web", "")
-            )
-
-            instagram_empresa = st.text_input(
-                "Instagram",
-                value=colaborador.get("instagram", "")
-            )
-
-            foto_empresa = st.file_uploader(
-                "Fotografía o logotipo de tu negocio",
-                type=["jpg", "jpeg", "png", "webp"],
-                key="foto_colaborador"
-            )
-
-            guardar_empresa = st.form_submit_button(
-                "GUARDAR MI NEGOCIO",
-                use_container_width=True
-            )
-
-        if guardar_empresa:
-
-            if not nombre_empresa.strip():
-
-                st.error("Introduce el nombre de tu negocio.")
-
-            elif not validar_url(web_empresa):
-
-                st.error("La dirección de la página web no es válida.")
-
-            else:
-
-                try:
-
-                    imagen_url = colaborador.get("imagen_url", "")
-
-                    if foto_empresa:
-
-                        imagen_url = subir_foto_colaborador(
-                            foto_empresa,
-                            usuario_id
-                        )
-
-                    datos = {
-                        "nombre": nombre_empresa.strip(),
-                        "descripcion": descripcion_empresa.strip(),
-                        "servicios": servicios_empresa.strip(),
-                        "direccion": direccion_empresa.strip(),
-                        "telefono": telefono_empresa.strip(),
-                        "whatsapp": whatsapp_empresa.strip(),
-                        "web": web_empresa.strip(),
-                        "instagram": instagram_empresa.strip(),
-                        "imagen_url": imagen_url,
-                        "activo": True,
-                        "updated_at": datetime.now(timezone.utc).isoformat()
-                    }
-
-                    guardar_colaborador(usuario_id, datos)
-
-                    st.success(
-                        "¡Tu negocio está publicado en FAMILY BIKE!"
-                    )
-
-                    st.rerun()
-
-                except Exception as error:
-
-                    st.error("No se ha podido guardar tu negocio.")
-                    st.code(str(error))
-
-    else:
-
-        st.info(
-            "¿Tienes un negocio relacionado con el mundo de la moto? "
-            "Puedes crear una cuenta de empresa registrándote como "
-            "Empresa colaboradora."
-        )
-
-
-    # ---------------------------------
-    # CATÁLOGO PÚBLICO
-    # ---------------------------------
-
-    st.divider()
-
-    st.markdown("### 🏍️ NUESTROS COLABORADORES")
-
-    try:
-
-        respuesta_colaboradores = (
-            supabase.table("colaboradores")
-            .select(
-                "id,usuario_id,nombre,descripcion,imagen_url,"
-                "servicios,direccion,telefono,whatsapp,web,instagram"
-            )
-            .eq("activo", True)
-            .order("nombre")
-            .execute()
-        )
-
-        colaboradores = respuesta_colaboradores.data or []
-
-    except Exception as error:
-
-        colaboradores = []
-
-        st.error("No se han podido cargar los colaboradores.")
-        st.code(str(error))
-
-
-    if not colaboradores:
-
-        st.info(
-            "Todavía no hay empresas colaboradoras. "
-            "¡Pronto tendremos nuevos negocios!"
-        )
-
-    else:
-
-        st.caption(
-            f"{len(colaboradores)} negocios colaboradores"
-        )
-
-        columnas_colaboradores = st.columns(2)
-
-        for indice, empresa in enumerate(colaboradores):
-
-            nombre = empresa.get("nombre") or "Negocio colaborador"
-            imagen = empresa.get("imagen_url")
-            descripcion = empresa.get("descripcion") or ""
-            servicios = empresa.get("servicios") or ""
-
-            with columnas_colaboradores[indice % 2]:
-
-                with st.container(border=True):
-
-                    if (
-                        isinstance(imagen, str)
-                        and imagen.startswith(("https://", "http://"))
-                    ):
-
-                        st.image(
-                            imagen,
-                            use_container_width=True
-                        )
-
-                    else:
-
-                        st.markdown("### 🏢")
-
-                    st.markdown(
-                        f"### {html.escape(nombre)}"
-                    )
-
-                    if descripcion:
-                        st.write(descripcion)
-
-                    if servicios:
-
-                        st.markdown("**SERVICIOS Y OFERTAS**")
-                        st.write(servicios)
-
-                    if empresa.get("direccion"):
-                        st.write(f"📍 {empresa['direccion']}")
-
-                    if empresa.get("telefono"):
-                        st.write(f"☎️ {empresa['telefono']}")
-
-                    if empresa.get("whatsapp"):
-
-                        whatsapp = re.sub(
-                            r"\D",
-                            "",
-                            empresa["whatsapp"]
-                        )
-
-                        if whatsapp:
-
-                            st.link_button(
-                                "CONTACTAR POR WHATSAPP",
-                                f"https://wa.me/{whatsapp}",
-                                use_container_width=True
-                            )
-
-                    if empresa.get("web"):
-
-                        web = empresa["web"].strip()
-
-                        if validar_url(web) and web:
-
-                            st.link_button(
-                                "VISITAR PÁGINA WEB",
-                                web,
-                                use_container_width=True
-                            )
-
-                    if empresa.get("instagram"):
-
-                        instagram = empresa["instagram"].strip()
-
-                        if instagram.startswith("@"):
-                            instagram = instagram[1:]
-
-                        instagram = re.sub(
-                            r"[^a-zA-Z0-9._]",
-                            "",
-                            instagram
-                        )
-
-                        if instagram:
-
-                            st.link_button(
-                                "VER INSTAGRAM",
-                                f"https://www.instagram.com/{instagram}/",
-                                use_container_width=True
-                            )
-
-
-# =================================
-# TIENDA
+# PESTAÑA TIENDA
 # =================================
 
 with tab_tienda:
@@ -2146,9 +2163,11 @@ with tab_tienda:
     )
 
     st.markdown(
-        '<div class="section-subtitle">'
-        'Accede a nuestra tienda y descubre los productos disponibles.'
-        '</div>',
+        """
+        <div class="section-subtitle">
+            Accede a nuestra tienda y descubre los productos disponibles.
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -2177,12 +2196,14 @@ with tab_tienda:
             use_container_width=True
         )
 
-    st.caption("La tienda se abrirá en Payhip.")
+    st.caption(
+        "La tienda se abrirá en Payhip."
+    )
 
 
-# =================================
+# ---------------------------------
 # PIE DE PÁGINA
-# =================================
+# ---------------------------------
 
 st.markdown("""
 <div class="footer">
