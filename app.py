@@ -1,3 +1,4 @@
+
 import streamlit as st
 import html
 import re
@@ -37,7 +38,7 @@ LOGO_URL = (
 
 
 # =========================================================
-# DISEÑO
+# DISEÑO FAMILY BIKE: NEGRO Y AMARILLO
 # =========================================================
 
 st.markdown("""
@@ -45,39 +46,27 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --negro: #0B0B0B;
-    --negro-card: #171717;
-    --negro-hover: #222222;
+    --negro: #000000;
+    --negro-card: #101010;
+    --negro-hover: #1B1B1B;
     --amarillo: #FFD400;
-    --amarillo-secundario: #F0B900;
-    --amarillo-suave: #FFF2A6;
-    --texto: #FFF8D6;
-    --borde: #494000;
+    --amarillo-claro: #FFE45C;
+    --amarillo-oscuro: #DDB600;
+    --borde: #806B00;
 }
 
-.stApp {
-    background: var(--negro);
-    color: var(--texto);
-    font-family: 'Inter', sans-serif;
-}
-
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
-
-.stApp p,
-.stApp label,
-.stApp span,
-.stApp div {
-    color: var(--texto);
-}
-
-h1, h2, h3, h4, h5, h6 {
-    color: var(--amarillo) !important;
+/* FONDO GENERAL */
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"] {
+    background: #000000 !important;
+    color: #FFD400 !important;
+    font-family: 'Inter', sans-serif !important;
 }
 
 header[data-testid="stHeader"] {
-    background: transparent;
+    background: #000000 !important;
 }
 
 .block-container {
@@ -86,55 +75,84 @@ header[data-testid="stHeader"] {
     padding-bottom: 3rem;
 }
 
-/* PORTADA */
+/* TEXTO GENERAL */
+.stApp,
+.stApp p,
+.stApp span,
+.stApp label,
+.stApp li,
+.stApp small,
+.stApp strong,
+.stApp em,
+.stApp b,
+.stApp div,
+.stMarkdown,
+.stMarkdown p,
+.stMarkdown span,
+.stCaption,
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+}
 
+/* TÍTULOS */
+h1, h2, h3, h4, h5, h6 {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+    font-family: 'Barlow Condensed', sans-serif !important;
+    font-weight: 800 !important;
+}
+
+/* CABECERA */
 .hero {
-    background: linear-gradient(110deg, #080808, #202020);
-    border: 1px solid var(--amarillo);
+    background: linear-gradient(110deg, #000000, #171717);
+    border: 1px solid #FFD400;
     border-radius: 22px;
     padding: 35px;
     margin-bottom: 30px;
     text-align: center;
 }
 
-/* TÍTULOS */
-
+/* TÍTULOS DE SECCIÓN */
 .section-title {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 34px;
-    font-weight: 700;
-    color: var(--amarillo) !important;
+    font-weight: 800;
+    color: #FFD400 !important;
     margin: 25px 0 5px 0;
 }
 
 .section-subtitle {
-    color: var(--amarillo-suave) !important;
+    color: #FFD400 !important;
     font-size: 14px;
     margin-bottom: 22px;
 }
 
 /* TARJETAS */
-
 .route-card,
 .event-card,
 .garaje-card,
-.community-card {
-    background: var(--negro-card);
-    border: 1px solid var(--borde);
+.community-card,
+.stat-box,
+.tienda-card {
+    background: #101010 !important;
+    border: 1px solid #806B00 !important;
     border-radius: 15px;
     padding: 20px;
     margin-bottom: 18px;
+    color: #FFD400 !important;
 }
 
 .route-number {
-    color: var(--amarillo) !important;
+    color: #FFD400 !important;
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 2px;
 }
 
 .route-name {
-    color: var(--amarillo-suave) !important;
+    color: #FFD400 !important;
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 25px;
     font-weight: 700;
@@ -142,32 +160,26 @@ header[data-testid="stHeader"] {
 }
 
 /* ESTADÍSTICAS */
-
 .stat-box {
-    background: var(--negro-card);
-    border: 1px solid var(--borde);
-    border-radius: 12px;
-    padding: 18px;
     text-align: center;
 }
 
 .stat-number {
-    color: var(--amarillo) !important;
+    color: #FFD400 !important;
     font-size: 30px;
     font-weight: 800;
 }
 
 .stat-label {
-    color: var(--amarillo-suave) !important;
+    color: #FFD400 !important;
     font-size: 12px;
     letter-spacing: 1px;
 }
 
 /* GARAJE Y COMUNIDAD */
-
 .garaje-titulo,
 .community-name {
-    color: var(--amarillo) !important;
+    color: #FFD400 !important;
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 25px;
     font-weight: 800;
@@ -175,7 +187,7 @@ header[data-testid="stHeader"] {
 
 .garaje-subtitulo,
 .community-label {
-    color: var(--amarillo-suave) !important;
+    color: #FFD400 !important;
     font-size: 14px;
 }
 
@@ -185,230 +197,244 @@ header[data-testid="stHeader"] {
 }
 
 /* TIENDA */
-
 .tienda-card {
-    background: linear-gradient(135deg, #171717, #292929);
-    border: 1px solid var(--amarillo);
-    border-radius: 18px;
-    padding: 28px;
+    background: linear-gradient(135deg, #101010, #1B1B1B) !important;
+    border: 1px solid #FFD400 !important;
     text-align: center;
-    margin: 20px 0;
 }
 
 .tienda-titulo {
-    color: var(--amarillo) !important;
+    color: #FFD400 !important;
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 32px;
     font-weight: 800;
 }
 
 .tienda-texto {
-    color: var(--amarillo-suave) !important;
+    color: #FFD400 !important;
     font-size: 16px;
     margin-top: 12px;
 }
 
-/* CAMPOS */
-
+/* CAMPOS DE TEXTO */
 div[data-testid="stTextInput"] input,
 div[data-testid="stTextArea"] textarea,
-div[data-testid="stNumberInput"] input {
-    background: var(--negro-card) !important;
-    color: #FFFFFF !important;
-    -webkit-text-fill-color: #FFFFFF !important;
-    border: 1px solid var(--borde);
-    border-radius: 9px;
+div[data-testid="stNumberInput"] input,
+input,
+textarea {
+    background: #101010 !important;
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+    border: 1px solid #806B00 !important;
+    border-radius: 9px !important;
+    caret-color: #FFD400 !important;
 }
 
+input::placeholder,
+textarea::placeholder,
 div[data-testid="stTextInput"] input::placeholder,
 div[data-testid="stTextArea"] textarea::placeholder {
-    color: #BDBDBD !important;
-    -webkit-text-fill-color: #BDBDBD !important;
+    color: #B99B00 !important;
+    -webkit-text-fill-color: #B99B00 !important;
     opacity: 1 !important;
 }
 
-div[data-baseweb="select"] > div {
-    background: var(--negro-card);
-    border-color: var(--borde);
-    color: var(--amarillo-suave);
-}
-
+/* SELECTORES */
+div[data-baseweb="select"],
+div[data-baseweb="select"] > div,
 div[data-baseweb="popover"],
-div[data-baseweb="menu"] {
-    background: var(--negro-card);
+div[data-baseweb="menu"],
+ul[data-baseweb="menu"],
+li[data-baseweb="menu"] {
+    background: #101010 !important;
+    color: #FFD400 !important;
 }
 
-div[data-baseweb="menu"] li {
-    color: var(--amarillo-suave);
+div[data-baseweb="select"] *,
+div[data-baseweb="menu"] *,
+div[data-baseweb="popover"] * {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+}
+
+/* HORARIOS Y FECHAS */
+div[data-testid="stTimeInput"],
+div[data-testid="stDateInput"],
+div[data-testid="stTimeInput"] *,
+div[data-testid="stDateInput"] *,
+div[data-testid="stDatePicker"],
+div[data-testid="stDatePicker"] *,
+div[data-testid="stDateInput"] input,
+div[data-testid="stTimeInput"] input {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+    background-color: #101010 !important;
+}
+
+div[data-baseweb="calendar"],
+div[data-baseweb="calendar"] *,
+div[data-baseweb="popover"] {
+    background: #101010 !important;
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+}
+
+div[data-baseweb="calendar"] button {
+    color: #FFD400 !important;
+}
+
+/* RADIO, CHECKBOX Y TOGGLE */
+div[data-testid="stRadio"] *,
+div[data-testid="stCheckbox"] *,
+div[data-testid="stToggle"] * {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
 }
 
 /* BOTONES */
-
 .stButton > button,
 .stFormSubmitButton > button,
 .stLinkButton > a {
-    background: var(--amarillo) !important;
-    color: #111111 !important;
-    -webkit-text-fill-color: #111111 !important;
-    border: 1px solid var(--amarillo);
-    border-radius: 9px;
-    font-weight: 800;
+    background: #FFD400 !important;
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    border: 1px solid #FFD400 !important;
+    border-radius: 9px !important;
+    font-weight: 800 !important;
+}
+
+.stButton > button *,
+.stFormSubmitButton > button *,
+.stLinkButton > a * {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
 }
 
 .stButton > button:hover,
 .stFormSubmitButton > button:hover,
 .stLinkButton > a:hover {
-    background: var(--amarillo-secundario) !important;
-    border-color: var(--amarillo-secundario);
+    background: #DDB600 !important;
+    border-color: #DDB600 !important;
 }
 
 /* PESTAÑAS */
-
 button[data-baseweb="tab"] {
-    color: var(--amarillo-suave) !important;
+    color: #FFD400 !important;
+    background: #000000 !important;
+}
+
+button[data-baseweb="tab"] * {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
 }
 
 button[data-baseweb="tab"][aria-selected="true"] {
-    color: var(--amarillo) !important;
-    border-bottom-color: var(--amarillo) !important;
-}
-
-/* CHECKBOX Y RADIO */
-
-div[data-testid="stCheckbox"] label,
-div[data-testid="stRadio"] label,
-div[data-testid="stCheckbox"] label *,
-div[data-testid="stRadio"] label * {
-    color: var(--amarillo-suave) !important;
+    border-bottom: 3px solid #FFD400 !important;
 }
 
 /* EXPANDERS Y FORMULARIOS */
-
 div[data-testid="stExpander"] {
-    background: var(--negro-card);
-    border: 1px solid var(--borde);
-    border-radius: 10px;
+    background: #101010 !important;
+    border: 1px solid #806B00 !important;
+    border-radius: 10px !important;
 }
 
 div[data-testid="stExpander"] summary,
-div[data-testid="stExpander"] summary span {
-    color: var(--amarillo) !important;
+div[data-testid="stExpander"] summary * {
+    background: #101010 !important;
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
 }
 
 div[data-testid="stForm"] {
-    background: var(--negro-card);
-    border: 1px solid var(--borde);
-    border-radius: 12px;
+    background: #101010 !important;
+    border: 1px solid #806B00 !important;
+    border-radius: 12px !important;
     padding: 18px;
 }
 
-/* MENSAJES: TEXTO VISIBLE */
-
+/* MENSAJES */
 div[data-testid="stAlert"] {
-    background: #292929 !important;
-    border: 2px solid #FFD400 !important;
-    border-radius: 12px !important;
+    background: #101010 !important;
+    border: 1px solid #FFD400 !important;
+    border-radius: 10px !important;
     padding: 14px 16px !important;
-    opacity: 1 !important;
 }
 
 div[data-testid="stAlert"] *,
 div[data-testid="stAlert"] p,
 div[data-testid="stAlert"] span,
-div[data-testid="stAlert"] div,
-div[data-testid="stAlert"] li,
-div[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
-div[data-testid="stAlert"] [data-testid="stMarkdownContainer"] p {
-    color: #FFFFFF !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    -webkit-text-fill-color: #FFFFFF !important;
-}
-
-div[data-testid="stAlert"] svg {
-    color: #FFD400 !important;
-    fill: #FFD400 !important;
-}
-
-div[data-testid="stAlert"] a {
+div[data-testid="stAlert"] div {
     color: #FFD400 !important;
     -webkit-text-fill-color: #FFD400 !important;
-    text-decoration: underline !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
-/* MENSAJES DE ERROR: ROJO VISIBLE */
-
+/* ERRORES */
 div[data-testid="stAlert"][kind="error"] {
-    background: #3A1010 !important;
-    border: 2px solid #FF5555 !important;
+    background: #180000 !important;
+    border: 1px solid #FF4545 !important;
 }
 
-div[data-testid="stAlert"][kind="error"] *,
-div[data-testid="stAlert"][kind="error"] p,
-div[data-testid="stAlert"][kind="error"] span,
-div[data-testid="stAlert"][kind="error"] div {
-    color: #FFFFFF !important;
-    -webkit-text-fill-color: #FFFFFF !important;
-    opacity: 1 !important;
+div[data-testid="stAlert"][kind="error"] * {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
 }
 
-/* MENSAJES DE ÉXITO */
-
+/* ÉXITO */
 div[data-testid="stAlert"][kind="success"] {
-    background: #12301D !important;
-    border-color: #35C46A !important;
-}
-
-/* CAPTIONS */
-
-[data-testid="stCaptionContainer"],
-[data-testid="stCaptionContainer"] p,
-.stCaption {
-    color: #FFF2A6 !important;
-    opacity: 1 !important;
-    -webkit-text-fill-color: #FFF2A6 !important;
-}
-
-/* SUBIDA DE FOTOGRAFÍAS */
-
-div[data-testid="stFileUploader"] {
-    background: #171717 !important;
+    background: #101010 !important;
     border: 1px solid #FFD400 !important;
-    border-radius: 12px !important;
-    padding: 12px !important;
 }
 
-div[data-testid="stFileUploader"] *,
+/* SUBIDA DE ARCHIVOS */
+div[data-testid="stFileUploader"],
 div[data-testid="stFileUploader"] section,
-div[data-testid="stFileUploader"] small {
-    color: #FFFFFF !important;
-    opacity: 1 !important;
-    -webkit-text-fill-color: #FFFFFF !important;
+div[data-testid="stFileUploader"] * {
+    background-color: #101010 !important;
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+    border-color: #806B00 !important;
 }
 
+/* BOTÓN INTERNO DEL SUBIDOR */
 div[data-testid="stFileUploader"] button {
-    color: #111111 !important;
-    -webkit-text-fill-color: #111111 !important;
     background: #FFD400 !important;
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
 }
 
-/* SEPARADORES Y PIE */
+/* ENLACES */
+a, a:visited {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+}
 
+/* IMÁGENES */
+img {
+    border-radius: 10px;
+}
+
+/* SEPARADORES */
 hr {
-    border-color: var(--borde) !important;
+    border-color: #806B00 !important;
+}
+
+/* PIE DE PÁGINA */
+.footer,
+.footer * {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+    background: #000000 !important;
 }
 
 .footer {
     text-align: center;
-    color: var(--amarillo-suave) !important;
-    border-top: 1px solid var(--borde);
+    border-top: 1px solid #806B00;
     padding-top: 25px;
     margin-top: 50px;
     font-size: 12px;
-}
-
-.footer strong {
-    color: var(--amarillo) !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -525,7 +551,7 @@ def subir_archivo_storage(archivo, carpeta, prefijo):
 
 
 # =========================================================
-# NOTIFICACIONES DE QUEDADAS
+# NOTIFICACIONES
 # =========================================================
 
 def crear_notificaciones_quedada(quedada_id, creador_id):
@@ -631,6 +657,7 @@ if (
     and st.session_state.get("refresh_token")
 ):
     try:
+
         supabase.auth.set_session(
             st.session_state["access_token"],
             st.session_state["refresh_token"]
@@ -642,6 +669,7 @@ if (
         st.session_state["user_id"] = usuario_actual.id
 
         if not st.session_state.get("username"):
+
             metadata = getattr(
                 usuario_actual,
                 "user_metadata",
@@ -898,7 +926,7 @@ try:
     perfil_garaje = respuesta_perfil.data or {}
     foto_moto_actual = perfil_garaje.get("moto_foto_url")
 
-except Exception as error:
+except Exception:
     st.warning(
         "No se ha podido cargar la fotografía del garaje."
     )
@@ -1147,8 +1175,7 @@ with tab_quedadas:
 
     # -----------------------------------------------------
     # CREAR QUEDADA
-    # IMPORTANTE: EL SELECTOR DE TIPO ESTÁ FUERA DEL FORMULARIO.
-    # ASÍ STREAMLIT ACTUALIZA EL CAMPO AL ELEGIR DESTINO LIBRE.
+    # RADIO FUERA DEL FORMULARIO PARA ACTUALIZACIÓN DINÁMICA
     # -----------------------------------------------------
 
     with st.expander("➕ CREAR UNA NUEVA QUEDADA", expanded=False):
@@ -1316,7 +1343,6 @@ with tab_quedadas:
 
                 try:
 
-                    # Imagen inicial: URL manual o imagen de catálogo.
                     imagen_final = imagen_url_alternativa.strip()
 
                     if (
@@ -1336,7 +1362,6 @@ with tab_quedadas:
                             ruta_seleccionada.get("imagen_url") or ""
                         )
 
-                    # Si se ha subido un cartel, se guarda en Storage.
                     cartel_url = ""
 
                     if cartel_quedada is not None:
@@ -1391,7 +1416,6 @@ with tab_quedadas:
                             "No se ha recibido el identificador de la quedada."
                         )
 
-                    # Crear horarios disponibles.
                     horarios = [
                         {
                             "quedada_id": quedada_id,
@@ -1428,7 +1452,6 @@ with tab_quedadas:
 
                     st.success("¡Quedada publicada correctamente!")
 
-                    # Crear avisos para Google Colab.
                     try:
 
                         resultado_avisos = crear_notificaciones_quedada(
@@ -1549,7 +1572,6 @@ with tab_quedadas:
             )
 
             todos_asistentes = respuesta_asistentes.data or []
-
             ids_usuarios = set()
 
             for asistente in todos_asistentes:
@@ -1673,11 +1695,9 @@ with tab_quedadas:
             if quedada.get("descripcion"):
                 st.write(quedada["descripcion"])
 
-            # Horarios de la quedada.
+            # HORARIOS
             horarios = horarios_por_quedada.get(qid, [])
 
-            # Compatibilidad con quedadas antiguas que no tienen
-            # registros en horarios_quedadas.
             if not horarios:
 
                 horarios = [{
@@ -1702,7 +1722,7 @@ with tab_quedadas:
                     f"— 📍 {escapar(punto_texto)}"
                 )
 
-            # Enlace a la ruta del catálogo.
+            # MAPA DE RUTA
             if quedada.get("es_ruta_catalogo"):
 
                 ruta_correspondiente = next(
@@ -1733,7 +1753,7 @@ with tab_quedadas:
                 f"**🏍️ Moteros apuntados: {len(asistentes)}**"
             )
 
-            # Lista de asistentes con fotografía.
+            # ASISTENTES
             with st.expander("👥 VER QUIÉN VA"):
 
                 if asistentes:
@@ -1748,7 +1768,6 @@ with tab_quedadas:
                         )
 
                         foto_asistente = perfil.get("moto_foto_url")
-
                         horario_asistente = asistente.get("horario_id")
 
                         horario_elegido = next(
@@ -1800,16 +1819,16 @@ with tab_quedadas:
 
                     st.write("Todavía no hay asistentes.")
 
-            # Inscripción o cancelación.
+            # INSCRIPCIÓN
             st.markdown("#### 🏍️ TU INSCRIPCIÓN")
 
             if estoy_apuntado:
 
                 horario_actual_id = asistente_actual.get("horario_id")
-
                 indice_actual = 0
 
                 for i, horario in enumerate(horarios):
+
                     if (
                         horario.get("id") is not None
                         and str(horario.get("id")) == str(horario_actual_id)
@@ -1959,7 +1978,7 @@ with tab_quedadas:
 
                         st.code(str(error))
 
-            # Acciones del organizador.
+            # ACCIONES DEL ORGANIZADOR
             if str(creador_id) == str(usuario_id):
 
                 st.divider()
