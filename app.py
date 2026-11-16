@@ -3108,12 +3108,47 @@ if st.session_state["seccion_activa"] == "administracion":
         unsafe_allow_html=True
     )
 
-    tab_garajes, tab_quedadas, tab_noticias, tab_admins = st.tabs([
+    tab_usuarios, tab_garajes, tab_quedadas, tab_noticias, tab_admins = st.tabs([
+        "👥 USUARIOS",
         "🏍️ GARAJES",
         "📅 QUEDADAS",
         "📢 NOTICIAS",
         "👑 ADMINISTRADORES"
     ])
+
+    # =====================================================
+    # ESTADÍSTICAS DE USUARIOS REGISTRADOS
+    # =====================================================
+
+    with tab_usuarios:
+        st.markdown("### USUARIOS REGISTRADOS")
+        st.caption(
+            "Total de perfiles registrados en FAMILY BIKE, "
+            "tanto mediante Google como mediante usuario y contraseña. "
+            "Cada perfil se cuenta una sola vez."
+        )
+        try:
+            respuesta_total_usuarios = (
+                supabase.table("profiles")
+                .select("id", count="exact", head=True)
+                .execute()
+            )
+            total_usuarios = respuesta_total_usuarios.count
+            if total_usuarios is None:
+                st.warning(
+                    "Supabase no ha devuelto el total. "
+                    "Comprueba los permisos de lectura de profiles."
+                )
+            else:
+                st.metric("👥 Total de usuarios registrados", total_usuarios)
+                st.caption(
+                    "Se incluyen las cuentas antiguas y las de Google. "
+                    "Si una persona tiene dos cuentas, se contabilizan dos perfiles."
+                )
+        except Exception as error:
+            st.error("No se ha podido consultar el total de usuarios.")
+            st.code(str(error))
+
 
     # =====================================================
     # ADMINISTRAR GARAJES
