@@ -23,6 +23,8 @@ AUTH_DOMAIN = "users.byteandride.invalid"
 BUCKET_FAMILYBIKE = "familybike"
 TIENDA_URL = "https://payhip.com/b/YWPxa"
 
+FACEBOOK_URL = "https://m.facebook.com/groups/1646146103973952/?ref=share"
+
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 IMAGEN_PREDETERMINADA = (
@@ -409,6 +411,81 @@ div[data-testid="stFileUploader"] button {
 a, a:visited {
     color: #FFD400 !important;
     -webkit-text-fill-color: #FFD400 !important;
+}
+
+/* ACCESO FACEBOOK */
+.facebook-community {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    background: #101010;
+    border: 1px solid #1877F2;
+    border-radius: 14px;
+    padding: 17px 20px;
+    margin: 25px 0 15px 0;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+}
+
+.facebook-community:hover {
+    background: #171717;
+    border-color: #4593FF;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 18px rgba(24, 119, 242, 0.22);
+}
+
+.facebook-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    display: block;
+}
+
+.facebook-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+}
+
+.facebook-title {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.facebook-subtitle {
+    color: #C9C9C9 !important;
+    -webkit-text-fill-color: #C9C9C9 !important;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+@media (max-width: 600px) {
+    .facebook-community {
+        padding: 14px 12px;
+        gap: 10px;
+    }
+
+    .facebook-title {
+        font-size: 18px;
+    }
+
+    .facebook-subtitle {
+        font-size: 11px;
+    }
+
+    .facebook-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+    }
 }
 
 /* IMÁGENES */
@@ -879,6 +956,49 @@ if not autenticado:
 
                     st.error("ERROR AL CREAR LA CUENTA")
                     st.code(str(error))
+
+    # -----------------------------------------------------
+    # ACCESO DIRECTO A FACEBOOK
+    # -----------------------------------------------------
+
+    st.markdown(
+        f"""
+        <a class="facebook-community"
+           href="{FACEBOOK_URL}"
+           target="_blank"
+           rel="noopener noreferrer">
+
+            <svg class="facebook-icon"
+                 xmlns="http://www.w3.org/2000/svg"
+                 viewBox="0 0 48 48"
+                 role="img"
+                 aria-label="Facebook">
+
+                <circle cx="24" cy="24" r="24" fill="#1877F2"/>
+
+                <path
+                    fill="#FFFFFF"
+                    d="M27.6 40V26.1h4.7l.7-5.4h-5.4v-3.4
+                    c0-1.6.5-2.7 2.7-2.7h2.9v-4.8
+                    c-.5-.1-2.3-.2-4.3-.2
+                    -4.3 0-7.3 2.6-7.3 7.5v3.6h-4.9v5.4h4.9V40z"
+                />
+
+            </svg>
+
+            <span class="facebook-copy">
+                <span class="facebook-title">
+                    ÚNETE A NUESTRA COMUNIDAD
+                </span>
+                <span class="facebook-subtitle">
+                    FAMILY BIKE · Grupo oficial de Facebook
+                </span>
+            </span>
+
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
 
     st.markdown("""
     <div class="footer">
