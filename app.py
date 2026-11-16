@@ -1,3 +1,4 @@
+
 import streamlit as st
 import streamlit.components.v1 as components
 import html
@@ -318,19 +319,121 @@ div[data-testid="stToggle"] * {
     border-color: #DDB600 !important;
 }
 
-/* PESTAÑAS */
-button[data-baseweb="tab"] {
-    color: #FFD400 !important;
-    background: #000000 !important;
+/* =====================================================
+   NAVEGACIÓN FAMILY BIKE
+   PESTAÑAS GRANDES Y RESPONSIVE
+   ===================================================== */
+
+div[data-testid="stTabs"] {
+    width: 100% !important;
 }
 
-button[data-baseweb="tab"] * {
+div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 9px !important;
+    width: 100% !important;
+    overflow: visible !important;
+    background: #080808 !important;
+    padding: 9px !important;
+    border: 1px solid #806B00 !important;
+    border-radius: 14px !important;
+    align-items: stretch !important;
+}
+
+div[data-testid="stTabs"] button[data-baseweb="tab"] {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    min-height: 62px !important;
+    justify-content: center !important;
+    text-align: center !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    padding: 12px 9px !important;
+    border: 1px solid #806B00 !important;
+    border-radius: 10px !important;
+    background: #101010 !important;
+    color: #FFD400 !important;
+    font-family: 'Barlow Condensed', sans-serif !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    transition: all 0.2s ease !important;
+    line-height: 1.15 !important;
+}
+
+div[data-testid="stTabs"] button[data-baseweb="tab"] * {
     color: #FFD400 !important;
     -webkit-text-fill-color: #FFD400 !important;
+    font-weight: 800 !important;
 }
 
-button[data-baseweb="tab"][aria-selected="true"] {
-    border-bottom: 3px solid #FFD400 !important;
+div[data-testid="stTabs"] button[data-baseweb="tab"]:hover {
+    background: #292300 !important;
+    border-color: #FFD400 !important;
+    transform: translateY(-1px);
+}
+
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+    background: #FFD400 !important;
+    border: 2px solid #FFD400 !important;
+    color: #000000 !important;
+}
+
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] *,
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+}
+
+/* INDICADOR INFERIOR */
+div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
+    background-color: #FFD400 !important;
+}
+
+/* TABLETS Y MÓVILES */
+@media (max-width: 768px) {
+
+    .block-container {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        padding-top: 1rem !important;
+    }
+
+    div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        padding: 8px !important;
+        overflow: visible !important;
+    }
+
+    div[data-testid="stTabs"] button[data-baseweb="tab"] {
+        flex: 1 1 calc(50% - 8px) !important;
+        max-width: calc(50% - 4px) !important;
+        min-width: calc(50% - 8px) !important;
+        min-height: 68px !important;
+        padding: 12px 5px !important;
+        font-size: 17px !important;
+        line-height: 1.2 !important;
+    }
+
+    .section-title {
+        font-size: 29px !important;
+    }
+
+    .stat-number {
+        font-size: 24px !important;
+    }
+}
+
+/* MÓVILES ESTRECHOS */
+@media (max-width: 380px) {
+
+    div[data-testid="stTabs"] button[data-baseweb="tab"] {
+        font-size: 14px !important;
+        min-height: 62px !important;
+        padding: 9px 3px !important;
+    }
 }
 
 /* EXPANDERS Y FORMULARIOS */
@@ -883,7 +986,6 @@ if not autenticado:
 
     # -----------------------------------------------------
     # ACCESO DIRECTO A FACEBOOK
-    # Se renderiza en un componente HTML independiente
     # -----------------------------------------------------
 
     components.html(
@@ -1326,11 +1428,6 @@ with tab_quedadas:
         unsafe_allow_html=True
     )
 
-    # -----------------------------------------------------
-    # CREAR QUEDADA
-    # RADIO FUERA DEL FORMULARIO PARA ACTUALIZACIÓN DINÁMICA
-    # -----------------------------------------------------
-
     with st.expander("➕ CREAR UNA NUEVA QUEDADA", expanded=False):
 
         nombres_rutas = [
@@ -1642,9 +1739,7 @@ with tab_quedadas:
                     st.code(str(error))
 
 
-    # -----------------------------------------------------
     # CARGAR QUEDADAS
-    # -----------------------------------------------------
 
     try:
 
@@ -1671,9 +1766,7 @@ with tab_quedadas:
         quedadas = []
 
 
-    # -----------------------------------------------------
     # CARGAR HORARIOS
-    # -----------------------------------------------------
 
     horarios_por_quedada = {}
 
@@ -1706,9 +1799,7 @@ with tab_quedadas:
             st.code(str(error))
 
 
-    # -----------------------------------------------------
     # CARGAR ASISTENTES Y PERFILES
-    # -----------------------------------------------------
 
     asistentes_por_quedada = {}
     perfiles_usuarios = {}
@@ -1762,9 +1853,7 @@ with tab_quedadas:
             st.code(str(error))
 
 
-    # -----------------------------------------------------
     # MOSTRAR QUEDADAS
-    # -----------------------------------------------------
 
     if not quedadas:
 
@@ -1849,6 +1938,7 @@ with tab_quedadas:
                 st.write(quedada["descripcion"])
 
             # HORARIOS
+
             horarios = horarios_por_quedada.get(qid, [])
 
             if not horarios:
@@ -1876,6 +1966,7 @@ with tab_quedadas:
                 )
 
             # MAPA DE RUTA
+
             if quedada.get("es_ruta_catalogo"):
 
                 ruta_correspondiente = next(
@@ -1907,6 +1998,7 @@ with tab_quedadas:
             )
 
             # ASISTENTES
+
             with st.expander("👥 VER QUIÉN VA"):
 
                 if asistentes:
@@ -1973,6 +2065,7 @@ with tab_quedadas:
                     st.write("Todavía no hay asistentes.")
 
             # INSCRIPCIÓN
+
             st.markdown("#### 🏍️ TU INSCRIPCIÓN")
 
             if estoy_apuntado:
@@ -2132,6 +2225,7 @@ with tab_quedadas:
                         st.code(str(error))
 
             # ACCIONES DEL ORGANIZADOR
+
             if str(creador_id) == str(usuario_id):
 
                 st.divider()
