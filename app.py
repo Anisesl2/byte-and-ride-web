@@ -2,6 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import html
 import re
+from urllib.parse import urlparse, unquote
 from datetime import date, time, datetime, timezone
 from supabase import create_client
 
@@ -56,7 +57,6 @@ st.markdown("""
     --borde: #806B00;
 }
 
-/* FONDO GENERAL */
 html, body, .stApp,
 [data-testid="stAppViewContainer"],
 [data-testid="stMain"],
@@ -76,7 +76,6 @@ header[data-testid="stHeader"] {
     padding-bottom: 3rem;
 }
 
-/* TEXTO GENERAL */
 .stApp,
 .stApp p,
 .stApp span,
@@ -97,7 +96,6 @@ header[data-testid="stHeader"] {
     -webkit-text-fill-color: #FFD400 !important;
 }
 
-/* TÍTULOS */
 h1, h2, h3, h4, h5, h6 {
     color: #FFD400 !important;
     -webkit-text-fill-color: #FFD400 !important;
@@ -105,7 +103,6 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 800 !important;
 }
 
-/* CABECERA */
 .hero {
     background: linear-gradient(110deg, #000000, #171717);
     border: 1px solid #FFD400;
@@ -115,7 +112,6 @@ h1, h2, h3, h4, h5, h6 {
     text-align: center;
 }
 
-/* TÍTULOS DE SECCIÓN */
 .section-title {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 34px;
@@ -130,7 +126,6 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 22px;
 }
 
-/* TARJETAS */
 .route-card,
 .event-card,
 .garaje-card,
@@ -160,7 +155,6 @@ h1, h2, h3, h4, h5, h6 {
     margin: 12px 0;
 }
 
-/* ESTADÍSTICAS */
 .stat-box {
     text-align: center;
 }
@@ -177,7 +171,6 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 1px;
 }
 
-/* GARAJE Y COMUNIDAD */
 .garaje-titulo,
 .community-name {
     color: #FFD400 !important;
@@ -197,7 +190,6 @@ h1, h2, h3, h4, h5, h6 {
     text-align: center;
 }
 
-/* TIENDA */
 .tienda-card {
     background: linear-gradient(135deg, #101010, #1B1B1B) !important;
     border: 1px solid #FFD400 !important;
@@ -217,7 +209,6 @@ h1, h2, h3, h4, h5, h6 {
     margin-top: 12px;
 }
 
-/* CAMPOS DE TEXTO */
 div[data-testid="stTextInput"] input,
 div[data-testid="stTextArea"] textarea,
 div[data-testid="stNumberInput"] input,
@@ -240,7 +231,6 @@ div[data-testid="stTextArea"] textarea::placeholder {
     opacity: 1 !important;
 }
 
-/* SELECTORES */
 div[data-baseweb="select"],
 div[data-baseweb="select"] > div,
 div[data-baseweb="popover"],
@@ -258,7 +248,6 @@ div[data-baseweb="popover"] * {
     -webkit-text-fill-color: #FFD400 !important;
 }
 
-/* HORARIOS Y FECHAS */
 div[data-testid="stTimeInput"],
 div[data-testid="stDateInput"],
 div[data-testid="stTimeInput"] *,
@@ -284,7 +273,6 @@ div[data-baseweb="calendar"] button {
     color: #FFD400 !important;
 }
 
-/* RADIO, CHECKBOX Y TOGGLE */
 div[data-testid="stRadio"] *,
 div[data-testid="stCheckbox"] *,
 div[data-testid="stToggle"] * {
@@ -292,7 +280,6 @@ div[data-testid="stToggle"] * {
     -webkit-text-fill-color: #FFD400 !important;
 }
 
-/* BOTONES NORMALES */
 .stButton > button,
 .stFormSubmitButton > button,
 .stLinkButton > a {
@@ -318,7 +305,6 @@ div[data-testid="stToggle"] * {
     border-color: #DDB600 !important;
 }
 
-/* BOTONES DEL MENÚ PRINCIPAL Y VOLVER */
 div[data-testid="stButton"] button[kind="secondary"] {
     min-height: 86px !important;
     width: 100% !important;
@@ -333,6 +319,7 @@ div[data-testid="stButton"] button[kind="secondary"] {
     -webkit-text-fill-color: #FFD400 !important;
     padding: 15px 10px !important;
     transition: all 0.2s ease !important;
+    box-shadow: 0 0 8px rgba(255, 212, 0, 0.10);
 }
 
 div[data-testid="stButton"] button[kind="secondary"] * {
@@ -346,12 +333,6 @@ div[data-testid="stButton"] button[kind="secondary"]:hover {
     transform: translateY(-2px);
 }
 
-/* BOTONES DE GARAJE Y COMUNIDAD: MÁS DESTACADOS */
-div[data-testid="stButton"] button[kind="secondary"] {
-    box-shadow: 0 0 8px rgba(255, 212, 0, 0.10);
-}
-
-/* PESTAÑAS DE ACCESO Y REGISTRO */
 button[data-baseweb="tab"] {
     color: #FFD400 !important;
     background: #000000 !important;
@@ -366,7 +347,6 @@ button[data-baseweb="tab"][aria-selected="true"] {
     border-bottom: 3px solid #FFD400 !important;
 }
 
-/* EXPANDERS Y FORMULARIOS */
 div[data-testid="stExpander"] {
     background: #101010 !important;
     border: 1px solid #806B00 !important;
@@ -387,7 +367,6 @@ div[data-testid="stForm"] {
     padding: 18px;
 }
 
-/* MENSAJES */
 div[data-testid="stAlert"] {
     background: #101010 !important;
     border: 1px solid #FFD400 !important;
@@ -405,7 +384,6 @@ div[data-testid="stAlert"] div {
     visibility: visible !important;
 }
 
-/* ERRORES */
 div[data-testid="stAlert"][kind="error"] {
     background: #180000 !important;
     border: 1px solid #FF4545 !important;
@@ -416,13 +394,11 @@ div[data-testid="stAlert"][kind="error"] * {
     -webkit-text-fill-color: #FFD400 !important;
 }
 
-/* ÉXITO */
 div[data-testid="stAlert"][kind="success"] {
     background: #101010 !important;
     border: 1px solid #FFD400 !important;
 }
 
-/* SUBIDA DE ARCHIVOS */
 div[data-testid="stFileUploader"],
 div[data-testid="stFileUploader"] section,
 div[data-testid="stFileUploader"] * {
@@ -432,30 +408,25 @@ div[data-testid="stFileUploader"] * {
     border-color: #806B00 !important;
 }
 
-/* BOTÓN INTERNO DEL SUBIDOR */
 div[data-testid="stFileUploader"] button {
     background: #FFD400 !important;
     color: #000000 !important;
     -webkit-text-fill-color: #000000 !important;
 }
 
-/* ENLACES */
 a, a:visited {
     color: #FFD400 !important;
     -webkit-text-fill-color: #FFD400 !important;
 }
 
-/* IMÁGENES */
 img {
     border-radius: 10px;
 }
 
-/* SEPARADORES */
 hr {
     border-color: #806B00 !important;
 }
 
-/* PIE DE PÁGINA */
 .footer,
 .footer * {
     color: #FFD400 !important;
@@ -471,7 +442,6 @@ hr {
     font-size: 12px;
 }
 
-/* MENÚ PRINCIPAL */
 .menu-intro {
     text-align: center;
     background: linear-gradient(135deg, #101010, #1B1B1B);
@@ -494,7 +464,30 @@ hr {
     margin-top: 6px;
 }
 
-/* MÓVIL */
+.news-card {
+    background: linear-gradient(135deg, #171500, #101010);
+    border: 1px solid #FFD400;
+    border-left: 5px solid #FFD400;
+    border-radius: 13px;
+    padding: 18px;
+    margin: 12px 0 20px 0;
+}
+
+.news-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 25px;
+    font-weight: 800;
+    color: #FFD400;
+}
+
+.admin-info {
+    background: #101010;
+    border: 1px solid #806B00;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
 @media (max-width: 600px) {
     .block-container {
         padding-left: 0.8rem;
@@ -629,6 +622,186 @@ def subir_archivo_storage(archivo, carpeta, prefijo):
         )
 
     return url
+
+
+# =========================================================
+# FUNCIONES DE ADMINISTRACIÓN
+# =========================================================
+
+def comprobar_es_admin(user_id):
+    """
+    Comprueba los permisos consultando familybike_admins.
+    No utiliza nombres de usuario ni identificadores fijos.
+    """
+    try:
+        respuesta = (
+            supabase.table("familybike_admins")
+            .select("user_id")
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+
+        return bool(respuesta.data)
+
+    except Exception:
+        return False
+
+
+def obtener_ruta_storage(url, carpeta_permitida=None):
+    """
+    Obtiene la ruta interna de un archivo únicamente si pertenece
+    al bucket FAMILY BIKE de este proyecto.
+
+    Nunca elimina archivos de URLs externas.
+    """
+    if not isinstance(url, str) or not url.startswith("https://"):
+        return None
+
+    try:
+        parsed = urlparse(url)
+
+        host_esperado = urlparse(SUPABASE_URL).netloc
+
+        if parsed.netloc != host_esperado:
+            return None
+
+        prefijo = f"/storage/v1/object/public/{BUCKET_FAMILYBIKE}/"
+
+        if not parsed.path.startswith(prefijo):
+            return None
+
+        ruta = unquote(parsed.path[len(prefijo):])
+
+        if not ruta:
+            return None
+
+        if carpeta_permitida and not ruta.startswith(carpeta_permitida):
+            return None
+
+        return ruta
+
+    except Exception:
+        return None
+
+
+def eliminar_archivo_storage(url, carpeta_permitida=None):
+    """
+    Elimina un archivo de Storage solo cuando la URL corresponde
+    al bucket y carpeta autorizados.
+    """
+    ruta = obtener_ruta_storage(
+        url,
+        carpeta_permitida=carpeta_permitida
+    )
+
+    if not ruta:
+        return False
+
+    supabase.storage.from_(BUCKET_FAMILYBIKE).remove([ruta])
+    return True
+
+
+def cargar_noticias_activas():
+    respuesta = (
+        supabase.table("familybike_noticias")
+        .select(
+            "id,titulo,contenido,activo,fijado,created_at"
+        )
+        .eq("activo", True)
+        .order("fijado", desc=True)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return respuesta.data or []
+
+
+def eliminar_quedada_completa(quedada):
+    """
+    Elimina los registros relacionados con una quedada:
+    notificaciones, asistentes, horarios y finalmente la quedada.
+    También elimina sus imágenes propias del bucket.
+    """
+    qid = quedada.get("id")
+
+    if not qid:
+        raise ValueError("La quedada no tiene identificador.")
+
+    # 1. Notificaciones asociadas
+    (
+        supabase.table("notificaciones_quedadas")
+        .delete()
+        .eq("quedada_id", qid)
+        .execute()
+    )
+
+    # 2. Inscripciones y asistentes
+    (
+        supabase.table("asistentes")
+        .delete()
+        .eq("quedada_id", qid)
+        .execute()
+    )
+
+    # 3. Horarios
+    (
+        supabase.table("horarios_quedadas")
+        .delete()
+        .eq("quedada_id", qid)
+        .execute()
+    )
+
+    # 4. Eliminar quedada
+    (
+        supabase.table("quedadas")
+        .delete()
+        .eq("id", qid)
+        .execute()
+    )
+
+    # 5. Eliminar las fotografías propias de la quedada.
+    # Las imágenes externas y las del catálogo no se eliminan.
+    urls = {
+        quedada.get("cartel_url"),
+        quedada.get("imagen_url")
+    }
+
+    for url in urls:
+        if url:
+            try:
+                eliminar_archivo_storage(
+                    url,
+                    carpeta_permitida="quedadas/"
+                )
+            except Exception:
+                # La quedada ya está eliminada. Un fallo de Storage
+                # no debe ocultar ese resultado.
+                pass
+
+
+def eliminar_foto_garaje(perfil):
+    """
+    Elimina la foto de moto del usuario y limpia su perfil.
+    """
+    user_id = perfil.get("id")
+    foto_url = perfil.get("moto_foto_url")
+
+    if not user_id:
+        raise ValueError("No se ha encontrado el usuario.")
+
+    if foto_url:
+        eliminar_archivo_storage(
+            foto_url,
+            carpeta_permitida="garaje/"
+        )
+
+    (
+        supabase.table("profiles")
+        .update({"moto_foto_url": None})
+        .eq("id", user_id)
+        .execute()
+    )
 
 
 # =========================================================
@@ -977,9 +1150,7 @@ if not autenticado:
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
             <style>
-                * {
-                    box-sizing: border-box;
-                }
+                * { box-sizing: border-box; }
 
                 body {
                     margin: 0;
@@ -1052,19 +1223,13 @@ if not autenticado:
                         min-width: 36px;
                     }
 
-                    .facebook-title {
-                        font-size: 16px;
-                    }
-
-                    .facebook-subtitle {
-                        font-size: 10px;
-                    }
+                    .facebook-title { font-size: 16px; }
+                    .facebook-subtitle { font-size: 10px; }
                 }
             </style>
         </head>
 
         <body>
-
             <a class="facebook-community"
                href="https://m.facebook.com/groups/1646146103973952/?ref=share"
                target="_blank"
@@ -1077,12 +1242,7 @@ if not autenticado:
                      role="img"
                      aria-label="Facebook">
 
-                    <circle
-                        cx="24"
-                        cy="24"
-                        r="24"
-                        fill="#1877F2"
-                    />
+                    <circle cx="24" cy="24" r="24" fill="#1877F2"/>
 
                     <path
                         fill="#FFFFFF"
@@ -1091,23 +1251,19 @@ if not autenticado:
                         c-.5-.1-2.3-.2-4.3-.2
                         -4.3 0-7.3 2.6-7.3 7.5v3.6h-4.9v5.4h4.9V40z"
                     />
-
                 </svg>
 
                 <span class="facebook-copy">
                     <span class="facebook-title">
                         ÚNETE A NUESTRA COMUNIDAD
                     </span>
-
                     <span class="facebook-subtitle">
                         FAMILY BIKE · Grupo oficial de Facebook
                     </span>
                 </span>
 
                 <span class="facebook-arrow">↗</span>
-
             </a>
-
         </body>
         </html>
         """,
@@ -1140,8 +1296,22 @@ if not usuario_id:
     )
     st.stop()
 
-# Estado inicial de la navegación
 if "seccion_activa" not in st.session_state:
+    st.session_state["seccion_activa"] = "menu"
+
+
+# =========================================================
+# COMPROBAR SI ES ADMINISTRADOR
+# =========================================================
+
+es_admin = comprobar_es_admin(usuario_id)
+
+# Si alguien intenta entrar manualmente en administración
+# sin estar registrado como administrador, se le devuelve al menú.
+if (
+    st.session_state.get("seccion_activa") == "administracion"
+    and not es_admin
+):
     st.session_state["seccion_activa"] = "menu"
 
 
@@ -1289,6 +1459,47 @@ with col3:
 
 
 # =========================================================
+# NOTICIAS EN LA PÁGINA PRINCIPAL
+# =========================================================
+
+if st.session_state["seccion_activa"] == "menu":
+
+    try:
+        noticias_inicio = cargar_noticias_activas()
+
+        if noticias_inicio:
+
+            st.markdown(
+                '<div class="section-title">📢 NOTICIAS FAMILY BIKE</div>',
+                unsafe_allow_html=True
+            )
+
+            for noticia in noticias_inicio:
+
+                titulo_noticia = escapar(noticia.get("titulo"))
+                contenido_noticia = escapar(noticia.get("contenido"))
+
+                st.markdown(
+                    f"""
+                    <div class="news-card">
+                        <div class="news-title">
+                            📢 {titulo_noticia}
+                        </div>
+                        <div style="margin-top:10px; white-space:pre-wrap;">
+                            {contenido_noticia}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+    except Exception:
+        # La página principal sigue funcionando si las noticias
+        # no están disponibles temporalmente.
+        pass
+
+
+# =========================================================
 # MENÚ PRINCIPAL FAMILY BIKE
 # =========================================================
 
@@ -1358,7 +1569,7 @@ if st.session_state["seccion_activa"] == "menu":
 
     st.write("")
 
-    # FILA 3: TIENDA A ANCHO COMPLETO
+    # FILA 3: TIENDA
     if st.button(
         "🛒  TIENDA FAMILY BIKE",
         key="menu_tienda",
@@ -1367,6 +1578,20 @@ if st.session_state["seccion_activa"] == "menu":
     ):
         st.session_state["seccion_activa"] = "tienda"
         st.rerun()
+
+    # FILA 4: ADMINISTRACIÓN, SOLO PARA ADMINISTRADORES
+    if es_admin:
+
+        st.write("")
+
+        if st.button(
+            "⚙️  ADMINISTRACIÓN FAMILY BIKE",
+            key="menu_administracion",
+            type="secondary",
+            use_container_width=True
+        ):
+            st.session_state["seccion_activa"] = "administracion"
+            st.rerun()
 
 
 # =========================================================
@@ -2608,6 +2833,877 @@ if st.session_state["seccion_activa"] == "tienda":
         )
 
     st.caption("La tienda se abrirá en Payhip.")
+
+
+# =========================================================
+# SECCIÓN ADMINISTRACIÓN FAMILY BIKE
+# =========================================================
+
+if st.session_state["seccion_activa"] == "administracion":
+
+    # Comprobación adicional en cada entrada a esta sección
+    if not comprobar_es_admin(usuario_id):
+        st.error("No tienes permisos para acceder a esta sección.")
+        st.session_state["seccion_activa"] = "menu"
+        st.stop()
+
+    st.markdown(
+        '<div class="section-title">⚙️ ADMINISTRACIÓN FAMILY BIKE</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div class="section-subtitle">
+            Panel de control general. Todos los administradores
+            tienen los mismos permisos.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    tab_garajes, tab_quedadas, tab_noticias, tab_admins = st.tabs([
+        "🏍️ GARAJES",
+        "📅 QUEDADAS",
+        "📢 NOTICIAS",
+        "👑 ADMINISTRADORES"
+    ])
+
+    # =====================================================
+    # ADMINISTRAR GARAJES
+    # =====================================================
+
+    with tab_garajes:
+
+        st.markdown("### GESTIÓN DE GARAJES")
+        st.write(
+            "Consulta los garajes de los usuarios y elimina "
+            "fotografías cuando sea necesario."
+        )
+
+        try:
+
+            respuesta_garajes = (
+                supabase.table("profiles")
+                .select("id,username,moto_foto_url")
+                .order("username")
+                .execute()
+            )
+
+            perfiles_garajes = respuesta_garajes.data or []
+
+            perfiles_con_foto = [
+                p for p in perfiles_garajes
+                if p.get("moto_foto_url")
+            ]
+
+            st.metric(
+                "Fotografías de motocicletas",
+                len(perfiles_con_foto)
+            )
+
+            if not perfiles_con_foto:
+
+                st.info("Todavía no hay fotografías en los garajes.")
+
+            else:
+
+                for perfil in perfiles_con_foto:
+
+                    nombre = perfil.get("username") or "Usuario"
+                    foto = perfil.get("moto_foto_url")
+                    uid = perfil.get("id")
+
+                    with st.expander(
+                        f"🏍️ {nombre} · {str(uid)[:8]}"
+                    ):
+
+                        if foto:
+                            st.image(
+                                foto,
+                                use_container_width=True
+                            )
+
+                        st.caption(f"Usuario: {uid}")
+
+                        confirmar_foto = st.checkbox(
+                            "Confirmo que quiero eliminar esta fotografía",
+                            key=f"confirmar_foto_{uid}"
+                        )
+
+                        if st.button(
+                            "🗑️ ELIMINAR FOTOGRAFÍA",
+                            key=f"eliminar_foto_{uid}",
+                            disabled=not confirmar_foto,
+                            use_container_width=True
+                        ):
+
+                            try:
+
+                                eliminar_foto_garaje(perfil)
+
+                                st.success(
+                                    f"Fotografía de {nombre} eliminada."
+                                )
+
+                                st.rerun()
+
+                            except Exception as error:
+
+                                st.error(
+                                    "No se ha podido eliminar la fotografía."
+                                )
+                                st.code(str(error))
+
+        except Exception as error:
+
+            st.error("No se han podido cargar los garajes.")
+            st.code(str(error))
+
+
+    # =====================================================
+    # ADMINISTRAR QUEDADAS
+    # =====================================================
+
+    with tab_quedadas:
+
+        st.markdown("### GESTIÓN DE TODAS LAS QUEDADAS")
+
+        st.warning(
+            "La eliminación es definitiva. Se borrarán también "
+            "sus asistentes, horarios, notificaciones y fotografías "
+            "almacenadas en FAMILY BIKE."
+        )
+
+        try:
+
+            respuesta_admin_quedadas = (
+                supabase.table("quedadas")
+                .select(
+                    "id,creador_id,ruta_nombre,es_ruta_catalogo,"
+                    "fecha,hora,punto_encuentro,descripcion,"
+                    "imagen_url,cartel_url,telefono_organizador,"
+                    "estado,created_at"
+                )
+                .order("fecha", desc=True)
+                .execute()
+            )
+
+            todas_quedadas_admin = (
+                respuesta_admin_quedadas.data or []
+            )
+
+            st.metric(
+                "Quedadas registradas",
+                len(todas_quedadas_admin)
+            )
+
+            if not todas_quedadas_admin:
+
+                st.info("No hay quedadas registradas.")
+
+            else:
+
+                # Obtener nombres de los organizadores
+                ids_creadores = list({
+                    q.get("creador_id")
+                    for q in todas_quedadas_admin
+                    if q.get("creador_id")
+                })
+
+                nombres_creadores = {}
+
+                if ids_creadores:
+
+                    respuesta_creadores = (
+                        supabase.table("profiles")
+                        .select("id,username")
+                        .in_("id", ids_creadores)
+                        .execute()
+                    )
+
+                    for perfil in respuesta_creadores.data or []:
+                        nombres_creadores[perfil["id"]] = (
+                            perfil.get("username") or "Motero"
+                        )
+
+                opciones_quedadas = {
+                    (
+                        f"{q.get('fecha', 'Sin fecha')} | "
+                        f"{q.get('ruta_nombre', 'Sin nombre')} | "
+                        f"{nombres_creadores.get(q.get('creador_id'), 'Motero')} | "
+                        f"{q.get('estado', 'Sin estado')} | "
+                        f"ID {str(q.get('id'))[:8]}"
+                    ): q
+                    for q in todas_quedadas_admin
+                }
+
+                seleccion_quedada = st.selectbox(
+                    "Selecciona la quedada que quieres consultar",
+                    options=list(opciones_quedadas.keys()),
+                    key="admin_seleccion_quedada"
+                )
+
+                quedada_admin = opciones_quedadas[seleccion_quedada]
+                qid_admin = quedada_admin.get("id")
+
+                st.markdown("---")
+                st.markdown(
+                    f"#### 🏍️ {escapar(quedada_admin.get('ruta_nombre'))}"
+                )
+
+                st.write(
+                    f"**Fecha:** {quedada_admin.get('fecha')}"
+                )
+
+                st.write(
+                    f"**Hora principal:** "
+                    f"{str(quedada_admin.get('hora') or '')[:5]}"
+                )
+
+                st.write(
+                    f"**Organizador:** "
+                    f"{nombres_creadores.get(quedada_admin.get('creador_id'), 'Motero')}"
+                )
+
+                st.write(
+                    f"**Estado:** {quedada_admin.get('estado')}"
+                )
+
+                st.write(
+                    f"**Punto de encuentro:** "
+                    f"{quedada_admin.get('punto_encuentro') or 'No indicado'}"
+                )
+
+                if quedada_admin.get("descripcion"):
+                    st.write(
+                        f"**Descripción:** {quedada_admin.get('descripcion')}"
+                    )
+
+                imagen_admin = (
+                    quedada_admin.get("cartel_url")
+                    or quedada_admin.get("imagen_url")
+                )
+
+                if imagen_admin:
+                    st.image(
+                        imagen_admin,
+                        caption="Imagen o cartel de la quedada",
+                        use_container_width=True
+                    )
+
+                # Mostrar horarios
+                try:
+
+                    respuesta_horarios_admin = (
+                        supabase.table("horarios_quedadas")
+                        .select("id,hora,punto_encuentro")
+                        .eq("quedada_id", qid_admin)
+                        .order("hora")
+                        .execute()
+                    )
+
+                    horarios_admin = (
+                        respuesta_horarios_admin.data or []
+                    )
+
+                    st.markdown("#### HORARIOS")
+
+                    if horarios_admin:
+
+                        for h in horarios_admin:
+                            st.write(
+                                f"🕘 {str(h.get('hora') or '')[:5]} "
+                                f"— {h.get('punto_encuentro') or ''}"
+                            )
+
+                    else:
+                        st.info(
+                            "No hay horarios adicionales registrados."
+                        )
+
+                except Exception as error:
+                    st.warning("No se pudieron consultar los horarios.")
+                    st.code(str(error))
+
+                # Mostrar asistentes
+                try:
+
+                    respuesta_asistentes_admin = (
+                        supabase.table("asistentes")
+                        .select("usuario_id,horario_id")
+                        .eq("quedada_id", qid_admin)
+                        .execute()
+                    )
+
+                    asistentes_admin = (
+                        respuesta_asistentes_admin.data or []
+                    )
+
+                    st.markdown(
+                        f"#### ASISTENTES ({len(asistentes_admin)})"
+                    )
+
+                    if asistentes_admin:
+
+                        ids_asistentes_admin = [
+                            a.get("usuario_id")
+                            for a in asistentes_admin
+                            if a.get("usuario_id")
+                        ]
+
+                        respuesta_perfiles_admin = (
+                            supabase.table("profiles")
+                            .select("id,username")
+                            .in_(
+                                "id",
+                                ids_asistentes_admin
+                            )
+                            .execute()
+                        )
+
+                        nombres_asistentes_admin = {
+                            p["id"]: p.get("username", "Motero")
+                            for p in (
+                                respuesta_perfiles_admin.data or []
+                            )
+                        }
+
+                        for asistente in asistentes_admin:
+                            st.write(
+                                "🏍️ "
+                                + escapar(
+                                    nombres_asistentes_admin.get(
+                                        asistente.get("usuario_id"),
+                                        "Motero"
+                                    )
+                                )
+                            )
+
+                    else:
+                        st.info("Esta quedada no tiene asistentes.")
+
+                except Exception as error:
+                    st.warning("No se pudieron consultar los asistentes.")
+                    st.code(str(error))
+
+                st.divider()
+
+                confirmar_borrado_quedada = st.checkbox(
+                    "Confirmo que quiero eliminar definitivamente "
+                    "esta quedada y todos sus datos relacionados.",
+                    key=f"confirmar_borrar_quedada_{qid_admin}"
+                )
+
+                if st.button(
+                    "🗑️ ELIMINAR QUEDADA COMPLETA",
+                    key=f"admin_borrar_quedada_{qid_admin}",
+                    disabled=not confirmar_borrado_quedada,
+                    use_container_width=True
+                ):
+
+                    try:
+
+                        eliminar_quedada_completa(quedada_admin)
+
+                        st.success(
+                            "La quedada y sus datos relacionados "
+                            "se han eliminado."
+                        )
+
+                        st.rerun()
+
+                    except Exception as error:
+
+                        st.error(
+                            "No se ha podido completar la eliminación. "
+                            "Comprueba las políticas RLS de Supabase."
+                        )
+                        st.code(str(error))
+
+        except Exception as error:
+
+            st.error("No se han podido cargar las quedadas.")
+            st.code(str(error))
+
+
+    # =====================================================
+    # ADMINISTRAR NOTICIAS
+    # =====================================================
+
+    with tab_noticias:
+
+        st.markdown("### PUBLICAR NOTICIA")
+
+        st.write(
+            "Las noticias activas aparecerán en la página principal "
+            "de FAMILY BIKE para todos los usuarios."
+        )
+
+        with st.form("admin_form_nueva_noticia"):
+
+            titulo_noticia_nueva = st.text_input(
+                "Título de la noticia",
+                max_chars=150,
+                placeholder="Ejemplo: Próxima concentración motera"
+            )
+
+            contenido_noticia_nueva = st.text_area(
+                "Contenido de la noticia",
+                height=160,
+                placeholder="Escribe aquí el contenido..."
+            )
+
+            fijar_noticia_nueva = st.checkbox(
+                "Fijar noticia en la parte superior",
+                value=True
+            )
+
+            publicar_noticia = st.form_submit_button(
+                "📢 PUBLICAR NOTICIA",
+                use_container_width=True
+            )
+
+        if publicar_noticia:
+
+            titulo_limpio = titulo_noticia_nueva.strip()
+            contenido_limpio = contenido_noticia_nueva.strip()
+
+            if not titulo_limpio or not contenido_limpio:
+
+                st.error(
+                    "Debes introducir un título y un contenido."
+                )
+
+            else:
+
+                try:
+
+                    supabase.table("familybike_noticias").insert({
+                        "titulo": titulo_limpio,
+                        "contenido": contenido_limpio,
+                        "activo": True,
+                        "fijado": fijar_noticia_nueva,
+                        "creado_por": usuario_id,
+                        "updated_at": datetime.now(
+                            timezone.utc
+                        ).isoformat()
+                    }).execute()
+
+                    st.success("Noticia publicada correctamente.")
+                    st.rerun()
+
+                except Exception as error:
+
+                    st.error("No se ha podido publicar la noticia.")
+                    st.code(str(error))
+
+        st.divider()
+        st.markdown("### GESTIONAR NOTICIAS PUBLICADAS")
+
+        try:
+
+            respuesta_todas_noticias = (
+                supabase.table("familybike_noticias")
+                .select(
+                    "id,titulo,contenido,activo,fijado,"
+                    "creado_por,created_at,updated_at"
+                )
+                .order("created_at", desc=True)
+                .execute()
+            )
+
+            todas_noticias = (
+                respuesta_todas_noticias.data or []
+            )
+
+            if not todas_noticias:
+
+                st.info("Todavía no hay noticias publicadas.")
+
+            else:
+
+                for noticia in todas_noticias:
+
+                    noticia_id = noticia.get("id")
+
+                    estado_noticia = (
+                        "ACTIVA"
+                        if noticia.get("activo")
+                        else "INACTIVA"
+                    )
+
+                    with st.expander(
+                        f"📢 {noticia.get('titulo')} · {estado_noticia}"
+                    ):
+
+                        with st.form(
+                            f"form_editar_noticia_{noticia_id}"
+                        ):
+
+                            titulo_editado = st.text_input(
+                                "Título",
+                                value=noticia.get("titulo") or "",
+                                key=f"titulo_edit_{noticia_id}"
+                            )
+
+                            contenido_editado = st.text_area(
+                                "Contenido",
+                                value=noticia.get("contenido") or "",
+                                height=150,
+                                key=f"contenido_edit_{noticia_id}"
+                            )
+
+                            noticia_activa_editada = st.checkbox(
+                                "Noticia visible en la página principal",
+                                value=bool(noticia.get("activo")),
+                                key=f"activa_edit_{noticia_id}"
+                            )
+
+                            noticia_fijada_editada = st.checkbox(
+                                "Fijar en la parte superior",
+                                value=bool(noticia.get("fijado")),
+                                key=f"fijada_edit_{noticia_id}"
+                            )
+
+                            guardar_edicion = st.form_submit_button(
+                                "💾 GUARDAR CAMBIOS",
+                                use_container_width=True
+                            )
+
+                        if guardar_edicion:
+
+                            if (
+                                not titulo_editado.strip()
+                                or not contenido_editado.strip()
+                            ):
+
+                                st.error(
+                                    "El título y el contenido son obligatorios."
+                                )
+
+                            else:
+
+                                try:
+
+                                    supabase.table(
+                                        "familybike_noticias"
+                                    ).update({
+                                        "titulo": titulo_editado.strip(),
+                                        "contenido": contenido_editado.strip(),
+                                        "activo": noticia_activa_editada,
+                                        "fijado": noticia_fijada_editada,
+                                        "updated_at": datetime.now(
+                                            timezone.utc
+                                        ).isoformat()
+                                    }).eq(
+                                        "id",
+                                        noticia_id
+                                    ).execute()
+
+                                    st.success("Noticia actualizada.")
+                                    st.rerun()
+
+                                except Exception as error:
+
+                                    st.error(
+                                        "No se ha podido actualizar la noticia."
+                                    )
+                                    st.code(str(error))
+
+                        st.divider()
+
+                        confirmar_eliminar_noticia = st.checkbox(
+                            "Confirmo que quiero eliminar esta noticia",
+                            key=f"confirmar_noticia_{noticia_id}"
+                        )
+
+                        if st.button(
+                            "🗑️ ELIMINAR NOTICIA",
+                            key=f"borrar_noticia_{noticia_id}",
+                            disabled=not confirmar_eliminar_noticia,
+                            use_container_width=True
+                        ):
+
+                            try:
+
+                                supabase.table(
+                                    "familybike_noticias"
+                                ).delete().eq(
+                                    "id",
+                                    noticia_id
+                                ).execute()
+
+                                st.success("Noticia eliminada.")
+                                st.rerun()
+
+                            except Exception as error:
+
+                                st.error(
+                                    "No se ha podido eliminar la noticia."
+                                )
+                                st.code(str(error))
+
+        except Exception as error:
+
+            st.error("No se han podido cargar las noticias.")
+            st.code(str(error))
+
+
+    # =====================================================
+    # ADMINISTRAR ADMINISTRADORES
+    # =====================================================
+
+    with tab_admins:
+
+        st.markdown("### ADMINISTRADORES DE FAMILY BIKE")
+
+        st.write(
+            "Todos los administradores tienen los mismos permisos. "
+            "Puedes añadir o retirar administradores utilizando "
+            "su nombre de usuario."
+        )
+
+        try:
+
+            respuesta_admins = (
+                supabase.table("familybike_admins")
+                .select("user_id,created_at")
+                .execute()
+            )
+
+            lista_admins = respuesta_admins.data or []
+
+            ids_admins = [
+                admin.get("user_id")
+                for admin in lista_admins
+                if admin.get("user_id")
+            ]
+
+            perfiles_admins = {}
+
+            if ids_admins:
+
+                respuesta_perfiles_admins = (
+                    supabase.table("profiles")
+                    .select("id,username")
+                    .in_("id", ids_admins)
+                    .execute()
+                )
+
+                perfiles_admins = {
+                    p["id"]: p
+                    for p in (
+                        respuesta_perfiles_admins.data or []
+                    )
+                }
+
+            st.metric(
+                "Administradores actuales",
+                len(lista_admins)
+            )
+
+            for admin in lista_admins:
+
+                admin_id = admin.get("user_id")
+                perfil_admin = perfiles_admins.get(admin_id, {})
+
+                nombre_admin = (
+                    perfil_admin.get("username")
+                    or "Usuario sin perfil"
+                )
+
+                es_admin_actual = (
+                    str(admin_id) == str(usuario_id)
+                )
+
+                col_nombre, col_id, col_estado = st.columns([2, 2, 1])
+
+                with col_nombre:
+                    st.markdown(
+                        f"**👑 {escapar(nombre_admin)}**"
+                    )
+
+                with col_id:
+                    st.caption(str(admin_id))
+
+                with col_estado:
+                    if es_admin_actual:
+                        st.caption("Tu cuenta")
+
+            st.divider()
+
+            # AÑADIR ADMINISTRADOR
+            st.markdown("#### ➕ AÑADIR ADMINISTRADOR")
+
+            with st.form("form_anadir_admin"):
+
+                username_nuevo_admin = st.text_input(
+                    "Nombre de usuario de la cuenta",
+                    placeholder="Escribe el usuario exacto"
+                )
+
+                anadir_admin = st.form_submit_button(
+                    "AÑADIR ADMINISTRADOR",
+                    use_container_width=True
+                )
+
+            if anadir_admin:
+
+                username_busqueda = (
+                    username_nuevo_admin.strip().lower()
+                )
+
+                if not re.fullmatch(
+                    r"[a-z0-9_]{3,24}",
+                    username_busqueda
+                ):
+
+                    st.error("Introduce un nombre de usuario válido.")
+
+                else:
+
+                    try:
+
+                        respuesta_usuario_admin = (
+                            supabase.table("profiles")
+                            .select("id,username")
+                            .eq("username", username_busqueda)
+                            .maybe_single()
+                            .execute()
+                        )
+
+                        perfil_nuevo_admin = (
+                            respuesta_usuario_admin.data
+                        )
+
+                        if not perfil_nuevo_admin:
+
+                            st.error(
+                                "No se ha encontrado ningún usuario "
+                                "con ese nombre."
+                            )
+
+                        else:
+
+                            nuevo_admin_id = perfil_nuevo_admin["id"]
+
+                            if str(nuevo_admin_id) in [
+                                str(i) for i in ids_admins
+                            ]:
+
+                                st.info(
+                                    "Ese usuario ya es administrador."
+                                )
+
+                            else:
+
+                                supabase.table(
+                                    "familybike_admins"
+                                ).insert({
+                                    "user_id": nuevo_admin_id
+                                }).execute()
+
+                                st.success(
+                                    f"{username_busqueda} ya es "
+                                    "administrador de FAMILY BIKE."
+                                )
+
+                                st.rerun()
+
+                    except Exception as error:
+
+                        st.error(
+                            "No se ha podido añadir el administrador. "
+                            "Comprueba los permisos RLS."
+                        )
+                        st.code(str(error))
+
+            st.divider()
+
+            # ELIMINAR ADMINISTRADOR
+            st.markdown("#### ➖ RETIRAR ADMINISTRADOR")
+
+            if len(lista_admins) <= 1:
+
+                st.warning(
+                    "No puedes eliminar al último administrador."
+                )
+
+            else:
+
+                opciones_eliminar_admin = {}
+
+                for admin in lista_admins:
+
+                    admin_id = admin.get("user_id")
+                    perfil_admin = perfiles_admins.get(admin_id, {})
+
+                    nombre_admin = (
+                        perfil_admin.get("username")
+                        or "Usuario sin perfil"
+                    )
+
+                    etiqueta = (
+                        f"{nombre_admin} "
+                        f"({str(admin_id)[:8]})"
+                    )
+
+                    opciones_eliminar_admin[etiqueta] = admin_id
+
+                admin_seleccionado_label = st.selectbox(
+                    "Selecciona el administrador que quieres retirar",
+                    options=list(opciones_eliminar_admin.keys()),
+                    key="admin_seleccionar_eliminar"
+                )
+
+                admin_seleccionado_id = (
+                    opciones_eliminar_admin[
+                        admin_seleccionado_label
+                    ]
+                )
+
+                confirmar_eliminar_admin = st.checkbox(
+                    "Confirmo que quiero retirar los permisos "
+                    "de esta cuenta.",
+                    key="confirmar_eliminar_admin"
+                )
+
+                if st.button(
+                    "➖ RETIRAR PERMISOS DE ADMINISTRADOR",
+                    disabled=not confirmar_eliminar_admin,
+                    use_container_width=True
+                ):
+
+                    try:
+
+                        (
+                            supabase.table("familybike_admins")
+                            .delete()
+                            .eq("user_id", admin_seleccionado_id)
+                            .execute()
+                        )
+
+                        st.success(
+                            "Los permisos de administrador se han retirado."
+                        )
+
+                        st.rerun()
+
+                    except Exception as error:
+
+                        st.error(
+                            "No se ha podido retirar el administrador. "
+                            "La base de datos también protege al último."
+                        )
+                        st.code(str(error))
+
+        except Exception as error:
+
+            st.error(
+                "No se ha podido consultar la lista de administradores."
+            )
+            st.code(str(error))
 
 
 # =========================================================
