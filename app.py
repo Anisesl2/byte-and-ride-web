@@ -292,7 +292,7 @@ div[data-testid="stToggle"] * {
     -webkit-text-fill-color: #FFD400 !important;
 }
 
-/* BOTONES */
+/* BOTONES NORMALES */
 .stButton > button,
 .stFormSubmitButton > button,
 .stLinkButton > a {
@@ -318,7 +318,40 @@ div[data-testid="stToggle"] * {
     border-color: #DDB600 !important;
 }
 
-/* PESTAÑAS */
+/* BOTONES DEL MENÚ PRINCIPAL Y VOLVER */
+div[data-testid="stButton"] button[kind="secondary"] {
+    min-height: 86px !important;
+    width: 100% !important;
+    white-space: normal !important;
+    border-radius: 15px !important;
+    font-size: 19px !important;
+    line-height: 1.25 !important;
+    font-weight: 800 !important;
+    border: 1px solid #FFD400 !important;
+    background: #101010 !important;
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+    padding: 15px 10px !important;
+    transition: all 0.2s ease !important;
+}
+
+div[data-testid="stButton"] button[kind="secondary"] * {
+    color: #FFD400 !important;
+    -webkit-text-fill-color: #FFD400 !important;
+}
+
+div[data-testid="stButton"] button[kind="secondary"]:hover {
+    background: #242000 !important;
+    border: 2px solid #FFD400 !important;
+    transform: translateY(-2px);
+}
+
+/* BOTONES DE GARAJE Y COMUNIDAD: MÁS DESTACADOS */
+div[data-testid="stButton"] button[kind="secondary"] {
+    box-shadow: 0 0 8px rgba(255, 212, 0, 0.10);
+}
+
+/* PESTAÑAS DE ACCESO Y REGISTRO */
 button[data-baseweb="tab"] {
     color: #FFD400 !important;
     background: #000000 !important;
@@ -437,6 +470,52 @@ hr {
     margin-top: 50px;
     font-size: 12px;
 }
+
+/* MENÚ PRINCIPAL */
+.menu-intro {
+    text-align: center;
+    background: linear-gradient(135deg, #101010, #1B1B1B);
+    border: 1px solid #806B00;
+    border-radius: 18px;
+    padding: 22px 15px;
+    margin: 22px 0;
+}
+
+.menu-intro-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: #FFD400 !important;
+}
+
+.menu-intro-text {
+    color: #D8D8D8 !important;
+    font-size: 14px;
+    margin-top: 6px;
+}
+
+/* MÓVIL */
+@media (max-width: 600px) {
+    .block-container {
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
+        padding-top: 1rem;
+    }
+
+    .section-title {
+        font-size: 29px;
+    }
+
+    div[data-testid="stButton"] button[kind="secondary"] {
+        min-height: 82px !important;
+        font-size: 16px !important;
+        padding: 12px 6px !important;
+    }
+
+    .menu-intro-title {
+        font-size: 28px;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -505,7 +584,8 @@ def cerrar_sesion():
         "access_token",
         "refresh_token",
         "username",
-        "user_id"
+        "user_id",
+        "seccion_activa"
     ]:
         st.session_state.pop(key, None)
 
@@ -757,6 +837,7 @@ if not autenticado:
                     })
 
                     if guardar_sesion(response, username):
+                        st.session_state["seccion_activa"] = "menu"
                         st.success("Sesión iniciada correctamente.")
                         st.rerun()
                     else:
@@ -861,6 +942,8 @@ if not autenticado:
                             aceptar_avisos
                         )
 
+                        st.session_state["seccion_activa"] = "menu"
+
                         st.success(
                             "¡Cuenta creada correctamente! "
                             "Tus datos de contacto se han guardado."
@@ -883,7 +966,6 @@ if not autenticado:
 
     # -----------------------------------------------------
     # ACCESO DIRECTO A FACEBOOK
-    # Se renderiza en un componente HTML independiente
     # -----------------------------------------------------
 
     components.html(
@@ -1058,6 +1140,10 @@ if not usuario_id:
     )
     st.stop()
 
+# Estado inicial de la navegación
+if "seccion_activa" not in st.session_state:
+    st.session_state["seccion_activa"] = "menu"
+
 
 # =========================================================
 # CARGAR PERFIL
@@ -1096,7 +1182,7 @@ with col_usuario:
     st.markdown(
         f"""
         <div class="garaje-card">
-            <div class="garaje-titulo">🏍️ MI GARAJE</div>
+            <div class="garaje-titulo">🏍️ FAMILY BIKE</div>
             <div class="garaje-subtitulo">
                 Usuario: <strong>{escapar(username_actual)}</strong>
             </div>
@@ -1177,7 +1263,7 @@ except Exception:
     total_quedadas = 0
 
 
-col1, col2, col3 = st.columns(3)
+col1, col3 = st.columns(2)
 
 with col1:
     st.markdown(
@@ -1185,17 +1271,6 @@ with col1:
         <div class="stat-box">
             <div class="stat-number">{len(rutas)}</div>
             <div class="stat-label">RUTAS DISPONIBLES</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-with col2:
-    st.markdown(
-        """
-        <div class="stat-box">
-            <div class="stat-number">🏍️</div>
-            <div class="stat-label">ESPÍRITU MOTERO</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -1214,23 +1289,107 @@ with col3:
 
 
 # =========================================================
-# PESTAÑAS
+# MENÚ PRINCIPAL FAMILY BIKE
 # =========================================================
 
-tab_rutas, tab_quedadas, tab_garaje, tab_comunidad, tab_tienda = st.tabs([
-    "🏍️ EXPLORAR RUTAS",
-    "📅 QUEDADAS MOTERAS",
-    "🏁 MI GARAJE",
-    "👥 COMUNIDAD",
-    "🛒 TIENDA"
-])
+if st.session_state["seccion_activa"] == "menu":
+
+    st.markdown(
+        """
+        <div class="menu-intro">
+            <div class="menu-intro-title">
+                🏍️ ¿QUÉ TE APETECE HACER?
+            </div>
+            <div class="menu-intro-text">
+                Selecciona una sección para continuar.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # FILA 1: RUTAS Y QUEDADAS
+    menu_col1, menu_col2 = st.columns(2, gap="medium")
+
+    with menu_col1:
+        if st.button(
+            "🏍️\nEXPLORAR RUTAS",
+            key="menu_rutas",
+            type="secondary",
+            use_container_width=True
+        ):
+            st.session_state["seccion_activa"] = "rutas"
+            st.rerun()
+
+    with menu_col2:
+        if st.button(
+            "📅\nQUEDADAS MOTERAS",
+            key="menu_quedadas",
+            type="secondary",
+            use_container_width=True
+        ):
+            st.session_state["seccion_activa"] = "quedadas"
+            st.rerun()
+
+    st.write("")
+
+    # FILA 2: GARAJE Y COMUNIDAD
+    menu_col3, menu_col4 = st.columns(2, gap="medium")
+
+    with menu_col3:
+        if st.button(
+            "🏁\nMI GARAJE",
+            key="menu_garaje",
+            type="secondary",
+            use_container_width=True
+        ):
+            st.session_state["seccion_activa"] = "garaje"
+            st.rerun()
+
+    with menu_col4:
+        if st.button(
+            "👥\nCOMUNIDAD",
+            key="menu_comunidad",
+            type="secondary",
+            use_container_width=True
+        ):
+            st.session_state["seccion_activa"] = "comunidad"
+            st.rerun()
+
+    st.write("")
+
+    # FILA 3: TIENDA A ANCHO COMPLETO
+    if st.button(
+        "🛒  TIENDA FAMILY BIKE",
+        key="menu_tienda",
+        type="secondary",
+        use_container_width=True
+    ):
+        st.session_state["seccion_activa"] = "tienda"
+        st.rerun()
 
 
 # =========================================================
-# PESTAÑA RUTAS
+# NAVEGACIÓN: BOTÓN VOLVER AL MENÚ
 # =========================================================
 
-with tab_rutas:
+else:
+
+    if st.button(
+        "← VOLVER AL MENÚ PRINCIPAL",
+        key="volver_menu",
+        type="secondary",
+        use_container_width=True
+    ):
+        st.session_state["seccion_activa"] = "menu"
+        st.rerun()
+
+
+# =========================================================
+# SECCIÓN EXPLORAR RUTAS
+# =========================================================
+
+if st.session_state["seccion_activa"] == "rutas":
 
     st.markdown(
         '<div class="section-title">EXPLORA LAS RUTAS</div>',
@@ -1309,10 +1468,10 @@ with tab_rutas:
 
 
 # =========================================================
-# PESTAÑA QUEDADAS
+# SECCIÓN QUEDADAS MOTERAS
 # =========================================================
 
-with tab_quedadas:
+if st.session_state["seccion_activa"] == "quedadas":
 
     st.markdown(
         '<div class="section-title">QUEDADAS MOTERAS</div>',
@@ -1328,7 +1487,6 @@ with tab_quedadas:
 
     # -----------------------------------------------------
     # CREAR QUEDADA
-    # RADIO FUERA DEL FORMULARIO PARA ACTUALIZACIÓN DINÁMICA
     # -----------------------------------------------------
 
     with st.expander("➕ CREAR UNA NUEVA QUEDADA", expanded=False):
@@ -2165,10 +2323,10 @@ with tab_quedadas:
 
 
 # =========================================================
-# PESTAÑA MI GARAJE
+# SECCIÓN MI GARAJE
 # =========================================================
 
-with tab_garaje:
+if st.session_state["seccion_activa"] == "garaje":
 
     st.markdown(
         '<div class="section-title">🏁 MI GARAJE</div>',
@@ -2286,10 +2444,10 @@ with tab_garaje:
 
 
 # =========================================================
-# PESTAÑA COMUNIDAD
+# SECCIÓN COMUNIDAD
 # =========================================================
 
-with tab_comunidad:
+if st.session_state["seccion_activa"] == "comunidad":
 
     st.markdown(
         '<div class="section-title">👥 COMUNIDAD FAMILY BIKE</div>',
@@ -2405,10 +2563,10 @@ with tab_comunidad:
 
 
 # =========================================================
-# PESTAÑA TIENDA
+# SECCIÓN TIENDA
 # =========================================================
 
-with tab_tienda:
+if st.session_state["seccion_activa"] == "tienda":
 
     st.markdown(
         '<div class="section-title">🛒 TIENDA FAMILY BIKE</div>',
