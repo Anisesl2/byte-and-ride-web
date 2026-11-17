@@ -3570,14 +3570,77 @@ if st.session_state["seccion_activa"] == "administracion":
         unsafe_allow_html=True
     )
 
-    tab_rutas, tab_usuarios, tab_garajes, tab_quedadas, tab_noticias, tab_admins = st.tabs([
+    tab_rutas, tab_chat, tab_usuarios, tab_garajes, tab_quedadas, tab_noticias, tab_admins = st.tabs([
         "🗺️ RUTAS PENDIENTES",
+        "💬 MODERAR CHAT",
         "👥 USUARIOS",
         "🏍️ GARAJES",
         "📅 QUEDADAS",
         "📢 NOTICIAS",
         "👑 ADMINISTRADORES"
     ])
+
+    with tab_chat:
+        st.markdown("### 💬 MODERACIÓN DEL CHAT GENERAL")
+        st.caption("Consulta los mensajes recientes y elimina los que incumplan las normas.")
+        try:
+            mensajes_admin = (
+                supabase.table("familybike_chat_mensajes")
+                .select("id,usuario_id,contenido,created_at")
+                .order("created_at", desc=True)
+                .limit(100)
+                .execute()
+            ).data or []
+            st.metric("Mensajes recientes", len(mensajes_admin))
+            autores_ids = list({m["usuario_id"] for m in mensajes_admin if m.get("usuario_id")})
+            autores = {}
+            if autores_ids:
+                perfiles_chat = (
+                    supabase.table("profiles")
+                    .select("id,username")
+                    .in_("id", autores_ids)
+                    .execute()
+                ).data or []
+                autores = {str(p["id"]): p.get("username") or "Motero" for p in perfiles_chat}
+            busqueda_chat = st.text_input(
+                "🔎 Buscar por usuario o contenido", key="admin_chat_busqueda"
+            ).strip().casefold()
+            visibles_chat = [
+                m for m in mensajes_admin
+                if busqueda_chat in (
+                    autores.get(str(m.get("usuario_id")), "Motero") + " "
+                    + (m.get("contenido") or "")
+                ).casefold()
+            ]
+            if not visibles_chat:
+                st.info("No hay mensajes que coincidan con la búsqueda.")
+            for m in visibles_chat:
+                mid = str(m["id"])
+                autor = autores.get(str(m.get("usuario_id")), "Motero")
+                fecha = str(m.get("created_at") or "")[:16].replace("T", " ")
+                with st.container(border=True):
+                    st.markdown(f"**👤 {autor}** · {fecha} UTC")
+                    st.write(m.get("contenido") or "")
+                    confirmar = st.checkbox(
+                        "Confirmar eliminación de este mensaje",
+                        key=f"admin_chat_confirmar_{mid}"
+                    )
+                    if st.button(
+                        "🗑️ Eliminar mensaje", key=f"admin_chat_borrar_{mid}",
+                        disabled=not confirmar, use_container_width=True
+                    ):
+                        try:
+                            # La política RLS de Supabase determina quién puede borrar.
+                            supabase.table("familybike_chat_mensajes").delete().eq(
+                                "id", mid
+                            ).execute()
+                            st.success("Mensaje eliminado.")
+                            st.rerun()
+                        except Exception as error:
+                            st.error(f"No se pudo eliminar el mensaje: {error}")
+        except Exception as error:
+            st.error("No se ha podido cargar la moderación del chat.")
+            st.code(str(error))
 
     with tab_rutas:
         st.markdown("### MODERACIÓN DE RUTAS")
