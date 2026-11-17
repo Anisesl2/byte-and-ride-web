@@ -771,6 +771,30 @@ def subir_archivo_storage(archivo, carpeta, prefijo):
 
 
 # =========================================================
+# PROPUESTAS DE RUTAS DE LA COMUNIDAD
+# =========================================================
+
+def enlace_google_maps_valido(url):
+    """Acepta enlaces HTTPS oficiales de Google Maps, sin redirecciones externas."""
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(url.strip())
+        host = (parsed.hostname or "").lower()
+        return (
+            parsed.scheme == "https"
+            and not parsed.username
+            and not parsed.password
+            and host in {
+                "www.google.com", "google.com", "maps.google.com",
+                "maps.app.goo.gl", "goo.gl", "www.google.es", "google.es"
+            }
+            and bool(parsed.path and parsed.path != "/")
+        )
+    except (ValueError, AttributeError):
+        return False
+
+
+# =========================================================
 # FUNCIONES DE ADMINISTRACIÓN
 # =========================================================
 
@@ -1642,6 +1666,25 @@ try:
 
     rutas = ordenar_rutas(respuesta_rutas.data or [])
 
+    # Las propuestas solo son públicas tras aprobación.
+    try:
+        propuestas_aprobadas = (
+            supabase.table("familybike_rutas_propuestas")
+            .select("id,nombre,url")
+            .eq("estado", "aprobada")
+            .execute()
+        ).data or []
+        rutas = ordenar_rutas(
+            rutas + [
+                {"id": item["id"], "nombre": item["nombre"],
+                 "url": item["url"], "imagen_url": IMAGEN_PREDETERMINADA}
+                for item in propuestas_aprobadas
+            ]
+        )
+    except Exception:
+        # Mantener operativas las rutas originales si la tabla no existe aún.
+        pass
+
 except Exception as error:
 
     st.error("No se han podido cargar las rutas desde Supabase.")
@@ -1873,6 +1916,61 @@ if st.session_state["seccion_activa"] == "rutas":
         '</div>',
         unsafe_allow_html=True
     )
+
+    with st.expander("➕ COMPARTIR UNA RUTA DE GOOGLE MAPS", expanded=False):
+        st.caption(
+            "Comparte una ruta que hayas realizado. No se publicará "
+            "hasta que un administrador la apruebe."
+        )
+        with st.form("form_proponer_ruta", clear_on_submit=True):
+            nombre_propuesto = st.text_input(
+                "Nombre de la ruta", max_chars=120,
+                placeholder="Ej.: Ruta por la Sierra de Cádiz"
+            )
+            enlace_propuesto = st.text_input(
+                "Enlace de Google Maps",
+                placeholder="https://maps.app.goo.gl/..."
+            )
+            descripcion_propuesta = st.text_area(
+                "Descripción (opcional)", max_chars=1000
+            )
+            enviar_propuesta = st.form_submit_button(
+                "ENVIAR PARA REVISIÓN", use_container_width=True
+            )
+
+        if enviar_propuesta:
+            if len(nombre_propuesto.strip()) < 3:
+                st.error("Escribe un nombre de al menos 3 caracteres.")
+            elif not enlace_google_maps_valido(enlace_propuesto):
+                st.error("Introduce un enlace HTTPS válido de Google Maps.")
+            else:
+                try:
+                    supabase.table("familybike_rutas_propuestas").insert({
+                        "usuario_id": usuario_id,
+                        "nombre": nombre_propuesto.strip(),
+                        "url": enlace_propuesto.strip(),
+                        "descripcion": descripcion_propuesta.strip(),
+                    }).execute()
+                    st.success("Ruta enviada. Está pendiente de aprobación.")
+                except Exception as error:
+                    st.error("No se ha podido enviar la ruta. Comprueba la configuración de Supabase.")
+                    st.code(str(error))
+
+        try:
+            mis_propuestas = (
+                supabase.table("familybike_rutas_propuestas")
+                .select("nombre,estado")
+                .eq("usuario_id", usuario_id)
+                .order("created_at", desc=True)
+                .limit(30)
+                .execute()
+            ).data or []
+            if mis_propuestas:
+                st.markdown("**Estado de tus propuestas**")
+                for propuesta in mis_propuestas:
+                    st.write(f"• {propuesta['nombre']} — {propuesta['estado']}")
+        except Exception:
+            pass
 
     busqueda = st.text_input(
         "Buscar ruta",
@@ -3108,13 +3206,64 @@ if st.session_state["seccion_activa"] == "administracion":
         unsafe_allow_html=True
     )
 
-    tab_usuarios, tab_garajes, tab_quedadas, tab_noticias, tab_admins = st.tabs([
+    tab_rutas, tab_usuarios, tab_garajes, tab_quedadas, tab_noticias, tab_admins = st.tabs([
+        "🗺️ RUTAS PENDIENTES",
         "👥 USUARIOS",
         "🏍️ GARAJES",
         "📅 QUEDADAS",
         "📢 NOTICIAS",
         "👑 ADMINISTRADORES"
     ])
+
+    with tab_rutas:
+        st.markdown("### MODERACIÓN DE RUTAS")
+        try:
+            pendientes = (
+                supabase.table("familybike_rutas_propuestas")
+                .select("id,nombre,url,descripcion,usuario_id,created_at")
+                .eq("estado", "pendiente")
+                .order("created_at")
+                .execute()
+            ).data or []
+            st.metric("Pendientes de revisión", len(pendientes))
+            if not pendientes:
+                st.success("No hay rutas pendientes.")
+            for propuesta in pendientes:
+                with st.container(border=True):
+                    st.markdown(f"**{escapar(propuesta['nombre'])}**")
+                    if propuesta.get("descripcion"):
+                        st.write(propuesta["descripcion"])
+                    st.caption(f"Usuario: {propuesta['usuario_id']}")
+                    if enlace_google_maps_valido(propuesta["url"]):
+                        st.link_button("ABRIR GOOGLE MAPS", propuesta["url"])
+                    col_aprobar, col_rechazar = st.columns(2)
+                    with col_aprobar:
+                        if st.button("✅ APROBAR", key=f"aprobar_{propuesta['id']}",
+                                     use_container_width=True):
+                            try:
+                                supabase.table("familybike_rutas_propuestas").update(
+                                    {"estado": "aprobada"}
+                                ).eq("id", propuesta["id"]).eq(
+                                    "estado", "pendiente"
+                                ).execute()
+                                st.rerun()
+                            except Exception as error:
+                                st.error(f"No se pudo aprobar: {error}")
+                    with col_rechazar:
+                        if st.button("❌ RECHAZAR", key=f"rechazar_{propuesta['id']}",
+                                     use_container_width=True):
+                            try:
+                                supabase.table("familybike_rutas_propuestas").update(
+                                    {"estado": "rechazada"}
+                                ).eq("id", propuesta["id"]).eq(
+                                    "estado", "pendiente"
+                                ).execute()
+                                st.rerun()
+                            except Exception as error:
+                                st.error(f"No se pudo rechazar: {error}")
+        except Exception as error:
+            st.error("No se pudieron cargar las propuestas. Ejecuta primero el SQL adjunto.")
+            st.code(str(error))
 
     # =====================================================
     # ESTADÍSTICAS DE USUARIOS REGISTRADOS
