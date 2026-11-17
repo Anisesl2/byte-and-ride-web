@@ -1391,6 +1391,31 @@ if not autenticado:
         unsafe_allow_html=True
     )
 
+    # Descarga de la aplicación Android desde la portada.
+    st.markdown(
+        '<div class="fb-home-heading">📱 FAMILYBIKE PARA ANDROID</div>',
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        "<p style='color:#e5e7eb;margin:0 0 12px'>"
+        "Lleva las rutas, quedadas y comunidad motera en tu móvil Android."
+        "</p>",
+        unsafe_allow_html=True
+    )
+    if FAMILYBIKE_APK_URL.startswith("https://"):
+        st.link_button(
+            "⬇️ DESCARGAR APP ANDROID",
+            FAMILYBIKE_APK_URL,
+            use_container_width=True,
+            type="primary"
+        )
+    else:
+        st.warning("La descarga Android todavía no está configurada.")
+    st.caption(
+        "Solo Android · La instalación fuera de Google Play puede mostrar "
+        "advertencias de seguridad. No desactives Play Protect."
+    )
+
     if error_acceso_google:
         st.error(error_acceso_google)
 
@@ -2064,31 +2089,6 @@ if st.session_state["seccion_activa"] == "menu":
           </div>
         </div>
         """, unsafe_allow_html=True
-    )
-
-    # Descarga de la aplicación Android desde la portada.
-    st.markdown(
-        '<div class="fb-home-heading">📱 FAMILYBIKE PARA ANDROID</div>',
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        "<p style='color:#e5e7eb;margin:0 0 12px'>"
-        "Lleva las rutas, quedadas y comunidad motera en tu móvil Android."
-        "</p>",
-        unsafe_allow_html=True
-    )
-    if FAMILYBIKE_APK_URL.startswith("https://"):
-        st.link_button(
-            "⬇️ DESCARGAR APP ANDROID",
-            FAMILYBIKE_APK_URL,
-            use_container_width=True,
-            type="primary"
-        )
-    else:
-        st.warning("La descarga Android todavía no está configurada.")
-    st.caption(
-        "Solo Android · La instalación fuera de Google Play puede mostrar "
-        "advertencias de seguridad. No desactives Play Protect."
     )
 
     # Accesos reales de Streamlit: mantienen el comportamiento original.
