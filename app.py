@@ -2096,6 +2096,18 @@ if st.session_state["seccion_activa"] == "menu":
 
     st.write("")
 
+    # CHAT GENERAL COMO SECCIÓN INDEPENDIENTE
+    if st.button(
+        "💬  CHAT FAMILY BIKE",
+        key="menu_chat_general",
+        type="secondary",
+        use_container_width=True
+    ):
+        st.session_state["seccion_activa"] = "chat"
+        st.rerun()
+
+    st.write("")
+
     # ACCESO DIRECTO A PROPONER UNA RUTA
     if st.button(
         "📍  SUBIR MI RUTA · GOOGLE MAPS",
@@ -3275,10 +3287,10 @@ if st.session_state["seccion_activa"] == "garaje":
 
 
 # =========================================================
-# SECCIÓN COMUNIDAD
+# SECCIÓN CHAT GENERAL INDEPENDIENTE
 # =========================================================
 
-if st.session_state["seccion_activa"] == "comunidad":
+if st.session_state["seccion_activa"] == "chat":
 
     # CHAT GENERAL: únicamente para sesiones autenticadas.
     st.markdown("### 💬 CHAT GENERAL FAMILY BIKE")
@@ -3362,6 +3374,13 @@ if st.session_state["seccion_activa"] == "comunidad":
         st.code(str(error))
 
     st.divider()
+
+
+# =========================================================
+# SECCIÓN COMUNIDAD
+# =========================================================
+
+if st.session_state["seccion_activa"] == "comunidad":
 
     st.markdown(
         '<div class="section-title">👥 COMUNIDAD FAMILY BIKE</div>',
