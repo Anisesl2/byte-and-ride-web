@@ -1121,10 +1121,12 @@ if (
 
 if not autenticado:
 
+    st.markdown('<span class="fb-login-marker"></span>', unsafe_allow_html=True)
+
     col_izquierda, col_logo, col_derecha = st.columns([1, 2, 1])
 
     with col_logo:
-        st.image(LOGO_URL, width=320)
+        st.image(LOGO_URL, use_container_width=True)
 
     st.markdown(
         '<div class="section-title">ACCESO A FAMILY BIKE</div>',
@@ -1149,9 +1151,10 @@ if not autenticado:
     with tab_login:
 
         st.link_button(
-            "CONTINUAR CON GOOGLE",
+            "INICIAR SESIÓN CON GOOGLE",
             iniciar_google_oauth(),
-            use_container_width=True
+            use_container_width=True,
+            key="fb_google_login"
         )
         st.caption("O entra con tu usuario y contraseña de siempre.")
 
@@ -1211,9 +1214,10 @@ if not autenticado:
     with tab_registro:
 
         st.link_button(
-            "REGISTRARME CON GOOGLE",
+            "CREAR CUENTA CON GOOGLE",
             iniciar_google_oauth(),
-            use_container_width=True
+            use_container_width=True,
+            key="fb_google_registro"
         )
         st.caption("O crea tu cuenta con usuario y contraseña.")
 
@@ -4360,6 +4364,70 @@ div[data-testid="stAlert"] * {color:var(--fb-text)!important;-webkit-text-fill-c
         min-height:66px!important;font-size:12px!important;line-height:1.3!important
     }
     div[data-testid="stForm"] {padding:10px!important}
+}
+</style>
+""",unsafe_allow_html=True)
+
+
+# =========================================================
+# FAMILY BIKE · IDENTIDAD VISUAL EN ACCESO Y REGISTRO
+# =========================================================
+st.markdown("""
+<style>
+/* Mantiene el logotipo original amarillo de FAMILY BIKE. */
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) {
+    max-width: 680px !important;
+}
+.fb-login-marker {display:none}
+/* Tarjetas de autenticación con la misma paleta del panel de usuario. */
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stTabs"] {
+    background:#1b222b!important;
+    border:1px solid #35404d!important;
+    border-radius:18px!important;
+    padding:12px!important;
+}
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stForm"] {
+    background:#242c36!important;
+    border:1px solid #35404d!important;
+    border-radius:14px!important;
+    padding:16px!important;
+}
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) button[data-baseweb="tab"][aria-selected="true"] {
+    color:#f59e0b!important;
+    -webkit-text-fill-color:#f59e0b!important;
+}
+/* El icono oficial multicolor de Google es un SVG embebido, sin dependencias externas. */
+.st-key-fb_google_login a, .st-key-fb_google_registro a {
+    display:flex!important;
+    justify-content:center!important;
+    align-items:center!important;
+    gap:12px!important;
+    background:#ffffff!important;
+    color:#202124!important;
+    -webkit-text-fill-color:#202124!important;
+    border:1px solid #dadce0!important;
+    border-radius:12px!important;
+    font-weight:700!important;
+    min-height:52px!important;
+    text-decoration:none!important;
+}
+.st-key-fb_google_login a *, .st-key-fb_google_registro a * {
+    color:#202124!important;
+    -webkit-text-fill-color:#202124!important;
+}
+.st-key-fb_google_login a::before, .st-key-fb_google_registro a::before {
+    content:"";
+    width:21px;
+    height:21px;
+    flex-shrink:0;
+    display:inline-block;
+    background-image:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"%3E%3Cpath fill="%23EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/%3E%3Cpath fill="%234285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.75 7.18l7.73 6C44.43 38.03 46.98 31.88 46.98 24.55z"/%3E%3Cpath fill="%23FBBC05" d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78l7.97-6.19z"/%3E%3Cpath fill="%2334A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6C30.03 37.65 27.28 38.5 24 38.5c-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/%3E%3C/svg%3E');
+    background-repeat:no-repeat;
+    background-size:contain;
+}
+@media(max-width:640px) {
+    [data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stTabs"] {padding:8px!important}
+    [data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stForm"] {padding:12px!important}
 }
 </style>
 """,unsafe_allow_html=True)
