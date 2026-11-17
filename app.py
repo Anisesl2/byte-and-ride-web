@@ -33,6 +33,15 @@ BUCKET_FAMILYBIKE = "familybike"
 TIENDA_URL = "https://payhip.com/Kardiaqo"
 FACEBOOK_URL = "https://m.facebook.com/groups/1646146103973952/?ref=share"
 
+# APK Android: archivo público en Supabase Storage.
+# Subir FAMILYBIKE.apk al bucket "familybike", ruta "Descargas/FAMILYBIKE.apk".
+# Configurar FAMILYBIKE_APK_URL en Streamlit Secrets si se usa otra ubicación.
+FAMILYBIKE_APK_URL = st.secrets.get(
+    "FAMILYBIKE_APK_URL",
+    SUPABASE_URL.rstrip("/") + "/storage/v1/object/public/familybike/Descargas/FAMILYBIKE.apk?download=FAMILYBIKE.apk"
+)
+
+
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # OAuth Google PKCE: los verificadores se guardan temporalmente en el servidor.
@@ -2024,6 +2033,19 @@ if st.session_state["seccion_activa"] == "menu":
         pass
 
 
+
+# Estilo del botón de descarga Android (portada).
+st.markdown("""<style>
+a[href*="/Descargas/FAMILYBIKE.apk"], a[href*="FAMILYBIKE.apk?download="] {
+  background:#eeff00!important;color:#121212!important;border:1px solid #eeff00!important;
+  border-radius:12px!important;font-weight:900!important;min-height:54px!important;
+  text-decoration:none!important;
+}
+a[href*="/Descargas/FAMILYBIKE.apk"]:hover, a[href*="FAMILYBIKE.apk?download="]:hover {
+  background:#d8e600!important;color:#101010!important;
+}
+</style>""", unsafe_allow_html=True)
+
 # =========================================================
 # MENÚ PRINCIPAL FAMILY BIKE
 # =========================================================
@@ -2042,6 +2064,31 @@ if st.session_state["seccion_activa"] == "menu":
           </div>
         </div>
         """, unsafe_allow_html=True
+    )
+
+    # Descarga de la aplicación Android desde la portada.
+    st.markdown(
+        '<div class="fb-home-heading">📱 FAMILYBIKE PARA ANDROID</div>',
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        "<p style='color:#e5e7eb;margin:0 0 12px'>"
+        "Lleva las rutas, quedadas y comunidad motera en tu móvil Android."
+        "</p>",
+        unsafe_allow_html=True
+    )
+    if FAMILYBIKE_APK_URL.startswith("https://"):
+        st.link_button(
+            "⬇️ DESCARGAR APP ANDROID",
+            FAMILYBIKE_APK_URL,
+            use_container_width=True,
+            type="primary"
+        )
+    else:
+        st.warning("La descarga Android todavía no está configurada.")
+    st.caption(
+        "Solo Android · La instalación fuera de Google Play puede mostrar "
+        "advertencias de seguridad. No desactives Play Protect."
     )
 
     # Accesos reales de Streamlit: mantienen el comportamiento original.
