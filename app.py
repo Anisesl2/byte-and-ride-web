@@ -1124,7 +1124,7 @@ st.markdown("""
     --fb-bg:#101419;
     --fb-surface:#1b222b;
     --fb-card:#242c36;
-    --fb-accent:#f59e0b;
+    --fb-accent:#FFD400;
     --fb-text:#f5f7fb;
     --fb-muted:#b7c0cd;
     --fb-line:#35404d;
@@ -1284,8 +1284,8 @@ st.markdown("""
     padding:16px!important;
 }
 [data-testid="stMainBlockContainer"]:has(.fb-login-marker) button[data-baseweb="tab"][aria-selected="true"] {
-    color:#f59e0b!important;
-    -webkit-text-fill-color:#f59e0b!important;
+    color:#FFD400!important;
+    -webkit-text-fill-color:#FFD400!important;
 }
 /* El icono oficial multicolor de Google es un SVG embebido, sin dependencias externas. */
 .st-key-fb_google_login a, .st-key-fb_google_registro a {
@@ -1334,28 +1334,6 @@ st.markdown("""<style>
 [data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_registro a:hover {background:#f1f3f4!important;}
 </style>""",unsafe_allow_html=True)
 
-st.markdown("""<style>
-.fb-logo-acceso {
-    display:flex!important;
-    align-items:center!important;
-    justify-content:center!important;
-    width:100%!important;
-    margin:8px auto 20px!important;
-}
-.fb-logo-acceso img {
-    display:block!important;
-    width:min(100%, 340px)!important;
-    height:auto!important;
-    max-height:190px!important;
-    object-fit:contain!important;
-    margin:0 auto!important;
-}
-@media(max-width:640px) {
-    .fb-logo-acceso {margin:12px auto 22px!important;}
-    .fb-logo-acceso img {width:min(86vw, 290px)!important;max-height:175px!important;}
-}
-</style>""", unsafe_allow_html=True)
-
 # =========================================================
 # ACCESO Y REGISTRO
 # =========================================================
@@ -1364,13 +1342,10 @@ if not autenticado:
 
     st.markdown('<span class="fb-login-marker"></span>', unsafe_allow_html=True)
 
-    # Logo original centrado y ampliado también en pantallas pequeñas.
-    st.markdown(
-        '<div class="fb-logo-acceso">'
-        f'<img src="{LOGO_URL}" alt="FAMILY BIKE">'
-        '</div>',
-        unsafe_allow_html=True
-    )
+    col_izquierda, col_logo, col_derecha = st.columns([1, 2, 1])
+
+    with col_logo:
+        st.image(LOGO_URL, use_container_width=True)
 
     st.markdown(
         '<div class="section-title">ACCESO A FAMILY BIKE</div>',
