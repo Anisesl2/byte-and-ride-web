@@ -1371,49 +1371,61 @@ if not autenticado:
 
     st.markdown('<span class="fb-login-marker"></span>', unsafe_allow_html=True)
 
-    # Logo original centrado y ampliado en móvil y escritorio.
+    # PORTADA PÚBLICA: solo contenido promocional, sin consultar rutas privadas.
+    st.markdown("""
+    <style>
+    .fb-landing{max-width:1100px;margin:0 auto 22px}
+    .fb-landing-hero{position:relative;min-height:218px;border-radius:22px;overflow:hidden;
+      background:linear-gradient(90deg,rgba(8,10,14,.90),rgba(8,10,14,.40)),
+      url('https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1600&q=85')
+      center/cover;border:1px solid #45494f;display:flex;align-items:center}
+    .fb-landing-content{position:relative;padding:22px;max-width:660px}
+    .fb-landing-logo{width:min(75%,300px);max-height:76px;object-fit:contain;object-position:left}
+    .fb-landing-kicker{color:#f5ef00;font-weight:800;letter-spacing:2px;font-size:12px;margin:12px 0}
+    .fb-landing-title{color:white;font-size:clamp(30px,5vw,52px);font-weight:900;
+      line-height:1.04;margin:10px 0;font-family:'Barlow Condensed',sans-serif}
+    .fb-landing-desc{color:#e5e7eb;font-size:clamp(14px,2vw,18px);line-height:1.55}
+    .fb-landing-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0}
+    .fb-landing-card{background:#1c2027;border:1px solid #444951;border-radius:15px;
+      padding:17px 12px;text-align:center}
+    .fb-landing-icon{font-size:27px;margin-bottom:7px}
+    .fb-landing-card strong{display:block;color:#fff;font-size:13px}
+    .fb-landing-card span{display:block;color:#c9cdd3;font-size:12px;margin-top:7px}
+    .fb-landing-private{color:#f5ef00!important;font-size:11px!important}
+    .fb-landing-card,.fb-landing-card:visited{display:block;color:#fff;text-decoration:none}
+    .fb-landing-card:hover,.fb-landing-card:focus-visible{border-color:#f5ef00;outline-offset:3px}
+    .fb-route-preview{border:1px solid #45494f;border-radius:15px;padding:18px;margin:0 0 20px;
+      background:linear-gradient(90deg,rgba(8,10,14,.95),rgba(8,10,14,.55)),
+      url('https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1000&q=80') center/cover}
+    .fb-route-preview a{color:#f5ef00!important;font-weight:700}
+    #entra-en-family-bike{scroll-margin-top:4rem}
+    
+    @media(max-width:640px){
+      .fb-landing-hero{min-height:0;background-position:58% center}
+      .fb-landing-content{padding:20px}
+      .fb-landing-logo{width:165px;max-height:62px}
+      .fb-landing-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+      .fb-landing-card{padding:14px 8px}
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown(
-        '<div class="fb-logo-acceso">'
-        f'<img src="{LOGO_URL}" alt="FAMILY BIKE">'
+        '<div class="fb-landing">'
+        '<section class="fb-landing-hero"><div class="fb-landing-content">'
+        f'<img class="fb-landing-logo" src="{LOGO_URL}" alt="FAMILY BIKE">'
+        '<div class="fb-landing-kicker">TU COMUNIDAD MOTERA</div>'
+        '<h1 class="fb-landing-title">Tu próxima ruta empieza aquí</h1>'
+        '<p class="fb-landing-desc">Descubre rutas moteras, organiza quedadas, '
+        'comparte tu moto y rueda en compañía. Crea tu cuenta gratis.</p>'
+        '</div></section>'
         '</div>',
         unsafe_allow_html=True
     )
 
     st.markdown(
-        '<div class="section-title">ACCESO A FAMILY BIKE</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="section-subtitle">'
-        'Regístrate o inicia sesión para descubrir nuestras rutas.'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    # Descarga de la aplicación Android desde la portada.
-    st.markdown(
-        '<div class="fb-home-heading">📱 FAMILYBIKE PARA ANDROID</div>',
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        "<p style='color:#e5e7eb;margin:0 0 12px'>"
-        "Lleva las rutas, quedadas y comunidad motera en tu móvil Android."
-        "</p>",
-        unsafe_allow_html=True
-    )
-    if FAMILYBIKE_APK_URL.startswith("https://"):
-        st.link_button(
-            "⬇️ DESCARGAR APP ANDROID",
-            FAMILYBIKE_APK_URL,
-            use_container_width=True,
-            type="primary"
-        )
-    else:
-        st.warning("La descarga Android todavía no está configurada.")
-    st.caption(
-        "Solo Android · La instalación fuera de Google Play puede mostrar "
-        "advertencias de seguridad. No desactives Play Protect."
+        '<h2 id="entra-en-family-bike">Entra en Family Bike</h2>',
+        unsafe_allow_html=True,
     )
 
     if error_acceso_google:
@@ -1427,7 +1439,7 @@ if not autenticado:
     with tab_login:
 
         st.link_button(
-            "INICIAR SESIÓN CON GOOGLE",
+            "CONTINUAR CON GOOGLE",
             iniciar_google_oauth(),
             use_container_width=True,
             key="fb_google_login"
@@ -1607,6 +1619,47 @@ if not autenticado:
 
                     st.error("ERROR AL CREAR LA CUENTA")
                     st.code(str(error))
+
+    st.markdown("## Explora Family Bike")
+    st.caption("Vista previa del menú · Solo para usuarios registrados")
+
+    menu_publico = [
+        ("🗺️", "Explorar rutas", "Encuentra tu próxima salida"),
+        ("📅", "Quedadas moteras", "Organiza y únete a salidas"),
+        ("🏍️", "Mi garaje", "Comparte tu moto"),
+        ("👥", "Comunidad", "Conoce a otros moteros"),
+        ("💬", "Chat general", "Habla con la comunidad"),
+        ("📍", "Subir mi ruta", "Comparte tus recorridos"),
+        ("👤", "Editar mi perfil", "Personaliza tu cuenta"),
+        ("🛒", "Tienda Family Bike", "Descubre la tienda"),
+    ]
+
+    tarjetas_publicas = "".join(
+        f'<a class="fb-landing-card" href="#entra-en-family-bike">'
+        f'<div class="fb-landing-icon" aria-hidden="true">{icono}</div>'
+        f'<strong>{titulo}</strong><span>{descripcion}</span>'
+        '<span class="fb-landing-private">🔒 Solo para usuarios</span></a>'
+        for icono, titulo, descripcion in menu_publico
+    )
+    st.markdown(
+        f'<nav class="fb-landing-grid" aria-label="Vista previa del menú">{tarjetas_publicas}</nav>'
+        '<section class="fb-route-preview">'
+        '<h3>Rutas moteras</h3>'
+        '<p>Entra para ver los recorridos y abrirlos en el mapa.</p>'
+        '<a href="#entra-en-family-bike">🔒 Acceder a las rutas</a>'
+        '</section>',
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("📱 DESCARGAR FAMILY BIKE PARA ANDROID", expanded=False):
+        st.write("Lleva las rutas, quedadas y la comunidad motera en tu móvil Android.")
+        if FAMILYBIKE_APK_URL.startswith("https://"):
+            st.link_button("⬇️ DESCARGAR APP ANDROID", FAMILYBIKE_APK_URL,
+                           use_container_width=True, type="primary")
+        else:
+            st.warning("La descarga Android todavía no está configurada.")
+        st.caption("Solo Android · La instalación fuera de Google Play puede mostrar "
+                   "advertencias de seguridad. No desactives Play Protect.")
 
     # -----------------------------------------------------
     # ACCESO DIRECTO A FACEBOOK
