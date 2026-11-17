@@ -3284,32 +3284,100 @@ if st.session_state["seccion_activa"] == "administracion":
     # =====================================================
 
     with tab_usuarios:
-        st.markdown("### USUARIOS REGISTRADOS")
-        st.caption(
-            "Total de perfiles registrados en FAMILY BIKE, "
-            "tanto mediante Google como mediante usuario y contraseña. "
-            "Cada perfil se cuenta una sola vez."
-        )
+        st.markdown("### 👥 USUARIOS REGISTRADOS")
+        st.caption("Nombres de acceso. Las rutas aprobadas se conservan al eliminar una cuenta.")
+
         try:
-            respuesta_total_usuarios = (
-                supabase.table("profiles")
-                .select("id", count="exact", head=True)
-                .execute()
-            )
-            total_usuarios = respuesta_total_usuarios.count
-            if total_usuarios is None:
-                st.warning(
-                    "Supabase no ha devuelto el total. "
-                    "Comprueba los permisos de lectura de profiles."
-                )
-            else:
-                st.metric("👥 Total de usuarios registrados", total_usuarios)
-                st.caption(
-                    "Se incluyen las cuentas antiguas y las de Google. "
-                    "Si una persona tiene dos cuentas, se contabilizan dos perfiles."
-                )
+            # Se usa el cliente normal para la lista, respetando RLS.
+            perfiles = []
+            offset = 0
+            while True:
+                pagina = (
+                    supabase.table("profiles")
+                    .select("id,username")
+                    .order("username")
+                    .range(offset, offset + 499)
+                    .execute()
+                ).data or []
+                perfiles.extend(pagina)
+                if len(pagina) < 500:
+                    break
+                offset += 500
+
+            st.metric("Total de perfiles", len(perfiles))
+            filtro_usuario = st.text_input(
+                "🔎 Buscar por nombre de usuario",
+                key="admin_buscar_usuario"
+            ).strip().casefold()
+            visibles = [
+                p for p in perfiles
+                if filtro_usuario in (p.get("username") or "").casefold()
+            ]
+            st.caption(f"Mostrando {len(visibles)} usuarios")
+
+            for perfil in visibles:
+                uid = str(perfil["id"])
+                nombre = perfil.get("username") or "Sin nombre"
+                with st.expander(f"👤 {nombre}"):
+                    if uid == str(usuario_id):
+                        st.info("No puedes eliminar tu propia cuenta desde este panel.")
+                        continue
+
+                    confirmar = st.checkbox(
+                        f"Confirmo que quiero eliminar la cuenta de {nombre}",
+                        key=f"confirmar_borrado_usuario_{uid}"
+                    )
+                    if st.button(
+                        "🗑️ ELIMINAR USUARIO",
+                        key=f"borrar_usuario_{uid}",
+                        disabled=not confirmar,
+                        use_container_width=True
+                    ):
+                        try:
+                            # Verificar identidad y rol en el servidor, no solo en la UI.
+                            token = st.session_state.get("access_token")
+                            if not token:
+                                raise ValueError("Sesión caducada. Vuelve a iniciar sesión.")
+                            usuario_verificado = supabase.auth.get_user(token).user
+                            if str(usuario_verificado.id) != str(usuario_id):
+                                raise PermissionError("Identidad de sesión no válida.")
+
+                            clave_admin = st.secrets.get("SUPABASE_SERVICE_ROLE_KEY")
+                            if not clave_admin:
+                                raise ValueError(
+                                    "Falta SUPABASE_SERVICE_ROLE_KEY en los secretos de Streamlit."
+                                )
+                            cliente_admin = create_client(SUPABASE_URL, clave_admin)
+                            permiso = (
+                                cliente_admin.table("familybike_admins")
+                                .select("user_id")
+                                .eq("user_id", usuario_verificado.id)
+                                .limit(1).execute()
+                            ).data or []
+                            if not permiso:
+                                raise PermissionError("No tienes permisos de administrador.")
+
+                            # Conserva las rutas aprobadas, desvinculándolas de la cuenta.
+                            cliente_admin.table("familybike_rutas_propuestas").update({
+                                "usuario_id": None
+                            }).eq("usuario_id", uid).eq(
+                                "estado", "aprobada"
+                            ).execute()
+
+                            # Supabase Auth elimina la cuenta. Las demás relaciones
+                            # se rigen por las FK de la base de datos.
+                            cliente_admin.auth.admin.delete_user(uid)
+                            st.success(f"Cuenta {nombre} eliminada. Rutas aprobadas conservadas.")
+                            st.rerun()
+                        except Exception as error:
+                            st.error(
+                                "No se ha completado la eliminación. "
+                                "Comprueba la configuración y las relaciones de Supabase."
+                            )
+                            st.code(str(error))
+
         except Exception as error:
-            st.error("No se ha podido consultar el total de usuarios.")
+            st.error("No se ha podido cargar el directorio de usuarios.")
             st.code(str(error))
 
 
