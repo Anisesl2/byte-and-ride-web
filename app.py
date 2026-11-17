@@ -1788,10 +1788,10 @@ if st.session_state["seccion_activa"] == "menu":
         """
         <div class="menu-intro">
             <div class="menu-intro-title">
-                🏍️ ¿QUÉ TE APETECE HACER?
+                TU PRÓXIMA AVENTURA EMPIEZA AQUÍ
             </div>
             <div class="menu-intro-text">
-                Selecciona una sección para continuar.
+                Descubre rutas, comparte kilómetros y conecta con la comunidad motera.
             </div>
         </div>
         """,
@@ -1847,6 +1847,17 @@ if st.session_state["seccion_activa"] == "menu":
             st.rerun()
 
     st.write("")
+
+    # ACCESO DIRECTO A PROPONER UNA RUTA
+    if st.button(
+        "📍  SUBIR MI RUTA · GOOGLE MAPS",
+        key="menu_subir_ruta",
+        type="secondary",
+        use_container_width=True
+    ):
+        st.session_state["abrir_propuesta_ruta"] = True
+        st.session_state["seccion_activa"] = "rutas"
+        st.rerun()
 
     # PERFIL PERSONAL
     if st.button(
@@ -1917,7 +1928,10 @@ if st.session_state["seccion_activa"] == "rutas":
         unsafe_allow_html=True
     )
 
-    with st.expander("➕ COMPARTIR UNA RUTA DE GOOGLE MAPS", expanded=False):
+    with st.expander(
+        "➕ COMPARTIR UNA RUTA DE GOOGLE MAPS",
+        expanded=st.session_state.pop("abrir_propuesta_ruta", False)
+    ):
         st.caption(
             "Comparte una ruta que hayas realizado. No se publicará "
             "hasta que un administrador la apruebe."
@@ -4135,6 +4149,152 @@ if st.session_state["seccion_activa"] == "administracion":
             )
             st.code(str(error))
 
+
+
+
+# =========================================================
+# FAMILY BIKE · REDISEÑO MOBILE FIRST (SOLO PRESENTACIÓN)
+# =========================================================
+st.markdown("""
+<style>
+:root {
+    --fb-bg:#101419;
+    --fb-surface:#1b222b;
+    --fb-card:#242c36;
+    --fb-accent:#f59e0b;
+    --fb-text:#f5f7fb;
+    --fb-muted:#b7c0cd;
+    --fb-line:#35404d;
+}
+html,body,.stApp,[data-testid="stAppViewContainer"],
+[data-testid="stMain"],[data-testid="stMainBlockContainer"],
+header[data-testid="stHeader"] {
+    background:var(--fb-bg)!important;
+}
+.stApp,.stApp p,.stApp span,.stApp label,.stApp li,
+.stApp small,.stApp strong,.stApp em,.stApp b,
+.stApp div,.stMarkdown,.stMarkdown p,.stMarkdown span,
+.stCaption,[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p {
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+}
+h1,h2,h3,h4,h5,h6,.section-title,.route-name,
+.garaje-titulo,.community-name,.tienda-titulo {
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+}
+.section-subtitle,.menu-intro-text,.garaje-subtitulo,
+.community-label,.stat-label,.tienda-texto,
+[data-testid="stCaptionContainer"] p {
+    color:var(--fb-muted)!important;
+    -webkit-text-fill-color:var(--fb-muted)!important;
+}
+.block-container {
+    max-width:1050px!important;
+    padding-top:1rem!important;
+    padding-bottom:2rem!important;
+}
+.hero,.menu-intro {
+    background:linear-gradient(130deg,#222d39,#111820)!important;
+    border:1px solid var(--fb-line)!important;
+    border-radius:20px!important;
+    padding:22px!important;
+    margin-bottom:16px!important;
+    text-align:left!important;
+}
+.menu-intro-title {font-size:clamp(22px,5vw,35px)!important;line-height:1.08!important}
+.route-card,.event-card,.garaje-card,.community-card,.stat-box,
+.tienda-card,.news-card {
+    background:var(--fb-surface)!important;
+    border:1px solid var(--fb-line)!important;
+    border-radius:16px!important;
+    padding:14px!important;
+    margin-bottom:12px!important;
+}
+.route-number,.stat-number {color:var(--fb-accent)!important;-webkit-text-fill-color:var(--fb-accent)!important}
+div[data-testid="stButton"] button[kind="secondary"] {
+    min-height:64px!important;
+    border-radius:14px!important;
+    background:var(--fb-card)!important;
+    border:1px solid var(--fb-line)!important;
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+    font-size:clamp(12px,3.5vw,16px)!important;
+    padding:12px 8px!important;
+    box-shadow:none!important;
+}
+div[data-testid="stButton"] button[kind="secondary"] * {
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+}
+div[data-testid="stButton"] button[kind="secondary"]:hover {
+    background:#303b49!important;
+    border-color:var(--fb-accent)!important;
+    transform:none!important;
+}
+.stButton>button[kind="primary"],
+.stFormSubmitButton>button,.stLinkButton>a {
+    background:var(--fb-accent)!important;
+    border-color:var(--fb-accent)!important;
+    color:#111820!important;
+    -webkit-text-fill-color:#111820!important;
+}
+.stFormSubmitButton>button *,.stLinkButton>a * {
+    color:#111820!important;-webkit-text-fill-color:#111820!important;
+}
+div[data-testid="stTextInput"] input,
+div[data-testid="stTextArea"] textarea,
+div[data-testid="stNumberInput"] input,
+input,textarea {
+    background:#202833!important;
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+    border:1px solid var(--fb-line)!important;
+    caret-color:var(--fb-accent)!important;
+}
+input::placeholder,textarea::placeholder {
+    color:var(--fb-muted)!important;
+    -webkit-text-fill-color:var(--fb-muted)!important;
+}
+div[data-testid="stExpander"],div[data-testid="stForm"] {
+    background:var(--fb-surface)!important;
+    border:1px solid var(--fb-line)!important;
+    border-radius:14px!important;
+}
+div[data-testid="stExpander"] summary,
+div[data-testid="stExpander"] summary * {
+    background:var(--fb-surface)!important;
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+}
+button[data-baseweb="tab"] {background:transparent!important;color:var(--fb-text)!important}
+button[data-baseweb="tab"][aria-selected="true"] {
+    border-bottom:3px solid var(--fb-accent)!important;
+}
+div[data-testid="stImage"] img {
+    border-radius:12px!important;
+    object-fit:cover!important;
+    max-height:185px!important;
+    width:100%!important;
+}
+div[data-testid="stAlert"] {background:#202833!important;border-color:var(--fb-line)!important}
+div[data-testid="stAlert"] * {color:var(--fb-text)!important;-webkit-text-fill-color:var(--fb-text)!important}
+@media(max-width:640px) {
+    .block-container {padding-left:12px!important;padding-right:12px!important}
+    [data-testid="stHorizontalBlock"] {gap:8px!important}
+    .hero,.menu-intro {padding:16px!important}
+    .section-title {font-size:26px!important}
+    .route-name,.garaje-titulo,.community-name {font-size:20px!important}
+    .route-card,.event-card,.garaje-card,.community-card {padding:12px!important}
+    div[data-testid="stImage"] img {max-height:135px!important}
+    div[data-testid="stButton"] button[kind="secondary"] {
+        min-height:66px!important;font-size:12px!important;line-height:1.3!important
+    }
+    div[data-testid="stForm"] {padding:10px!important}
+}
+</style>
+""",unsafe_allow_html=True)
 
 # =========================================================
 # PIE DE PÁGINA
