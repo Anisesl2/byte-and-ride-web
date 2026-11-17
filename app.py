@@ -3280,6 +3280,89 @@ if st.session_state["seccion_activa"] == "garaje":
 
 if st.session_state["seccion_activa"] == "comunidad":
 
+    # CHAT GENERAL: únicamente para sesiones autenticadas.
+    st.markdown("### 💬 CHAT GENERAL FAMILY BIKE")
+    st.caption("Sala común de la comunidad · Solo usuarios registrados")
+    try:
+        respuesta_chat = (
+            supabase.table("familybike_chat_mensajes")
+            .select("id,usuario_id,contenido,created_at")
+            .order("created_at", desc=True)
+            .limit(60)
+            .execute()
+        )
+        mensajes_chat = list(reversed(respuesta_chat.data or []))
+        ids_autores = list({m["usuario_id"] for m in mensajes_chat if m.get("usuario_id")})
+        nombres_chat = {}
+        if ids_autores:
+            respuesta_autores = (
+                supabase.table("profiles")
+                .select("id,username")
+                .in_("id", ids_autores)
+                .execute()
+            )
+            nombres_chat = {
+                str(p["id"]): p.get("username") or "Motero"
+                for p in (respuesta_autores.data or [])
+            }
+
+        with st.container(border=True):
+            if not mensajes_chat:
+                st.info("Todavía no hay mensajes. ¡Inaugura el chat motero!")
+            for mensaje in mensajes_chat:
+                es_mio = str(mensaje.get("usuario_id")) == str(usuario_id)
+                nombre_autor = nombres_chat.get(
+                    str(mensaje.get("usuario_id")), "Motero"
+                )
+                fecha_mensaje = str(mensaje.get("created_at") or "")[:16].replace("T", " ")
+                with st.chat_message("user" if es_mio else "assistant"):
+                    st.caption(f"{'Tú' if es_mio else nombre_autor} · {fecha_mensaje} UTC")
+                    st.write(mensaje.get("contenido") or "")
+                    if es_admin:
+                        if st.button(
+                            "🗑️ Eliminar mensaje",
+                            key=f"chat_eliminar_{mensaje['id']}"
+                        ):
+                            supabase.table("familybike_chat_mensajes").delete().eq(
+                                "id", mensaje["id"]
+                            ).execute()
+                            st.rerun()
+
+        if st.button("🔄 Actualizar mensajes", key="chat_actualizar"):
+            st.rerun()
+
+        with st.form("chat_formulario", clear_on_submit=True):
+            nuevo_mensaje = st.text_area(
+                "Escribe tu mensaje",
+                max_chars=1000,
+                height=80,
+                placeholder="¿Quién se apunta a la próxima ruta?"
+            )
+            enviar_chat = st.form_submit_button(
+                "💬 ENVIAR MENSAJE",
+                use_container_width=True
+            )
+        if enviar_chat:
+            texto_chat = nuevo_mensaje.strip()
+            if not texto_chat:
+                st.warning("Escribe un mensaje antes de enviarlo.")
+            elif len(texto_chat) > 1000:
+                st.error("El mensaje supera los 1.000 caracteres.")
+            else:
+                try:
+                    supabase.table("familybike_chat_mensajes").insert({
+                        "usuario_id": usuario_id,
+                        "contenido": texto_chat,
+                    }).execute()
+                    st.rerun()
+                except Exception as error:
+                    st.error(f"No se pudo enviar el mensaje: {error}")
+    except Exception as error:
+        st.error("No se pudo cargar el chat. Ejecuta primero el SQL de configuración.")
+        st.code(str(error))
+
+    st.divider()
+
     st.markdown(
         '<div class="section-title">👥 COMUNIDAD FAMILY BIKE</div>',
         unsafe_allow_html=True
