@@ -30,7 +30,7 @@ SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 AUTH_DOMAIN = "users.byteandride.invalid"
 BUCKET_FAMILYBIKE = "familybike"
-TIENDA_URL = "https://payhip.com/b/YWPxa"
+TIENDA_URL = "https://payhip.com/Kardiaqo"
 FACEBOOK_URL = "https://m.facebook.com/groups/1646146103973952/?ref=share"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
