@@ -1116,6 +1116,225 @@ if (
 
 
 # =========================================================
+# FAMILY BIKE · REDISEÑO MOBILE FIRST (SOLO PRESENTACIÓN)
+# =========================================================
+st.markdown("""
+<style>
+:root {
+    --fb-bg:#101419;
+    --fb-surface:#1b222b;
+    --fb-card:#242c36;
+    --fb-accent:#f59e0b;
+    --fb-text:#f5f7fb;
+    --fb-muted:#b7c0cd;
+    --fb-line:#35404d;
+}
+html,body,.stApp,[data-testid="stAppViewContainer"],
+[data-testid="stMain"],[data-testid="stMainBlockContainer"],
+header[data-testid="stHeader"] {
+    background:var(--fb-bg)!important;
+}
+.stApp,.stApp p,.stApp span,.stApp label,.stApp li,
+.stApp small,.stApp strong,.stApp em,.stApp b,
+.stApp div,.stMarkdown,.stMarkdown p,.stMarkdown span,
+.stCaption,[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p {
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+}
+h1,h2,h3,h4,h5,h6,.section-title,.route-name,
+.garaje-titulo,.community-name,.tienda-titulo {
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+}
+.section-subtitle,.menu-intro-text,.garaje-subtitulo,
+.community-label,.stat-label,.tienda-texto,
+[data-testid="stCaptionContainer"] p {
+    color:var(--fb-muted)!important;
+    -webkit-text-fill-color:var(--fb-muted)!important;
+}
+.block-container {
+    max-width:1050px!important;
+    padding-top:1rem!important;
+    padding-bottom:2rem!important;
+}
+.hero,.menu-intro {
+    background:linear-gradient(130deg,#222d39,#111820)!important;
+    border:1px solid var(--fb-line)!important;
+    border-radius:20px!important;
+    padding:22px!important;
+    margin-bottom:16px!important;
+    text-align:left!important;
+}
+.menu-intro-title {font-size:clamp(22px,5vw,35px)!important;line-height:1.08!important}
+.route-card,.event-card,.garaje-card,.community-card,.stat-box,
+.tienda-card,.news-card {
+    background:var(--fb-surface)!important;
+    border:1px solid var(--fb-line)!important;
+    border-radius:16px!important;
+    padding:14px!important;
+    margin-bottom:12px!important;
+}
+.route-number,.stat-number {color:var(--fb-accent)!important;-webkit-text-fill-color:var(--fb-accent)!important}
+div[data-testid="stButton"] button[kind="secondary"] {
+    min-height:64px!important;
+    border-radius:14px!important;
+    background:var(--fb-card)!important;
+    border:1px solid var(--fb-line)!important;
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+    font-size:clamp(12px,3.5vw,16px)!important;
+    padding:12px 8px!important;
+    box-shadow:none!important;
+}
+div[data-testid="stButton"] button[kind="secondary"] * {
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+}
+div[data-testid="stButton"] button[kind="secondary"]:hover {
+    background:#303b49!important;
+    border-color:var(--fb-accent)!important;
+    transform:none!important;
+}
+.stButton>button[kind="primary"],
+.stFormSubmitButton>button,.stLinkButton>a {
+    background:var(--fb-accent)!important;
+    border-color:var(--fb-accent)!important;
+    color:#111820!important;
+    -webkit-text-fill-color:#111820!important;
+}
+.stFormSubmitButton>button *,.stLinkButton>a * {
+    color:#111820!important;-webkit-text-fill-color:#111820!important;
+}
+div[data-testid="stTextInput"] input,
+div[data-testid="stTextArea"] textarea,
+div[data-testid="stNumberInput"] input,
+input,textarea {
+    background:#202833!important;
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+    border:1px solid var(--fb-line)!important;
+    caret-color:var(--fb-accent)!important;
+}
+input::placeholder,textarea::placeholder {
+    color:var(--fb-muted)!important;
+    -webkit-text-fill-color:var(--fb-muted)!important;
+}
+div[data-testid="stExpander"],div[data-testid="stForm"] {
+    background:var(--fb-surface)!important;
+    border:1px solid var(--fb-line)!important;
+    border-radius:14px!important;
+}
+div[data-testid="stExpander"] summary,
+div[data-testid="stExpander"] summary * {
+    background:var(--fb-surface)!important;
+    color:var(--fb-text)!important;
+    -webkit-text-fill-color:var(--fb-text)!important;
+}
+button[data-baseweb="tab"] {background:transparent!important;color:var(--fb-text)!important}
+button[data-baseweb="tab"][aria-selected="true"] {
+    border-bottom:3px solid var(--fb-accent)!important;
+}
+div[data-testid="stImage"] img {
+    border-radius:12px!important;
+    object-fit:cover!important;
+    max-height:185px!important;
+    width:100%!important;
+}
+div[data-testid="stAlert"] {background:#202833!important;border-color:var(--fb-line)!important}
+div[data-testid="stAlert"] * {color:var(--fb-text)!important;-webkit-text-fill-color:var(--fb-text)!important}
+@media(max-width:640px) {
+    .block-container {padding-left:12px!important;padding-right:12px!important}
+    [data-testid="stHorizontalBlock"] {gap:8px!important}
+    .hero,.menu-intro {padding:16px!important}
+    .section-title {font-size:26px!important}
+    .route-name,.garaje-titulo,.community-name {font-size:20px!important}
+    .route-card,.event-card,.garaje-card,.community-card {padding:12px!important}
+    div[data-testid="stImage"] img {max-height:135px!important}
+    div[data-testid="stButton"] button[kind="secondary"] {
+        min-height:66px!important;font-size:12px!important;line-height:1.3!important
+    }
+    div[data-testid="stForm"] {padding:10px!important}
+}
+</style>
+""",unsafe_allow_html=True)
+
+
+# =========================================================
+# FAMILY BIKE · IDENTIDAD VISUAL EN ACCESO Y REGISTRO
+# =========================================================
+st.markdown("""
+<style>
+/* Mantiene el logotipo original amarillo de FAMILY BIKE. */
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) {
+    max-width: 680px !important;
+}
+.fb-login-marker {display:none}
+/* Tarjetas de autenticación con la misma paleta del panel de usuario. */
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stTabs"] {
+    background:#1b222b!important;
+    border:1px solid #35404d!important;
+    border-radius:18px!important;
+    padding:12px!important;
+}
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stForm"] {
+    background:#242c36!important;
+    border:1px solid #35404d!important;
+    border-radius:14px!important;
+    padding:16px!important;
+}
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) button[data-baseweb="tab"][aria-selected="true"] {
+    color:#f59e0b!important;
+    -webkit-text-fill-color:#f59e0b!important;
+}
+/* El icono oficial multicolor de Google es un SVG embebido, sin dependencias externas. */
+.st-key-fb_google_login a, .st-key-fb_google_registro a {
+    display:flex!important;
+    justify-content:center!important;
+    align-items:center!important;
+    gap:12px!important;
+    background:#ffffff!important;
+    color:#202124!important;
+    -webkit-text-fill-color:#202124!important;
+    border:1px solid #dadce0!important;
+    border-radius:12px!important;
+    font-weight:700!important;
+    min-height:52px!important;
+    text-decoration:none!important;
+}
+.st-key-fb_google_login a *, .st-key-fb_google_registro a * {
+    color:#202124!important;
+    -webkit-text-fill-color:#202124!important;
+}
+.st-key-fb_google_login a::before, .st-key-fb_google_registro a::before {
+    content:"";
+    width:21px;
+    height:21px;
+    flex-shrink:0;
+    display:inline-block;
+    background-image:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"%3E%3Cpath fill="%23EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/%3E%3Cpath fill="%234285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.75 7.18l7.73 6C44.43 38.03 46.98 31.88 46.98 24.55z"/%3E%3Cpath fill="%23FBBC05" d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78l7.97-6.19z"/%3E%3Cpath fill="%2334A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6C30.03 37.65 27.28 38.5 24 38.5c-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/%3E%3C/svg%3E');
+    background-repeat:no-repeat;
+    background-size:contain;
+}
+@media(max-width:640px) {
+    [data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stTabs"] {padding:8px!important}
+    [data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stForm"] {padding:12px!important}
+}
+</style>
+""",unsafe_allow_html=True)
+
+
+
+# Estilo de acceso antes del renderizado, incluso cuando st.stop() corta la página.
+st.markdown("""<style>
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) {max-width:720px!important;}
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_login a,
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_registro a {background:#fff!important;border:1px solid #dadce0!important;color:#202124!important;-webkit-text-fill-color:#202124!important;}
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_login a:hover,
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_registro a:hover {background:#f1f3f4!important;}
+</style>""",unsafe_allow_html=True)
+
+# =========================================================
 # ACCESO Y REGISTRO
 # =========================================================
 
@@ -4223,214 +4442,6 @@ if st.session_state["seccion_activa"] == "administracion":
 
 
 
-
-# =========================================================
-# FAMILY BIKE · REDISEÑO MOBILE FIRST (SOLO PRESENTACIÓN)
-# =========================================================
-st.markdown("""
-<style>
-:root {
-    --fb-bg:#101419;
-    --fb-surface:#1b222b;
-    --fb-card:#242c36;
-    --fb-accent:#f59e0b;
-    --fb-text:#f5f7fb;
-    --fb-muted:#b7c0cd;
-    --fb-line:#35404d;
-}
-html,body,.stApp,[data-testid="stAppViewContainer"],
-[data-testid="stMain"],[data-testid="stMainBlockContainer"],
-header[data-testid="stHeader"] {
-    background:var(--fb-bg)!important;
-}
-.stApp,.stApp p,.stApp span,.stApp label,.stApp li,
-.stApp small,.stApp strong,.stApp em,.stApp b,
-.stApp div,.stMarkdown,.stMarkdown p,.stMarkdown span,
-.stCaption,[data-testid="stCaptionContainer"],
-[data-testid="stCaptionContainer"] p {
-    color:var(--fb-text)!important;
-    -webkit-text-fill-color:var(--fb-text)!important;
-}
-h1,h2,h3,h4,h5,h6,.section-title,.route-name,
-.garaje-titulo,.community-name,.tienda-titulo {
-    color:var(--fb-text)!important;
-    -webkit-text-fill-color:var(--fb-text)!important;
-}
-.section-subtitle,.menu-intro-text,.garaje-subtitulo,
-.community-label,.stat-label,.tienda-texto,
-[data-testid="stCaptionContainer"] p {
-    color:var(--fb-muted)!important;
-    -webkit-text-fill-color:var(--fb-muted)!important;
-}
-.block-container {
-    max-width:1050px!important;
-    padding-top:1rem!important;
-    padding-bottom:2rem!important;
-}
-.hero,.menu-intro {
-    background:linear-gradient(130deg,#222d39,#111820)!important;
-    border:1px solid var(--fb-line)!important;
-    border-radius:20px!important;
-    padding:22px!important;
-    margin-bottom:16px!important;
-    text-align:left!important;
-}
-.menu-intro-title {font-size:clamp(22px,5vw,35px)!important;line-height:1.08!important}
-.route-card,.event-card,.garaje-card,.community-card,.stat-box,
-.tienda-card,.news-card {
-    background:var(--fb-surface)!important;
-    border:1px solid var(--fb-line)!important;
-    border-radius:16px!important;
-    padding:14px!important;
-    margin-bottom:12px!important;
-}
-.route-number,.stat-number {color:var(--fb-accent)!important;-webkit-text-fill-color:var(--fb-accent)!important}
-div[data-testid="stButton"] button[kind="secondary"] {
-    min-height:64px!important;
-    border-radius:14px!important;
-    background:var(--fb-card)!important;
-    border:1px solid var(--fb-line)!important;
-    color:var(--fb-text)!important;
-    -webkit-text-fill-color:var(--fb-text)!important;
-    font-size:clamp(12px,3.5vw,16px)!important;
-    padding:12px 8px!important;
-    box-shadow:none!important;
-}
-div[data-testid="stButton"] button[kind="secondary"] * {
-    color:var(--fb-text)!important;
-    -webkit-text-fill-color:var(--fb-text)!important;
-}
-div[data-testid="stButton"] button[kind="secondary"]:hover {
-    background:#303b49!important;
-    border-color:var(--fb-accent)!important;
-    transform:none!important;
-}
-.stButton>button[kind="primary"],
-.stFormSubmitButton>button,.stLinkButton>a {
-    background:var(--fb-accent)!important;
-    border-color:var(--fb-accent)!important;
-    color:#111820!important;
-    -webkit-text-fill-color:#111820!important;
-}
-.stFormSubmitButton>button *,.stLinkButton>a * {
-    color:#111820!important;-webkit-text-fill-color:#111820!important;
-}
-div[data-testid="stTextInput"] input,
-div[data-testid="stTextArea"] textarea,
-div[data-testid="stNumberInput"] input,
-input,textarea {
-    background:#202833!important;
-    color:var(--fb-text)!important;
-    -webkit-text-fill-color:var(--fb-text)!important;
-    border:1px solid var(--fb-line)!important;
-    caret-color:var(--fb-accent)!important;
-}
-input::placeholder,textarea::placeholder {
-    color:var(--fb-muted)!important;
-    -webkit-text-fill-color:var(--fb-muted)!important;
-}
-div[data-testid="stExpander"],div[data-testid="stForm"] {
-    background:var(--fb-surface)!important;
-    border:1px solid var(--fb-line)!important;
-    border-radius:14px!important;
-}
-div[data-testid="stExpander"] summary,
-div[data-testid="stExpander"] summary * {
-    background:var(--fb-surface)!important;
-    color:var(--fb-text)!important;
-    -webkit-text-fill-color:var(--fb-text)!important;
-}
-button[data-baseweb="tab"] {background:transparent!important;color:var(--fb-text)!important}
-button[data-baseweb="tab"][aria-selected="true"] {
-    border-bottom:3px solid var(--fb-accent)!important;
-}
-div[data-testid="stImage"] img {
-    border-radius:12px!important;
-    object-fit:cover!important;
-    max-height:185px!important;
-    width:100%!important;
-}
-div[data-testid="stAlert"] {background:#202833!important;border-color:var(--fb-line)!important}
-div[data-testid="stAlert"] * {color:var(--fb-text)!important;-webkit-text-fill-color:var(--fb-text)!important}
-@media(max-width:640px) {
-    .block-container {padding-left:12px!important;padding-right:12px!important}
-    [data-testid="stHorizontalBlock"] {gap:8px!important}
-    .hero,.menu-intro {padding:16px!important}
-    .section-title {font-size:26px!important}
-    .route-name,.garaje-titulo,.community-name {font-size:20px!important}
-    .route-card,.event-card,.garaje-card,.community-card {padding:12px!important}
-    div[data-testid="stImage"] img {max-height:135px!important}
-    div[data-testid="stButton"] button[kind="secondary"] {
-        min-height:66px!important;font-size:12px!important;line-height:1.3!important
-    }
-    div[data-testid="stForm"] {padding:10px!important}
-}
-</style>
-""",unsafe_allow_html=True)
-
-
-# =========================================================
-# FAMILY BIKE · IDENTIDAD VISUAL EN ACCESO Y REGISTRO
-# =========================================================
-st.markdown("""
-<style>
-/* Mantiene el logotipo original amarillo de FAMILY BIKE. */
-[data-testid="stMainBlockContainer"]:has(.fb-login-marker) {
-    max-width: 680px !important;
-}
-.fb-login-marker {display:none}
-/* Tarjetas de autenticación con la misma paleta del panel de usuario. */
-[data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stTabs"] {
-    background:#1b222b!important;
-    border:1px solid #35404d!important;
-    border-radius:18px!important;
-    padding:12px!important;
-}
-[data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stForm"] {
-    background:#242c36!important;
-    border:1px solid #35404d!important;
-    border-radius:14px!important;
-    padding:16px!important;
-}
-[data-testid="stMainBlockContainer"]:has(.fb-login-marker) button[data-baseweb="tab"][aria-selected="true"] {
-    color:#f59e0b!important;
-    -webkit-text-fill-color:#f59e0b!important;
-}
-/* El icono oficial multicolor de Google es un SVG embebido, sin dependencias externas. */
-.st-key-fb_google_login a, .st-key-fb_google_registro a {
-    display:flex!important;
-    justify-content:center!important;
-    align-items:center!important;
-    gap:12px!important;
-    background:#ffffff!important;
-    color:#202124!important;
-    -webkit-text-fill-color:#202124!important;
-    border:1px solid #dadce0!important;
-    border-radius:12px!important;
-    font-weight:700!important;
-    min-height:52px!important;
-    text-decoration:none!important;
-}
-.st-key-fb_google_login a *, .st-key-fb_google_registro a * {
-    color:#202124!important;
-    -webkit-text-fill-color:#202124!important;
-}
-.st-key-fb_google_login a::before, .st-key-fb_google_registro a::before {
-    content:"";
-    width:21px;
-    height:21px;
-    flex-shrink:0;
-    display:inline-block;
-    background-image:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"%3E%3Cpath fill="%23EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/%3E%3Cpath fill="%234285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.75 7.18l7.73 6C44.43 38.03 46.98 31.88 46.98 24.55z"/%3E%3Cpath fill="%23FBBC05" d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78l7.97-6.19z"/%3E%3Cpath fill="%2334A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6C30.03 37.65 27.28 38.5 24 38.5c-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/%3E%3C/svg%3E');
-    background-repeat:no-repeat;
-    background-size:contain;
-}
-@media(max-width:640px) {
-    [data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stTabs"] {padding:8px!important}
-    [data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stForm"] {padding:12px!important}
-}
-</style>
-""",unsafe_allow_html=True)
 
 # =========================================================
 # PIE DE PÁGINA
