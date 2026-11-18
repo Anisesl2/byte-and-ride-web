@@ -2817,6 +2817,7 @@ if st.session_state["seccion_activa"] == "quedadas":
                         "estado": "abierta"
                     }
 
+                    etapa_publicacion = "guardar la quedada en Supabase"
                     respuesta_nueva = (
                         supabase.table("quedadas")
                         .insert(nueva_quedada)
@@ -2860,6 +2861,7 @@ if st.session_state["seccion_activa"] == "quedadas":
                             "punto_encuentro": punto_3.strip()
                         })
 
+                    etapa_publicacion = "guardar los horarios de la quedada"
                     respuesta_horarios = (
                         supabase.table("horarios_quedadas")
                         .insert(horarios)
@@ -2872,6 +2874,7 @@ if st.session_state["seccion_activa"] == "quedadas":
                             "que se hayan guardado todos los horarios."
                         )
 
+                    etapa_publicacion = "preparar las notificaciones"
                     st.success("¡Quedada publicada correctamente!")
 
                     try:
@@ -2907,8 +2910,10 @@ if st.session_state["seccion_activa"] == "quedadas":
 
                 except Exception as error:
 
-                    st.error("No se ha podido publicar la quedada.")
-                    st.code(str(error))
+                    st.error(f"Error al {etapa_publicacion}.")
+                    st.exception(error)
+                    if etapa_publicacion != "guardar la quedada en Supabase":
+                        st.warning("Comprueba la lista antes de reintentar: la quedada puede estar ya creada.")
 
 
     # -----------------------------------------------------
