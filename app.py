@@ -26,24 +26,25 @@ def fb_clave_ruta(ruta):
     return f"{ruta.get('_origen', 'catalogo')}:{ruta['id']}"
 
 
-def fb_enlace_ruta(ruta):
-    return FAMILYBIKE_PUBLIC_URL.rstrip("/") + "/?" + urlencode({"ruta": fb_clave_ruta(ruta)})
-
-
 def fb_panel_opiniones(ruta, usuario_id, admin=False):
     clave = fb_clave_ruta(ruta)
     with st.expander("⭐ VALORAR · 💬 COMENTAR · 📲 COMPARTIR", expanded=False):
-        enlace = fb_enlace_ruta(ruta)
-        mensaje = f"🏍️ Descubre {ruta.get('nombre', 'esta ruta')} en FAMILY BIKE: {enlace}"
-        col_wa, col_fb = st.columns(2)
-        with col_wa:
-            st.link_button("📲 WhatsApp", "https://wa.me/?" + urlencode({"text": mensaje}),
-                           use_container_width=True)
-        with col_fb:
-            st.link_button("🔵 Facebook", "https://www.facebook.com/sharer/sharer.php?" +
-                           urlencode({"u": enlace}), use_container_width=True)
-        st.code(enlace, language=None)
-        st.caption("El enlace muestra una invitación pública; el recorrido requiere iniciar sesión.")
+        enlace = str(ruta.get("url") or "").strip()
+        if enlace_google_maps_valido(enlace):
+            nombre = ruta.get("nombre") or "Ruta motera"
+            texto = f"🏍️ {nombre} · Compartida desde Family Bike ({FAMILYBIKE_PUBLIC_URL})"
+            mensaje = f"{texto}\n\n📍 Ruta en Google Maps: {enlace}"
+            col_wa, col_fb = st.columns(2)
+            with col_wa:
+                st.link_button("📲 WhatsApp", "https://wa.me/?" + urlencode({"text": mensaje}),
+                               use_container_width=True)
+            with col_fb:
+                st.link_button("🔵 Facebook", "https://www.facebook.com/sharer/sharer.php?" +
+                               urlencode({"u": enlace}), use_container_width=True)
+            st.caption("El enlace abre el recorrido en Google Maps. En Facebook puedes copiar este texto para mencionarnos en tu publicación.")
+            st.code(texto, language=None)
+        else:
+            st.caption("Esta ruta no tiene un enlace de Google Maps válido para compartir.")
 
         try:
             votos = (supabase.table("familybike_valoraciones")
