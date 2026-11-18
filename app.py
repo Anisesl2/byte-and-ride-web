@@ -30,7 +30,7 @@ def fb_clave_ruta(ruta):
 
 def fb_panel_opiniones(ruta, usuario_id, admin=False):
     clave = fb_clave_ruta(ruta)
-    with st.expander("⭐ VALORAR · 💬 COMENTAR · 📲 COMPARTIR", expanded=False):
+    with st.expander("📲 Compartir ruta", expanded=False):
         enlace = str(ruta.get("url") or "").strip()
         if enlace_google_maps_valido(enlace):
             nombre = ruta.get("nombre") or "Ruta motera"
@@ -48,6 +48,13 @@ def fb_panel_opiniones(ruta, usuario_id, admin=False):
         else:
             st.caption("Esta ruta no tiene un enlace de Google Maps válido para compartir.")
 
+    abierta = st.session_state.get("fb_opinion_abierta") == clave
+    etiqueta = "Ocultar opiniones" if abierta else "⭐ Ver opiniones"
+    if st.button(etiqueta, key=f"fb_abrir_opinion_{clave}", use_container_width=True):
+        st.session_state["fb_opinion_abierta"] = None if abierta else clave
+        st.rerun()
+
+    if abierta:
         try:
             votos = (supabase.table("familybike_valoraciones")
                      .select("usuario_id,puntuacion").eq("ruta_clave", clave).execute()).data or []
@@ -831,7 +838,12 @@ def cerrar_sesion():
         "refresh_token",
         "username",
         "user_id",
-        "seccion_activa"
+        "seccion_activa",
+        "fb_cache_datos",
+        "fb_seccion_anterior",
+        "fb_opinion_abierta",
+        "fb_pagina_rutas",
+        "fb_busqueda_anterior",
     ]:
         st.session_state.pop(key, None)
 
@@ -2154,11 +2166,10 @@ with col_salir:
 
 
 # =========================================================
-# CARGAR RUTAS
+# CATÁLOGO Y ESTADÍSTICAS
 # =========================================================
 
-try:
-
+def cargar_catalogo_rutas():
     respuesta_rutas = (
         supabase.table("rutas")
         .select("id,nombre,url,imagen_url")
@@ -2185,57 +2196,82 @@ try:
     except Exception:
         # Mantener operativas las rutas originales si la tabla no existe aún.
         pass
-
-except Exception as error:
-
-    st.error("No se han podido cargar las rutas desde Supabase.")
-    st.code(str(error))
-    st.stop()
+    return rutas
 
 
-# =========================================================
-# ESTADÍSTICAS
-# =========================================================
-
-try:
-
-    respuesta_quedadas = (
+def contar_proximas_quedadas(hoy):
+    respuesta = (
         supabase.table("quedadas")
-        .select("id", count="exact")
+        .select("id", count="exact", head=True)
         .eq("estado", "abierta")
-        .gte("fecha", date.today().isoformat())
+        .gte("fecha", hoy)
         .execute()
     )
-
-    total_quedadas = respuesta_quedadas.count or 0
-
-except Exception:
-    total_quedadas = 0
+    return respuesta.count or 0
 
 
-col1, col3 = st.columns(2)
+def datos_de_sesion(clave, cargar, *args):
+    cache = st.session_state.setdefault("fb_cache_datos", {})
+    clave_cache = (str(usuario_id), clave)
+    entrada = cache.get(clave_cache)
+    if entrada and entrada[1] == args and time_module.monotonic() - entrada[0] < 60:
+        return entrada[2]
 
-with col1:
-    st.markdown(
-        f"""
-        <div class="stat-box">
-            <div class="stat-number">{len(rutas)}</div>
-            <div class="stat-label">RUTAS DISPONIBLES</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    datos = cargar(*args)
+    cache[clave_cache] = (time_module.monotonic(), args, datos)
+    return datos
 
-with col3:
-    st.markdown(
-        f"""
-        <div class="stat-box">
-            <div class="stat-number">{total_quedadas}</div>
-            <div class="stat-label">PRÓXIMAS QUEDADAS</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+
+seccion = st.session_state["seccion_activa"]
+seccion_anterior = st.session_state.get("fb_seccion_anterior")
+if seccion != seccion_anterior:
+    cache = st.session_state.get("fb_cache_datos", {})
+    if seccion_anterior == "administracion":
+        cache.clear()
+    elif seccion_anterior == "quedadas":
+        cache.pop((str(usuario_id), "quedadas"), None)
+    if seccion != "rutas":
+        st.session_state.pop("fb_opinion_abierta", None)
+    st.session_state["fb_seccion_anterior"] = seccion
+
+rutas = []
+if seccion in {"menu", "rutas", "quedadas"}:
+    try:
+        rutas = datos_de_sesion("catalogo", cargar_catalogo_rutas)
+    except Exception:
+        st.warning("No se han podido cargar las rutas desde Supabase.")
+
+if seccion == "menu":
+    try:
+        total_quedadas = datos_de_sesion(
+            "quedadas", contar_proximas_quedadas, date.today().isoformat()
+        )
+    except Exception:
+        total_quedadas = 0
+
+    col1, col3 = st.columns(2)
+
+    with col1:
+        st.markdown(
+            f"""
+            <div class="stat-box">
+                <div class="stat-number">{len(rutas)}</div>
+                <div class="stat-label">RUTAS DISPONIBLES</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col3:
+        st.markdown(
+            f"""
+            <div class="stat-box">
+                <div class="stat-number">{total_quedadas}</div>
+                <div class="stat-label">PRÓXIMAS QUEDADAS</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 # =========================================================
@@ -2464,6 +2500,11 @@ if st.session_state["seccion_activa"] == "rutas":
         if busqueda.lower() in ruta.get("nombre", "").lower()
     ]
 
+    if busqueda != st.session_state.get("fb_busqueda_anterior"):
+        st.session_state["fb_busqueda_anterior"] = busqueda
+        st.session_state["fb_pagina_rutas"] = 0
+        st.session_state.pop("fb_opinion_abierta", None)
+
     if not rutas:
         st.warning("Todavía no hay rutas disponibles.")
 
@@ -2472,11 +2513,29 @@ if st.session_state["seccion_activa"] == "rutas":
 
     else:
 
-        st.caption(f"Mostrando {len(rutas_filtradas)} rutas")
+        por_pagina = 12
+        total = len(rutas_filtradas)
+        ultima_pagina = (total - 1) // por_pagina
+        pagina = min(st.session_state.get("fb_pagina_rutas", 0), ultima_pagina)
+        if ultima_pagina:
+            anterior, siguiente = st.columns(2)
+            if anterior.button("← Anterior", key="fb_rutas_ant", disabled=pagina == 0):
+                st.session_state["fb_pagina_rutas"] = pagina - 1
+                st.session_state.pop("fb_opinion_abierta", None)
+                st.rerun()
+            if siguiente.button("Siguiente →", key="fb_rutas_sig", disabled=pagina == ultima_pagina):
+                st.session_state["fb_pagina_rutas"] = pagina + 1
+                st.session_state.pop("fb_opinion_abierta", None)
+                st.rerun()
+
+        st.session_state["fb_pagina_rutas"] = pagina
+        inicio = pagina * por_pagina
+        fin = min(inicio + por_pagina, total)
+        st.caption(f"Rutas {inicio + 1}–{fin} de {total}")
 
         columnas = st.columns(3)
 
-        for indice, ruta in enumerate(rutas_filtradas):
+        for indice, ruta in enumerate(rutas_filtradas[inicio:fin], start=inicio):
 
             nombre = ruta.get("nombre", "Ruta sin nombre")
             url_original = ruta.get("url", "")
