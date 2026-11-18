@@ -2356,7 +2356,7 @@ if st.session_state["seccion_activa"] == "menu":
         ("🏍️", "MI GARAJE", "garaje", "home_garaje"),
         ("👥", "COMUNIDAD", "comunidad", "home_comunidad"),
         ("💬", "CHAT GENERAL", "chat", "home_chat"),
-        ("🏍️", "GRUPOS MOTEROS", "grupos", "home_grupos"),
+        ("🏍️", "MURAL DE PEGATINAS", "grupos", "home_grupos"),
         ("📍", "SUBIR MI RUTA", "rutas", "home_subir"),
         ("👤", "EDITAR MI PERFIL", "perfil", "home_perfil"),
         ("🛒", "TIENDA FAMILY BIKE", "tienda", "home_tienda"),
