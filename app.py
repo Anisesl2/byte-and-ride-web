@@ -8,6 +8,8 @@ import json
 import secrets
 import threading
 import time as time_module
+from io import BytesIO
+from PIL import Image, ImageOps
 from urllib.parse import urlparse, unquote, urlencode, quote
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
@@ -834,6 +836,28 @@ def cerrar_sesion():
         st.session_state.pop(key, None)
 
 
+def preparar_pegatina(archivo):
+    if archivo.size > 5 * 1024 * 1024:
+        raise ValueError("La imagen supera el máximo de 5 MB.")
+
+    with Image.open(archivo) as original:
+        if original.format not in {"PNG", "JPEG", "WEBP"}:
+            raise ValueError("Utiliza una imagen PNG, JPG o WebP.")
+        if original.width * original.height > 20_000_000:
+            raise ValueError("La imagen es demasiado grande. Reduce sus dimensiones e inténtalo de nuevo.")
+        imagen = ImageOps.exif_transpose(original).convert("RGBA")
+        imagen.thumbnail((600, 600), Image.Resampling.LANCZOS)
+        # Cuadrar el lienzo sin cortar el logotipo ni perder la transparencia.
+        lienzo = Image.new("RGBA", (600, 600))
+        lienzo.paste(imagen, ((600 - imagen.width) // 2, (600 - imagen.height) // 2))
+        salida = BytesIO()
+        lienzo.save(salida, format="WEBP", quality=80)
+    resultado = base64.b64encode(salida.getvalue()).decode("ascii")
+    if len(resultado) > 400_000:
+        raise ValueError("La imagen sigue siendo demasiado pesada. Prueba con una imagen más sencilla.")
+    return resultado
+
+
 def subir_archivo_storage(archivo, carpeta, prefijo):
     extension = archivo.name.rsplit(".", 1)[-1].lower()
 
@@ -1461,7 +1485,7 @@ st.markdown("""<style>
 }
 </style>""", unsafe_allow_html=True)
 
-st.markdown("<style>" + '\n/* ===== FAMILY BIKE - PORTADA PREMIUM ===== */\n.fb-home-hero{position:relative;min-height:390px;border-radius:20px;overflow:hidden;margin:10px 0 25px;background:linear-gradient(90deg,rgba(5,8,13,.75),rgba(5,8,13,.1)),url("https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1800&q=85") center 52%/cover;border:1px solid #444}\n.fb-home-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.65))}\n.fb-home-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:390px;padding:28px;text-align:center}\n.fb-home-logo{width:min(68%,560px);max-height:285px;object-fit:contain;filter:drop-shadow(0 4px 18px rgba(0,0,0,.65))}\n.fb-home-tagline{font-family:Inter,sans-serif;font-weight:800;letter-spacing:3px;font-size:clamp(12px,2.1vw,22px);color:white;text-shadow:0 2px 10px black;margin-top:8px}\n.fb-home-line{height:5px;width:170px;background:#eeff00;transform:skew(-35deg);margin-top:20px}\n.fb-home-heading{font-family:\'Barlow Condensed\',Inter,sans-serif;font-weight:800;font-size:clamp(24px,3vw,34px);color:#f8f8f8;margin:24px 0 14px;border-left:5px solid #eeff00;padding-left:12px}\n.fb-route-tile{border:1px solid #766e28;border-radius:14px;overflow:hidden;background:#15171b;margin-bottom:8px}\n.fb-route-tile img{display:block;width:100%;height:170px;object-fit:cover}\n.fb-route-name{padding:12px 13px;font-weight:800;font-size:15px;color:#fff;min-height:52px}\n/* Botones de la portada: tarjetas oscuras con borde amarillo */\n.st-key-home_rutas button,.st-key-home_quedadas button,.st-key-home_garaje button,.st-key-home_comunidad button,\n.st-key-home_chat button,.st-key-home_subir button,.st-key-home_perfil button,.st-key-home_tienda button{\n min-height:110px!important;background:linear-gradient(145deg,#202329,#101217)!important;border:1px solid #b4a12e!important;border-radius:17px!important;color:#fff!important;white-space:pre-line!important;font-size:clamp(12px,1.5vw,17px)!important;font-weight:800!important;box-shadow:0 5px 18px rgba(0,0,0,.22)!important;\n}\n.st-key-home_rutas button:hover,.st-key-home_quedadas button:hover,.st-key-home_garaje button:hover,.st-key-home_comunidad button:hover,\n.st-key-home_chat button:hover,.st-key-home_subir button:hover,.st-key-home_perfil button:hover,.st-key-home_tienda button:hover{border-color:#eeff00!important;box-shadow:0 0 16px rgba(238,255,0,.18)!important;transform:translateY(-2px)}\n.fb-logo-acceso img{background:transparent!important}\n@media(max-width:700px){.fb-home-hero,.fb-home-content{min-height:255px}.fb-home-logo{width:88%;max-height:170px}.fb-home-tagline{letter-spacing:1px}.fb-route-tile img{height:110px}.fb-route-name{font-size:12px;padding:8px}.st-key-home_rutas button,.st-key-home_quedadas button,.st-key-home_garaje button,.st-key-home_comunidad button,.st-key-home_chat button,.st-key-home_subir button,.st-key-home_perfil button,.st-key-home_tienda button{min-height:86px!important;font-size:11px!important;padding:6px!important}}\n' + "</style>", unsafe_allow_html=True)
+st.markdown("<style>" + '\n/* ===== FAMILY BIKE - PORTADA PREMIUM ===== */\n.fb-home-hero{position:relative;min-height:390px;border-radius:20px;overflow:hidden;margin:10px 0 25px;background:linear-gradient(90deg,rgba(5,8,13,.75),rgba(5,8,13,.1)),url("https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1800&q=85") center 52%/cover;border:1px solid #444}\n.fb-home-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.65))}\n.fb-home-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:390px;padding:28px;text-align:center}\n.fb-home-logo{width:min(68%,560px);max-height:285px;object-fit:contain;filter:drop-shadow(0 4px 18px rgba(0,0,0,.65))}\n.fb-home-tagline{font-family:Inter,sans-serif;font-weight:800;letter-spacing:3px;font-size:clamp(12px,2.1vw,22px);color:white;text-shadow:0 2px 10px black;margin-top:8px}\n.fb-home-line{height:5px;width:170px;background:#eeff00;transform:skew(-35deg);margin-top:20px}\n.fb-home-heading{font-family:\'Barlow Condensed\',Inter,sans-serif;font-weight:800;font-size:clamp(24px,3vw,34px);color:#f8f8f8;margin:24px 0 14px;border-left:5px solid #eeff00;padding-left:12px}\n.fb-route-tile{border:1px solid #766e28;border-radius:14px;overflow:hidden;background:#15171b;margin-bottom:8px}\n.fb-route-tile img{display:block;width:100%;height:170px;object-fit:cover}\n.fb-route-name{padding:12px 13px;font-weight:800;font-size:15px;color:#fff;min-height:52px}\n/* Botones de la portada: tarjetas oscuras con borde amarillo */\n.st-key-home_rutas button,.st-key-home_quedadas button,.st-key-home_garaje button,.st-key-home_comunidad button,\n.st-key-home_grupos button,.st-key-home_chat button,.st-key-home_subir button,.st-key-home_perfil button,.st-key-home_tienda button{\n min-height:110px!important;background:linear-gradient(145deg,#202329,#101217)!important;border:1px solid #b4a12e!important;border-radius:17px!important;color:#fff!important;white-space:pre-line!important;font-size:clamp(12px,1.5vw,17px)!important;font-weight:800!important;box-shadow:0 5px 18px rgba(0,0,0,.22)!important;\n}\n.st-key-home_rutas button:hover,.st-key-home_quedadas button:hover,.st-key-home_garaje button:hover,.st-key-home_comunidad button:hover,\n.st-key-home_grupos button:hover,.st-key-home_chat button:hover,.st-key-home_subir button:hover,.st-key-home_perfil button:hover,.st-key-home_tienda button:hover{border-color:#eeff00!important;box-shadow:0 0 16px rgba(238,255,0,.18)!important;transform:translateY(-2px)}\n.fb-logo-acceso img{background:transparent!important}\n@media(max-width:700px){.fb-home-hero,.fb-home-content{min-height:255px}.fb-home-logo{width:88%;max-height:170px}.fb-home-tagline{letter-spacing:1px}.fb-route-tile img{height:110px}.fb-route-name{font-size:12px;padding:8px}.st-key-home_rutas button,.st-key-home_quedadas button,.st-key-home_garaje button,.st-key-home_comunidad button,.st-key-home_grupos button,.st-key-home_chat button,.st-key-home_subir button,.st-key-home_perfil button,.st-key-home_tienda button{min-height:86px!important;font-size:11px!important;padding:6px!important}}\n' + "</style>", unsafe_allow_html=True)
 
 # =========================================================
 # ACCESO Y REGISTRO
@@ -2296,6 +2320,7 @@ if st.session_state["seccion_activa"] == "menu":
         ("🏍️", "MI GARAJE", "garaje", "home_garaje"),
         ("👥", "COMUNIDAD", "comunidad", "home_comunidad"),
         ("💬", "CHAT GENERAL", "chat", "home_chat"),
+        ("🏍️", "GRUPOS MOTEROS", "grupos", "home_grupos"),
         ("📍", "SUBIR MI RUTA", "rutas", "home_subir"),
         ("👤", "EDITAR MI PERFIL", "perfil", "home_perfil"),
         ("🛒", "TIENDA FAMILY BIKE", "tienda", "home_tienda"),
@@ -3468,6 +3493,91 @@ if st.session_state["seccion_activa"] == "garaje":
                 st.code(str(error))
 
     st.caption("Formatos permitidos: JPG, JPEG, PNG y WEBP.")
+
+
+# =========================================================
+# MURAL DE PEGATINAS DE GRUPOS MOTEROS
+# =========================================================
+
+if st.session_state["seccion_activa"] == "grupos":
+
+    st.markdown("## 🏍️ Grupos moteros")
+    st.caption("Comparte la pegatina de tu grupo en el mural de Family Bike.")
+
+    tabla_mural = supabase.table("familybike_mural_pegatinas")
+    por_pagina = 6
+    pagina_mural = st.session_state.get("pagina_mural", 0)
+
+    try:
+        entradas_mural = (
+            tabla_mural.select("id,nombre_grupo,imagen_webp")
+            .order("id", desc=True)
+            .range(pagina_mural * por_pagina, (pagina_mural + 1) * por_pagina)
+            .execute().data or []
+        )
+    except Exception:
+        st.warning("El mural no está disponible en este momento.")
+    else:
+        if st.session_state.pop("mural_publicado", False):
+            st.success("¡La pegatina de tu grupo ya está en el mural!")
+
+        with st.expander("➕ Subir la pegatina de mi grupo"):
+            with st.form("form_mural_pegatina"):
+                nombre_grupo = st.text_input("Nombre del grupo", max_chars=70)
+                pegatina = st.file_uploader(
+                    "Imagen de la pegatina", type=["png", "jpg", "jpeg", "webp"],
+                    help="Máximo 5 MB. El formato PNG conserva la transparencia.",
+                )
+                publicar = st.form_submit_button("Publicar pegatina", type="primary")
+
+            if publicar:
+                nombre_grupo = nombre_grupo.strip()
+                if len(nombre_grupo) < 2 or pegatina is None:
+                    st.warning("Escribe el nombre del grupo y selecciona una imagen.")
+                else:
+                    try:
+                        imagen_webp = preparar_pegatina(pegatina)
+                    except (OSError, ValueError, Image.DecompressionBombError) as error:
+                        st.warning(str(error) if isinstance(error, ValueError)
+                                   else "No se ha podido abrir la imagen. Prueba con otro archivo.")
+                    else:
+                        try:
+                            tabla_mural.insert({
+                                "usuario_id": str(usuario_id),
+                                "nombre_grupo": nombre_grupo,
+                                "imagen_webp": imagen_webp,
+                            }).execute()
+                        except Exception:
+                            st.error("No se ha podido publicar la pegatina. Inténtalo de nuevo.")
+                        else:
+                            st.session_state["pagina_mural"] = 0
+                            st.session_state["mural_publicado"] = True
+                            st.rerun()
+
+        st.markdown("### Mural de pegatinas")
+        if not entradas_mural:
+            st.info("El mural está vacío. ¡Anímate a subir la primera pegatina!")
+
+        for inicio in range(0, min(len(entradas_mural), por_pagina), 3):
+            columnas = st.columns(3, gap="small")
+            for columna, entrada in zip(columnas, entradas_mural[inicio:min(inicio + 3, por_pagina)]):
+                with columna, st.container(border=True):
+                    try:
+                        imagen_mural = base64.b64decode(entrada["imagen_webp"], validate=True)
+                        with Image.open(BytesIO(imagen_mural), formats=["WEBP"]) as imagen:
+                            st.image(imagen.copy(), use_container_width=True)
+                    except (ValueError, OSError, Image.DecompressionBombError):
+                        st.caption("Imagen no disponible.")
+                    st.text(entrada["nombre_grupo"])
+
+        if pagina_mural or len(entradas_mural) > por_pagina:
+            anterior, siguiente = st.columns(2)
+            if anterior.button("← Anterior", disabled=pagina_mural == 0, key="mural_anterior"):
+                st.session_state["pagina_mural"] = pagina_mural - 1
+                st.rerun()
+            if siguiente.button("Siguiente →", disabled=len(entradas_mural) <= por_pagina, key="mural_siguiente"):
+                st.session_state["pagina_mural"] = pagina_mural + 1
+                st.rerun()
 
 
 # =========================================================
