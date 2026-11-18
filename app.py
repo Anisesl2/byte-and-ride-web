@@ -2199,17 +2199,6 @@ def cargar_catalogo_rutas():
     return rutas
 
 
-def contar_proximas_quedadas(hoy):
-    respuesta = (
-        supabase.table("quedadas")
-        .select("id", count="exact", head=True)
-        .eq("estado", "abierta")
-        .gte("fecha", hoy)
-        .execute()
-    )
-    return respuesta.count or 0
-
-
 def datos_de_sesion(clave, cargar, *args):
     cache = st.session_state.setdefault("fb_cache_datos", {})
     clave_cache = (str(usuario_id), clave)
@@ -2240,39 +2229,6 @@ if seccion in {"menu", "rutas", "quedadas"}:
         rutas = datos_de_sesion("catalogo", cargar_catalogo_rutas)
     except Exception:
         st.warning("No se han podido cargar las rutas desde Supabase.")
-
-if seccion == "menu":
-    try:
-        total_quedadas = datos_de_sesion(
-            "quedadas", contar_proximas_quedadas, date.today().isoformat()
-        )
-    except Exception:
-        total_quedadas = 0
-
-    col1, col3 = st.columns(2)
-
-    with col1:
-        st.markdown(
-            f"""
-            <div class="stat-box">
-                <div class="stat-number">{len(rutas)}</div>
-                <div class="stat-label">RUTAS DISPONIBLES</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with col3:
-        st.markdown(
-            f"""
-            <div class="stat-box">
-                <div class="stat-number">{total_quedadas}</div>
-                <div class="stat-label">PRÓXIMAS QUEDADAS</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
 
 # =========================================================
 # NOTICIAS EN LA PÁGINA PRINCIPAL
