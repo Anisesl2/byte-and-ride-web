@@ -1723,40 +1723,76 @@ if not autenticado:
                     st.error("ERROR AL CREAR LA CUENTA")
                     st.code(str(error))
 
-    # Valoraciones públicas sin mostrar recorridos a visitantes.
-    st.markdown("## ⭐ Rutas valoradas por nuestra comunidad")
-    st.caption("Opiniones de moteros registrados en Family Bike.")
-
+    # La portada usa únicamente los datos públicos de la RPC.
     try:
         opiniones_publicas = supabase.rpc("fb_valoraciones_portada").execute().data or []
     except Exception:
         opiniones_publicas = []
-        st.info("Para mostrar las valoraciones, ejecuta el SQL de portada en Supabase.")
 
     if opiniones_publicas:
-        for indice in range(0, len(opiniones_publicas), 2):
-            columnas = st.columns(2)
-            for columna, opinion in zip(columnas, opiniones_publicas[indice:indice + 2]):
-                with columna:
-                    nombre_ruta = html.escape(str(opinion.get("nombre_ruta") or "Ruta motera"))
-                    puntuacion = float(opinion.get("media") or 0)
-                    cantidad = int(opinion.get("total_votos") or 0)
-                    estrellas = "★" * max(0, min(5, round(puntuacion))) + "☆" * (5 - max(0, min(5, round(puntuacion))))
-                    st.markdown(
-                        f'<div style="background:#1b1e23;border:1px solid #69612a;'
-                        f'border-radius:15px;padding:18px;margin:8px 0">'
-                        f'<div style="font-weight:800;color:white;font-size:18px">{nombre_ruta}</div>'
-                        f'<div style="color:#f3df25;font-size:23px">{estrellas}</div>'
-                        f'<div style="color:#ddd">{puntuacion:.1f}/5 · {cantidad} valoraciones</div>'
-                        f'</div>', unsafe_allow_html=True
-                    )
-                    comentario = opinion.get("comentario")
-                    if comentario:
-                        st.markdown(f'💬 **{html.escape(str(opinion.get("autor") or "Motero"))}:**')
-                        st.write(str(comentario))
-        st.caption("Regístrate gratis para consultar los recorridos y publicar tu valoración.")
-    else:
-        st.info("Todavía no hay valoraciones publicadas. ¡Sé el primero en valorar una ruta!")
+        # Prioriza los comentarios. Si todavía no hay, muestra las valoraciones.
+        opiniones_con_texto = [
+            opinion for opinion in opiniones_publicas
+            if str(opinion.get("comentario") or "").strip()
+        ]
+        tarjetas = []
+        for opinion in (opiniones_con_texto or opiniones_publicas)[:2]:
+            nombre_ruta = html.escape(str(opinion.get("nombre_ruta") or "Ruta motera"))
+            nota = float(opinion.get("media") or 0)
+            cantidad = int(opinion.get("total_votos") or 0)
+            comentario = " ".join(str(opinion.get("comentario") or "").split())
+
+            if cantidad:
+                nota_visible = f"{nota:.1f}".replace(".", ",")
+                votos = "valoración" if cantidad == 1 else "valoraciones"
+                detalle = (
+                    f'<span class="fb-review-score" title="{cantidad} {votos}">'
+                    f'★ {nota_visible}/5</span>'
+                )
+            else:
+                detalle = ""
+
+            cita = ""
+            if comentario:
+                if len(comentario) > 140:
+                    comentario = comentario[:139].rstrip() + "…"
+                autor = html.escape(str(opinion.get("autor") or "Motero"))
+                cita = (
+                    f'<p class="fb-review-quote">«{html.escape(comentario)}»</p>'
+                    f'<div class="fb-review-author">{autor}</div>'
+                )
+
+            tarjetas.append(
+                '<article class="fb-review-card">'
+                '<div class="fb-review-top">'
+                f'<strong>{nombre_ruta}</strong>{detalle}</div>'
+                f'{cita}</article>'
+            )
+
+        estilos_opiniones = """<style>
+.fb-reviews { margin: 8px 0 4px; }
+.fb-review-title { color: #f5f6f8; font-size: 1.05rem; font-weight: 800;
+    border-left: 3px solid #ffd400; padding-left: 9px; margin-bottom: 10px; }
+.fb-review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 10px; }
+.fb-review-card { min-width: 0; padding: 11px 13px; background: #191e25;
+    border: 1px solid #303945; border-radius: 11px; }
+.fb-review-top { display: flex; align-items: baseline; justify-content: space-between;
+    gap: 8px; color: #f5f6f8; font-size: .88rem; overflow-wrap: anywhere; }
+.fb-review-score { color: #ffd400; font-weight: 700; white-space: nowrap; font-size: .8rem; }
+.fb-reviews .fb-review-quote { color: #dce1e8; margin: 5px 0 2px; line-height: 1.4;
+    font-size: .86rem; overflow-wrap: anywhere; display: -webkit-box;
+    -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.fb-review-author { color: #aab5c2; font-size: .75rem; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .fb-review-grid { grid-template-columns: 1fr; } }
+</style>"""
+        st.markdown(
+            estilos_opiniones
+            + '<section class="fb-reviews" aria-label="Opiniones de la comunidad">'
+            + '<div class="fb-review-title">Opiniones de la comunidad</div>'
+            + f'<div class="fb-review-grid">{"".join(tarjetas)}</div></section>',
+            unsafe_allow_html=True,
+        )
 
     with st.expander("📱 DESCARGAR FAMILY BIKE PARA ANDROID", expanded=False):
         st.write("Lleva las rutas, quedadas y la comunidad motera en tu móvil Android.")
