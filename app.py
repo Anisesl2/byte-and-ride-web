@@ -137,7 +137,6 @@ st.set_page_config(
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-AUTH_DOMAIN = "users.byteandride.invalid"
 BUCKET_FAMILYBIKE = "familybike"
 TIENDA_URL = "https://payhip.com/Kardiaqo"
 FACEBOOK_URL = "https://m.facebook.com/groups/1646146103973952/?ref=share"
@@ -776,10 +775,6 @@ hr {
 # =========================================================
 # FUNCIONES GENERALES
 # =========================================================
-
-def email_interno(username):
-    return f"{username}@{AUTH_DOMAIN}"
-
 
 def email_valido(email):
     return bool(
@@ -1429,7 +1424,7 @@ st.markdown("""
     -webkit-text-fill-color:#FFD400!important;
 }
 /* El icono oficial multicolor de Google es un SVG embebido, sin dependencias externas. */
-.st-key-fb_google_login a, .st-key-fb_google_registro a {
+.st-key-fb_google_login a {
     display:flex!important;
     justify-content:center!important;
     align-items:center!important;
@@ -1443,11 +1438,11 @@ st.markdown("""
     min-height:52px!important;
     text-decoration:none!important;
 }
-.st-key-fb_google_login a *, .st-key-fb_google_registro a * {
+.st-key-fb_google_login a * {
     color:#202124!important;
     -webkit-text-fill-color:#202124!important;
 }
-.st-key-fb_google_login a::before, .st-key-fb_google_registro a::before {
+.st-key-fb_google_login a::before {
     content:"";
     width:21px;
     height:21px;
@@ -1469,10 +1464,8 @@ st.markdown("""
 # Estilo de acceso antes del renderizado, incluso cuando st.stop() corta la página.
 st.markdown("""<style>
 [data-testid="stMainBlockContainer"]:has(.fb-login-marker) {max-width:720px!important;}
-[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_login a,
-[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_registro a {background:#fff!important;border:1px solid #dadce0!important;color:#202124!important;-webkit-text-fill-color:#202124!important;}
-[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_login a:hover,
-[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_registro a:hover {background:#f1f3f4!important;}
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_login a {background:#fff!important;border:1px solid #dadce0!important;color:#202124!important;-webkit-text-fill-color:#202124!important;}
+[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_login a:hover {background:#f1f3f4!important;}
 </style>""",unsafe_allow_html=True)
 
 st.markdown("""<style>
@@ -1571,194 +1564,13 @@ if not autenticado:
     if error_acceso_google:
         st.error(error_acceso_google)
 
-    tab_login, tab_registro = st.tabs([
-        "INICIAR SESIÓN",
-        "CREAR CUENTA"
-    ])
-
-    with tab_login:
-
-        st.link_button(
-            "CONTINUAR CON GOOGLE",
-            iniciar_google_oauth(),
-            use_container_width=True,
-            key="fb_google_login"
-        )
-        st.caption("O entra con tu usuario y contraseña de siempre.")
-
-        with st.form("form_login"):
-
-            usuario_login = st.text_input(
-                "Nombre de usuario",
-                placeholder="Tu nombre de usuario"
-            )
-
-            password_login = st.text_input(
-                "Contraseña",
-                type="password"
-            )
-
-            boton_login = st.form_submit_button(
-                "ENTRAR",
-                use_container_width=True
-            )
-
-        if boton_login:
-
-            username = usuario_login.strip().lower()
-
-            if not username or not password_login:
-
-                st.error("Introduce tu usuario y contraseña.")
-
-            elif not re.fullmatch(r"[a-z0-9_]{3,24}", username):
-
-                st.error("El nombre de usuario no es válido.")
-
-            else:
-
-                try:
-
-                    response = supabase.auth.sign_in_with_password({
-                        "email": email_interno(username),
-                        "password": password_login
-                    })
-
-                    if guardar_sesion(response, username):
-                        st.session_state["seccion_activa"] = "menu"
-                        st.success("Sesión iniciada correctamente.")
-                        st.rerun()
-                    else:
-                        st.error(
-                            "Supabase no ha devuelto una sesión."
-                        )
-
-                except Exception:
-                    st.error(
-                        "Usuario o contraseña incorrectos. "
-                        "Comprueba tus datos e inténtalo de nuevo."
-                    )
-
-    with tab_registro:
-
-        st.link_button(
-            "CREAR CUENTA CON GOOGLE",
-            iniciar_google_oauth(),
-            use_container_width=True,
-            key="fb_google_registro"
-        )
-        st.caption("O crea tu cuenta con usuario y contraseña.")
-
-        st.caption(
-            "El correo indicado será tu dirección de contacto. "
-            "Seguirás accediendo con tu nombre de usuario y contraseña."
-        )
-
-        with st.form("form_registro"):
-
-            nuevo_usuario = st.text_input(
-                "Elige un nombre de usuario",
-                placeholder="Ejemplo: motero_01"
-            )
-
-            email_contacto = st.text_input(
-                "Tu correo electrónico real",
-                placeholder="nombre@ejemplo.com"
-            )
-
-            nueva_password = st.text_input(
-                "Elige una contraseña",
-                type="password"
-            )
-
-            repetir_password = st.text_input(
-                "Repite la contraseña",
-                type="password"
-            )
-
-            aceptar_avisos = st.checkbox(
-                "Acepto recibir por correo electrónico avisos "
-                "de nuevas rutas y novedades de FAMILY BIKE."
-            )
-
-            boton_registro = st.form_submit_button(
-                "CREAR CUENTA",
-                use_container_width=True
-            )
-
-        if boton_registro:
-
-            username = nuevo_usuario.strip().lower()
-            email_real = email_contacto.strip().lower()
-
-            if not re.fullmatch(r"[a-z0-9_]{3,24}", username):
-
-                st.error(
-                    "El usuario debe tener entre 3 y 24 caracteres. "
-                    "Utiliza letras, números o guion bajo."
-                )
-
-            elif not email_valido(email_real):
-
-                st.error(
-                    "Introduce una dirección de correo electrónico válida."
-                )
-
-            elif len(nueva_password) < 8:
-
-                st.error(
-                    "La contraseña debe tener al menos 8 caracteres."
-                )
-
-            elif nueva_password != repetir_password:
-
-                st.error("Las contraseñas no coinciden.")
-
-            else:
-
-                try:
-
-                    response = supabase.auth.sign_up({
-                        "email": email_interno(username),
-                        "password": nueva_password,
-                        "options": {
-                            "data": {
-                                "username": username
-                            }
-                        }
-                    })
-
-                    if guardar_sesion(response, username):
-
-                        user_id_nuevo = st.session_state.get("user_id")
-
-                        guardar_datos_contacto(
-                            user_id_nuevo,
-                            email_real,
-                            aceptar_avisos
-                        )
-
-                        st.session_state["seccion_activa"] = "menu"
-
-                        st.success(
-                            "¡Cuenta creada correctamente! "
-                            "Tus datos de contacto se han guardado."
-                        )
-
-                        st.rerun()
-
-                    else:
-
-                        st.warning(
-                            "Supabase ha recibido el registro, pero no ha "
-                            "devuelto una sesión. Inicia sesión con tu usuario "
-                            "y contraseña."
-                        )
-
-                except Exception as error:
-
-                    st.error("ERROR AL CREAR LA CUENTA")
-                    st.code(str(error))
+    st.caption("Usa tu cuenta de Google para entrar. Si es tu primera visita, se creará tu cuenta de Family Bike.")
+    st.link_button(
+        "Continuar con Google",
+        iniciar_google_oauth(),
+        use_container_width=True,
+        key="fb_google_login"
+    )
 
     # La portada usa únicamente los datos públicos de la RPC.
     try:
@@ -2049,7 +1861,7 @@ except Exception:
 
 
 # =========================================================
-# EDICIÓN DE PERFIL (GOOGLE Y USUARIO/CONTRASEÑA)
+# EDICIÓN DE PERFIL
 # =========================================================
 
 if st.session_state.get("seccion_activa") == "perfil":
