@@ -33,6 +33,18 @@ def fb_enlace_ruta(ruta):
 def fb_panel_opiniones(ruta, usuario_id, admin=False):
     clave = fb_clave_ruta(ruta)
     with st.expander("⭐ VALORAR · 💬 COMENTAR · 📲 COMPARTIR", expanded=False):
+        enlace = fb_enlace_ruta(ruta)
+        mensaje = f"🏍️ Descubre {ruta.get('nombre', 'esta ruta')} en FAMILY BIKE: {enlace}"
+        col_wa, col_fb = st.columns(2)
+        with col_wa:
+            st.link_button("📲 WhatsApp", "https://wa.me/?" + urlencode({"text": mensaje}),
+                           use_container_width=True)
+        with col_fb:
+            st.link_button("🔵 Facebook", "https://www.facebook.com/sharer/sharer.php?" +
+                           urlencode({"u": enlace}), use_container_width=True)
+        st.code(enlace, language=None)
+        st.caption("El enlace muestra una invitación pública; el recorrido requiere iniciar sesión.")
+
         try:
             votos = (supabase.table("familybike_valoraciones")
                      .select("usuario_id,puntuacion").eq("ruta_clave", clave).execute()).data or []
@@ -99,17 +111,7 @@ def fb_panel_opiniones(ruta, usuario_id, admin=False):
                             st.error("No se ha podido eliminar el comentario.")
                 st.divider()
 
-        enlace = fb_enlace_ruta(ruta)
-        mensaje = f"🏍️ Descubre {ruta.get('nombre', 'esta ruta')} en FAMILY BIKE: {enlace}"
-        col_wa, col_fb = st.columns(2)
-        with col_wa:
-            st.link_button("📲 WhatsApp", "https://wa.me/?" + urlencode({"text": mensaje}),
-                           use_container_width=True)
-        with col_fb:
-            st.link_button("🔵 Facebook", "https://www.facebook.com/sharer/sharer.php?" +
-                           urlencode({"u": enlace}), use_container_width=True)
-        st.code(enlace, language=None)
-        st.caption("El enlace muestra una invitación pública; el recorrido requiere iniciar sesión.")
+
 
 
 # =========================================================
