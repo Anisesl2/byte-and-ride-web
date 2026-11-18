@@ -1723,36 +1723,40 @@ if not autenticado:
                     st.error("ERROR AL CREAR LA CUENTA")
                     st.code(str(error))
 
-    st.markdown("## Explora Family Bike")
-    st.caption("Vista previa del menú · Solo para usuarios registrados")
+    # Valoraciones públicas sin mostrar recorridos a visitantes.
+    st.markdown("## ⭐ Rutas valoradas por nuestra comunidad")
+    st.caption("Opiniones de moteros registrados en Family Bike.")
 
-    menu_publico = [
-        ("🗺️", "Explorar rutas", "Encuentra tu próxima salida"),
-        ("📅", "Quedadas moteras", "Organiza y únete a salidas"),
-        ("🏍️", "Mi garaje", "Comparte tu moto"),
-        ("👥", "Comunidad", "Conoce a otros moteros"),
-        ("💬", "Chat general", "Habla con la comunidad"),
-        ("📍", "Subir mi ruta", "Comparte tus recorridos"),
-        ("👤", "Editar mi perfil", "Personaliza tu cuenta"),
-        ("🛒", "Tienda Family Bike", "Descubre la tienda"),
-    ]
+    try:
+        opiniones_publicas = supabase.rpc("fb_valoraciones_portada").execute().data or []
+    except Exception:
+        opiniones_publicas = []
+        st.info("Para mostrar las valoraciones, ejecuta el SQL de portada en Supabase.")
 
-    tarjetas_publicas = "".join(
-        f'<a class="fb-landing-card" href="#entra-en-family-bike">'
-        f'<div class="fb-landing-icon" aria-hidden="true">{icono}</div>'
-        f'<strong>{titulo}</strong><span>{descripcion}</span>'
-        '<span class="fb-landing-private">🔒 Solo para usuarios</span></a>'
-        for icono, titulo, descripcion in menu_publico
-    )
-    st.markdown(
-        f'<nav class="fb-landing-grid" aria-label="Vista previa del menú">{tarjetas_publicas}</nav>'
-        '<section class="fb-route-preview">'
-        '<h3>Rutas moteras</h3>'
-        '<p>Entra para ver los recorridos y abrirlos en el mapa.</p>'
-        '<a href="#entra-en-family-bike">🔒 Acceder a las rutas</a>'
-        '</section>',
-        unsafe_allow_html=True,
-    )
+    if opiniones_publicas:
+        for indice in range(0, len(opiniones_publicas), 2):
+            columnas = st.columns(2)
+            for columna, opinion in zip(columnas, opiniones_publicas[indice:indice + 2]):
+                with columna:
+                    nombre_ruta = html.escape(str(opinion.get("nombre_ruta") or "Ruta motera"))
+                    puntuacion = float(opinion.get("media") or 0)
+                    cantidad = int(opinion.get("total_votos") or 0)
+                    estrellas = "★" * max(0, min(5, round(puntuacion))) + "☆" * (5 - max(0, min(5, round(puntuacion))))
+                    st.markdown(
+                        f'<div style="background:#1b1e23;border:1px solid #69612a;'
+                        f'border-radius:15px;padding:18px;margin:8px 0">'
+                        f'<div style="font-weight:800;color:white;font-size:18px">{nombre_ruta}</div>'
+                        f'<div style="color:#f3df25;font-size:23px">{estrellas}</div>'
+                        f'<div style="color:#ddd">{puntuacion:.1f}/5 · {cantidad} valoraciones</div>'
+                        f'</div>', unsafe_allow_html=True
+                    )
+                    comentario = opinion.get("comentario")
+                    if comentario:
+                        st.markdown(f'💬 **{html.escape(str(opinion.get("autor") or "Motero"))}:**')
+                        st.write(str(comentario))
+        st.caption("Regístrate gratis para consultar los recorridos y publicar tu valoración.")
+    else:
+        st.info("Todavía no hay valoraciones publicadas. ¡Sé el primero en valorar una ruta!")
 
     with st.expander("📱 DESCARGAR FAMILY BIKE PARA ANDROID", expanded=False):
         st.write("Lleva las rutas, quedadas y la comunidad motera en tu móvil Android.")
