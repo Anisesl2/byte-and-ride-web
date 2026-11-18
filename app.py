@@ -16,6 +16,103 @@ from supabase import create_client
 
 
 # =========================================================
+# VALORACIONES Y COMPARTIR RUTAS — FAMILY BIKE
+# =========================================================
+
+FAMILYBIKE_PUBLIC_URL = "https://www.familybike.es/"
+
+
+def fb_clave_ruta(ruta):
+    return f"{ruta.get('_origen', 'catalogo')}:{ruta['id']}"
+
+
+def fb_enlace_ruta(ruta):
+    return FAMILYBIKE_PUBLIC_URL.rstrip("/") + "/?" + urlencode({"ruta": fb_clave_ruta(ruta)})
+
+
+def fb_panel_opiniones(ruta, usuario_id, admin=False):
+    clave = fb_clave_ruta(ruta)
+    with st.expander("⭐ VALORAR · 💬 COMENTAR · 📲 COMPARTIR", expanded=False):
+        try:
+            votos = (supabase.table("familybike_valoraciones")
+                     .select("usuario_id,puntuacion").eq("ruta_clave", clave).execute()).data or []
+            comentarios = (supabase.table("familybike_comentarios")
+                           .select("id,usuario_id,contenido,created_at")
+                           .eq("ruta_clave", clave).order("created_at", desc=True)
+                           .limit(100).execute()).data or []
+        except Exception:
+            st.warning("Las opiniones todavía no están disponibles. Ejecuta primero el SQL de instalación.")
+            return
+
+        media = sum(int(v["puntuacion"]) for v in votos) / len(votos) if votos else 0
+        st.markdown(f"**⭐ {media:.1f}/5** · {len(votos)} valoraciones · {len(comentarios)} comentarios")
+        anterior = next((int(v["puntuacion"]) for v in votos if v["usuario_id"] == usuario_id), 0)
+        with st.form(f"fb_voto_{clave}"):
+            nota = st.select_slider("Tu valoración", options=[1, 2, 3, 4, 5],
+                                    value=anterior or 5, key=f"fb_nota_{clave}")
+            if st.form_submit_button("⭐ Guardar valoración"):
+                try:
+                    supabase.table("familybike_valoraciones").upsert({
+                        "ruta_clave": clave, "usuario_id": usuario_id,
+                        "puntuacion": int(nota)
+                    }, on_conflict="ruta_clave,usuario_id").execute()
+                    st.success("Valoración guardada.")
+                    st.rerun()
+                except Exception:
+                    st.error("No se ha podido guardar la valoración. Revisa las políticas RLS.")
+
+        with st.form(f"fb_comentario_{clave}", clear_on_submit=True):
+            contenido = st.text_area("Tu comentario", max_chars=1000,
+                                     key=f"fb_texto_{clave}", placeholder="¿Qué te pareció la ruta?")
+            if st.form_submit_button("💬 Publicar comentario"):
+                if not contenido.strip():
+                    st.warning("Escribe un comentario antes de publicarlo.")
+                else:
+                    try:
+                        supabase.table("familybike_comentarios").insert({
+                            "ruta_clave": clave, "usuario_id": usuario_id,
+                            "contenido": contenido.strip()
+                        }).execute()
+                        st.success("Comentario publicado.")
+                        st.rerun()
+                    except Exception:
+                        st.error("No se ha podido publicar el comentario.")
+
+        if comentarios:
+            ids = list({c["usuario_id"] for c in comentarios})
+            try:
+                perfiles = (supabase.table("profiles").select("id,username")
+                           .in_("id", ids).execute()).data or []
+                nombres = {p["id"]: p.get("username") or "Motero" for p in perfiles}
+            except Exception:
+                nombres = {}
+            for c in comentarios:
+                st.markdown(f"**{html.escape(nombres.get(c['usuario_id'], 'Motero'))}** · "
+                            f"{html.escape(str(c.get('created_at',''))[:10])}")
+                st.write(c["contenido"])
+                if c["usuario_id"] == usuario_id or admin:
+                    if st.button("🗑️ Eliminar comentario", key=f"fb_del_{c['id']}"):
+                        try:
+                            supabase.table("familybike_comentarios").delete().eq("id", c["id"]).execute()
+                            st.rerun()
+                        except Exception:
+                            st.error("No se ha podido eliminar el comentario.")
+                st.divider()
+
+        enlace = fb_enlace_ruta(ruta)
+        mensaje = f"🏍️ Descubre {ruta.get('nombre', 'esta ruta')} en FAMILY BIKE: {enlace}"
+        col_wa, col_fb = st.columns(2)
+        with col_wa:
+            st.link_button("📲 WhatsApp", "https://wa.me/?" + urlencode({"text": mensaje}),
+                           use_container_width=True)
+        with col_fb:
+            st.link_button("🔵 Facebook", "https://www.facebook.com/sharer/sharer.php?" +
+                           urlencode({"u": enlace}), use_container_width=True)
+        st.code(enlace, language=None)
+        st.caption("El enlace muestra una invitación pública; el recorrido requiere iniciar sesión.")
+
+
+# =========================================================
 # CONFIGURACIÓN
 # =========================================================
 
@@ -1369,6 +1466,10 @@ st.markdown("<style>" + '\n/* ===== FAMILY BIKE - PORTADA PREMIUM ===== */\n.fb-
 
 if not autenticado:
 
+    clave_compartida = st.query_params.get("ruta", "")
+    if isinstance(clave_compartida, str) and re.fullmatch(r"(?:catalogo|propuesta):[a-zA-Z0-9_-]{1,80}", clave_compartida):
+        st.info("🏍️ ¡Te han compartido una ruta de FAMILY BIKE! Inicia sesión o crea tu cuenta para ver el recorrido, valorarlo y comentar.")
+
     st.markdown('<span class="fb-login-marker"></span>', unsafe_allow_html=True)
 
     # PORTADA PÚBLICA: solo contenido promocional, sin consultar rutas privadas.
@@ -1997,7 +2098,7 @@ try:
         .execute()
     )
 
-    rutas = ordenar_rutas(respuesta_rutas.data or [])
+    rutas = ordenar_rutas([{**r, "_origen": "catalogo"} for r in (respuesta_rutas.data or [])])
 
     # Las propuestas solo son públicas tras aprobación.
     try:
@@ -2010,7 +2111,7 @@ try:
         rutas = ordenar_rutas(
             rutas + [
                 {"id": item["id"], "nombre": item["nombre"],
-                 "url": item["url"], "imagen_url": IMAGEN_PREDETERMINADA}
+                 "url": item["url"], "imagen_url": IMAGEN_PREDETERMINADA, "_origen": "propuesta"}
                 for item in propuestas_aprobadas
             ]
         )
@@ -2346,6 +2447,8 @@ if st.session_state["seccion_activa"] == "rutas":
                         url_original,
                         use_container_width=True
                     )
+
+                fb_panel_opiniones(ruta, usuario_id, es_admin)
 
 
 # =========================================================
@@ -3619,6 +3722,19 @@ if st.session_state["seccion_activa"] == "administracion":
     ])
 
     with tab_chat:
+        with st.expander("⭐ MODERAR COMENTARIOS DE RUTAS"):
+            try:
+                comentarios_admin = (supabase.table("familybike_comentarios")
+                                     .select("id,ruta_clave,contenido,usuario_id,created_at")
+                                     .order("created_at", desc=True).limit(100).execute()).data or []
+                for comentario in comentarios_admin:
+                    st.write(f"**{comentario['ruta_clave']}** · {comentario['contenido']}")
+                    if st.button("Eliminar opinión", key=f"fb_admin_del_{comentario['id']}"):
+                        supabase.table("familybike_comentarios").delete().eq("id", comentario["id"]).execute()
+                        st.rerun()
+            except Exception:
+                st.warning("No se han podido cargar los comentarios de las rutas.")
+
         st.markdown("### 💬 MODERACIÓN DEL CHAT GENERAL")
         st.caption("Consulta los mensajes recientes y elimina los que incumplan las normas.")
         try:
