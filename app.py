@@ -2763,6 +2763,8 @@ if st.session_state["seccion_activa"] == "quedadas":
 
             else:
 
+                etapa_publicacion = "preparar la quedada"
+                quedada_guardada_en_supabase = False
                 try:
 
                     imagen_final = imagen_url_alternativa.strip()
@@ -2787,6 +2789,7 @@ if st.session_state["seccion_activa"] == "quedadas":
                     cartel_url = ""
 
                     if cartel_quedada is not None:
+                        etapa_publicacion = "subir el cartel de la quedada"
 
                         cartel_url = subir_archivo_storage(
                             cartel_quedada,
@@ -2824,6 +2827,7 @@ if st.session_state["seccion_activa"] == "quedadas":
                         .execute()
                     )
 
+                    quedada_guardada_en_supabase = True
                     filas_guardadas = respuesta_nueva.data or []
 
                     if not filas_guardadas:
@@ -2911,8 +2915,10 @@ if st.session_state["seccion_activa"] == "quedadas":
                 except Exception as error:
 
                     st.error(f"Error al {etapa_publicacion}.")
-                    st.exception(error)
-                    if etapa_publicacion != "guardar la quedada en Supabase":
+                    st.code(str(error))
+                    if etapa_publicacion == "subir el cartel de la quedada":
+                        st.info("Puedes volver a publicar sin adjuntar un cartel.")
+                    elif quedada_guardada_en_supabase:
                         st.warning("Comprueba la lista antes de reintentar: la quedada puede estar ya creada.")
 
 
