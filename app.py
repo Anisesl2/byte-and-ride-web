@@ -839,6 +839,8 @@ def cerrar_sesion():
         "fb_opinion_abierta",
         "fb_pagina_rutas",
         "fb_busqueda_anterior",
+        "fb_aviso_email_oculto",
+        "fb_aviso_email_guardado",
     ]:
         st.session_state.pop(key, None)
 
@@ -1842,7 +1844,7 @@ try:
 
     respuesta_perfil = (
         supabase.table("profiles")
-        .select("moto_foto_url,username")
+        .select("moto_foto_url,username,email_contacto,avisos_email")
         .eq("id", usuario_id)
         .maybe_single()
         .execute()
@@ -1858,6 +1860,29 @@ except Exception:
     st.warning(
         "No se ha podido cargar la fotografía del garaje."
     )
+
+
+# =========================================================
+# AVISO DE QUEDADAS POR CORREO
+# =========================================================
+
+if (
+    perfil_garaje
+    and not perfil_garaje.get("avisos_email")
+    and not st.session_state.get("fb_aviso_email_oculto")
+    and st.session_state["seccion_activa"] != "perfil"
+):
+    st.info(
+        "📩 ¿Quieres enterarte de las próximas quedadas? "
+        "Activa los avisos por correo en tu perfil."
+    )
+    col_configurar, col_omitir = st.columns(2)
+    if col_configurar.button("Configurar avisos", key="fb_configurar_avisos", use_container_width=True):
+        st.session_state["seccion_activa"] = "perfil"
+        st.rerun()
+    if col_omitir.button("Ahora no", key="fb_omitir_avisos", use_container_width=True):
+        st.session_state["fb_aviso_email_oculto"] = True
+        st.rerun()
 
 
 # =========================================================
@@ -1922,6 +1947,47 @@ if st.session_state.get("seccion_activa") == "perfil":
 
     if st.session_state.pop("aviso_perfil_actualizado", False):
         st.success("Nombre de usuario actualizado correctamente. Tu cuenta sigue vinculada al mismo acceso.")
+
+    st.markdown("### 📩 Avisos de quedadas")
+
+    if perfil_garaje:
+        with st.form("fb_formulario_avisos_email"):
+            correo_contacto = st.text_input(
+                "Correo de contacto",
+                value=perfil_garaje.get("email_contacto") or "",
+            )
+            avisos_email = st.checkbox(
+                "Recibir avisos por correo cuando se publique una quedada",
+                value=bool(perfil_garaje.get("avisos_email")),
+            )
+            guardar_avisos = st.form_submit_button(
+                "Guardar avisos", use_container_width=True
+            )
+
+        if guardar_avisos:
+            correo_contacto = correo_contacto.strip().lower()
+            if (correo_contacto or avisos_email) and (
+                not email_valido(correo_contacto) or correo_contacto.endswith(".invalid")
+            ):
+                st.error("Introduce un correo de contacto válido.")
+            else:
+                try:
+                    respuesta_contacto = guardar_datos_contacto(
+                        usuario_id, correo_contacto, avisos_email
+                    )
+                    filas = respuesta_contacto.data or []
+                    if not filas or filas[0].get("avisos_email") is not avisos_email:
+                        st.error("No se ha podido guardar la configuración de avisos.")
+                    else:
+                        st.session_state["fb_aviso_email_guardado"] = True
+                        st.rerun()
+                except Exception:
+                    st.error("No se ha podido guardar la configuración de avisos. Inténtalo de nuevo.")
+
+        if st.session_state.pop("fb_aviso_email_guardado", False):
+            st.success("Configuración de avisos guardada.")
+    else:
+        st.warning("No se ha podido cargar tu configuración de avisos.")
 
     st.caption("La fotografía de tu motocicleta se sigue gestionando desde MI GARAJE.")
 
