@@ -811,14 +811,23 @@ def guardar_sesion(response, username):
 
 
 def guardar_datos_contacto(user_id, email_contacto, avisos_email):
-    return (
+    supabase.table("profiles").update({
+        "email_contacto": email_contacto,
+        "avisos_email": avisos_email,
+    }).eq("id", user_id).execute()
+
+    respuesta = (
         supabase.table("profiles")
-        .update({
-            "email_contacto": email_contacto.strip().lower(),
-            "avisos_email": bool(avisos_email)
-        })
+        .select("email_contacto,avisos_email")
         .eq("id", user_id)
+        .maybe_single()
         .execute()
+    )
+    perfil_guardado = respuesta.data if respuesta is not None else None
+    return bool(
+        perfil_guardado
+        and perfil_guardado.get("email_contacto") == email_contacto
+        and perfil_guardado.get("avisos_email") is avisos_email
     )
 
 
@@ -1266,6 +1275,14 @@ st.markdown("""
     --fb-text:#f5f7fb;
     --fb-muted:#b7c0cd;
     --fb-line:#35404d;
+}
+.stApp .fb-aviso-quedadas {
+    background: var(--fb-bg) !important;
+    color: var(--fb-accent) !important;
+    -webkit-text-fill-color: var(--fb-accent) !important;
+    border: 1px solid var(--fb-accent);
+    border-radius: 12px;
+    padding: 12px 16px;
 }
 html,body,.stApp,[data-testid="stAppViewContainer"],
 [data-testid="stMain"],[data-testid="stMainBlockContainer"],
@@ -1868,13 +1885,18 @@ except Exception:
 
 if (
     perfil_garaje
-    and not perfil_garaje.get("avisos_email")
+    and perfil_garaje.get("avisos_email") is not True
     and not st.session_state.get("fb_aviso_email_oculto")
     and st.session_state["seccion_activa"] != "perfil"
 ):
-    st.info(
-        "📩 ¿Quieres enterarte de las próximas quedadas? "
-        "Activa los avisos por correo en tu perfil."
+    st.markdown(
+        """
+        <div class="fb-aviso-quedadas" role="status">
+            📩 ¿Quieres enterarte de las próximas quedadas?
+            Activa los avisos por correo en tu perfil.
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
     col_configurar, col_omitir = st.columns(2)
     if col_configurar.button("Configurar avisos", key="fb_configurar_avisos", use_container_width=True):
@@ -1951,6 +1973,11 @@ if st.session_state.get("seccion_activa") == "perfil":
     st.markdown("### 📩 Avisos de quedadas")
 
     if perfil_garaje:
+        if perfil_garaje.get("avisos_email") is True:
+            st.caption("Tus avisos por correo están activados.")
+        else:
+            st.caption("Introduce tu correo, marca la casilla y pulsa Guardar avisos.")
+
         with st.form("fb_formulario_avisos_email"):
             correo_contacto = st.text_input(
                 "Correo de contacto",
@@ -1972,12 +1999,9 @@ if st.session_state.get("seccion_activa") == "perfil":
                 st.error("Introduce un correo de contacto válido.")
             else:
                 try:
-                    respuesta_contacto = guardar_datos_contacto(
-                        usuario_id, correo_contacto, avisos_email
-                    )
-                    filas = respuesta_contacto.data or []
-                    if not filas or filas[0].get("avisos_email") is not avisos_email:
-                        st.error("No se ha podido guardar la configuración de avisos.")
+                    guardado = guardar_datos_contacto(usuario_id, correo_contacto, avisos_email)
+                    if not guardado:
+                        st.error("Supabase no confirmó el cambio de tus avisos. Inténtalo de nuevo.")
                     else:
                         st.session_state["fb_aviso_email_guardado"] = True
                         st.rerun()
