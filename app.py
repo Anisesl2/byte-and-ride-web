@@ -1511,6 +1511,33 @@ st.markdown("""<style>
 
 st.markdown("<style>" + '\n/* ===== FAMILY BIKE - PORTADA PREMIUM ===== */\n.fb-home-hero{position:relative;min-height:390px;border-radius:20px;overflow:hidden;margin:10px 0 25px;background:linear-gradient(90deg,rgba(5,8,13,.75),rgba(5,8,13,.1)),url("https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1800&q=85") center 52%/cover;border:1px solid #444}\n.fb-home-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.65))}\n.fb-home-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:390px;padding:28px;text-align:center}\n.fb-home-logo{width:min(68%,560px);max-height:285px;object-fit:contain;filter:drop-shadow(0 4px 18px rgba(0,0,0,.65))}\n.fb-home-tagline{font-family:Inter,sans-serif;font-weight:800;letter-spacing:3px;font-size:clamp(12px,2.1vw,22px);color:white;text-shadow:0 2px 10px black;margin-top:8px}\n.fb-home-line{height:5px;width:170px;background:#eeff00;transform:skew(-35deg);margin-top:20px}\n.fb-home-heading{font-family:\'Barlow Condensed\',Inter,sans-serif;font-weight:800;font-size:clamp(24px,3vw,34px);color:#f8f8f8;margin:24px 0 14px;border-left:5px solid #eeff00;padding-left:12px}\n.fb-route-tile{border:1px solid #766e28;border-radius:14px;overflow:hidden;background:#15171b;margin-bottom:8px}\n.fb-route-tile img{display:block;width:100%;height:170px;object-fit:cover}\n.fb-route-name{padding:12px 13px;font-weight:800;font-size:15px;color:#fff;min-height:52px}\n/* Botones de la portada: tarjetas oscuras con borde amarillo */\n.st-key-home_rutas button,.st-key-home_quedadas button,.st-key-home_garaje button,.st-key-home_comunidad button,\n.st-key-home_grupos button,.st-key-home_chat button,.st-key-home_subir button,.st-key-home_perfil button,.st-key-home_tienda button{\n min-height:110px!important;background:linear-gradient(145deg,#202329,#101217)!important;border:1px solid #b4a12e!important;border-radius:17px!important;color:#fff!important;white-space:pre-line!important;font-size:clamp(12px,1.5vw,17px)!important;font-weight:800!important;box-shadow:0 5px 18px rgba(0,0,0,.22)!important;\n}\n.st-key-home_rutas button:hover,.st-key-home_quedadas button:hover,.st-key-home_garaje button:hover,.st-key-home_comunidad button:hover,\n.st-key-home_grupos button:hover,.st-key-home_chat button:hover,.st-key-home_subir button:hover,.st-key-home_perfil button:hover,.st-key-home_tienda button:hover{border-color:#eeff00!important;box-shadow:0 0 16px rgba(238,255,0,.18)!important;transform:translateY(-2px)}\n.fb-logo-acceso img{background:transparent!important}\n@media(max-width:700px){.fb-home-hero,.fb-home-content{min-height:255px}.fb-home-logo{width:88%;max-height:170px}.fb-home-tagline{letter-spacing:1px}.fb-route-tile img{height:110px}.fb-route-name{font-size:12px;padding:8px}.st-key-home_rutas button,.st-key-home_quedadas button,.st-key-home_garaje button,.st-key-home_comunidad button,.st-key-home_grupos button,.st-key-home_chat button,.st-key-home_subir button,.st-key-home_perfil button,.st-key-home_tienda button{min-height:86px!important;font-size:11px!important;padding:6px!important}}\n' + "</style>", unsafe_allow_html=True)
 
+@st.cache_resource
+def almacen_presencia():
+    return {}, threading.Lock()
+
+
+def registrar_presencia(sesion_id, usuario_id=None):
+    sesiones, lock = almacen_presencia()
+    identidad = ("cuenta", str(usuario_id)) if usuario_id else ("visita", sesion_id)
+    with lock:
+        ahora = time_module.monotonic()
+        caducadas = [clave for clave, (_, ultima_signal) in sesiones.items()
+                     if ahora - ultima_signal >= 45]
+        for clave in caducadas:
+            del sesiones[clave]
+        sesiones[sesion_id] = (identidad, ahora)
+        return len({identidad_activa for identidad_activa, _ in sesiones.values()})
+
+
+@st.fragment(run_every="15s")
+def mostrar_personas_en_linea(usuario_id=None):
+    if "fb_presencia_id" not in st.session_state:
+        st.session_state["fb_presencia_id"] = secrets.token_urlsafe(24)
+    total = registrar_presencia(st.session_state["fb_presencia_id"], usuario_id)
+    mensaje = "1 persona en línea" if total == 1 else f"{total} personas en línea"
+    st.caption(f"🟢 {mensaje}")
+
+
 # =========================================================
 # ACCESO Y REGISTRO
 # =========================================================
@@ -1606,6 +1633,8 @@ if not autenticado:
             st.warning("La descarga Android todavía no está configurada.")
         st.caption("Solo Android · La instalación fuera de Google Play puede mostrar "
                    "advertencias de seguridad. No desactives Play Protect.")
+
+    mostrar_personas_en_linea()
 
     # -----------------------------------------------------
     # ACCESO DIRECTO A FACEBOOK
@@ -1773,6 +1802,8 @@ if "seccion_activa" not in st.session_state:
 # =========================================================
 # COMPROBAR SI ES ADMINISTRADOR
 # =========================================================
+
+mostrar_personas_en_linea(usuario_id)
 
 es_admin = comprobar_es_admin(usuario_id)
 
