@@ -1591,82 +1591,17 @@ if not autenticado:
         key="fb_google_login"
     )
 
-    # La portada usa únicamente los datos públicos de la RPC.
-    try:
-        opiniones_publicas = supabase.rpc("fb_valoraciones_portada").execute().data or []
-    except Exception:
-        opiniones_publicas = []
-
-    if opiniones_publicas:
-        # Prioriza los comentarios. Si todavía no hay, muestra las valoraciones.
-        opiniones_con_texto = [
-            opinion for opinion in opiniones_publicas
-            if str(opinion.get("comentario") or "").strip()
-        ]
-        tarjetas = []
-        for opinion in (opiniones_con_texto or opiniones_publicas)[:2]:
-            nombre_ruta = html.escape(str(opinion.get("nombre_ruta") or "Ruta motera"))
-            nota = float(opinion.get("media") or 0)
-            cantidad = int(opinion.get("total_votos") or 0)
-            comentario = " ".join(str(opinion.get("comentario") or "").split())
-
-            if cantidad:
-                nota_visible = f"{nota:.1f}".replace(".", ",")
-                votos = "valoración" if cantidad == 1 else "valoraciones"
-                detalle = (
-                    f'<span class="fb-review-score" title="{cantidad} {votos}">'
-                    f'★ {nota_visible}/5</span>'
-                )
-            else:
-                detalle = ""
-
-            cita = ""
-            if comentario:
-                if len(comentario) > 140:
-                    comentario = comentario[:139].rstrip() + "…"
-                autor = html.escape(str(opinion.get("autor") or "Motero"))
-                cita = (
-                    f'<p class="fb-review-quote">«{html.escape(comentario)}»</p>'
-                    f'<div class="fb-review-author">{autor}</div>'
-                )
-
-            tarjetas.append(
-                '<article class="fb-review-card">'
-                '<div class="fb-review-top">'
-                f'<strong>{nombre_ruta}</strong>{detalle}</div>'
-                f'{cita}</article>'
-            )
-
-        estilos_opiniones = """<style>
-.fb-reviews { margin: 8px 0 4px; }
-.fb-review-title { color: #f5f6f8; font-size: 1.05rem; font-weight: 800;
-    border-left: 3px solid #ffd400; padding-left: 9px; margin-bottom: 10px; }
-.fb-review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-    gap: 10px; }
-.fb-review-card { min-width: 0; padding: 11px 13px; background: #191e25;
-    border: 1px solid #303945; border-radius: 11px; }
-.fb-review-top { display: flex; align-items: baseline; justify-content: space-between;
-    gap: 8px; color: #f5f6f8; font-size: .88rem; overflow-wrap: anywhere; }
-.fb-review-score { color: #ffd400; font-weight: 700; white-space: nowrap; font-size: .8rem; }
-.fb-reviews .fb-review-quote { color: #dce1e8; margin: 5px 0 2px; line-height: 1.4;
-    font-size: .86rem; overflow-wrap: anywhere; display: -webkit-box;
-    -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.fb-review-author { color: #aab5c2; font-size: .75rem; overflow-wrap: anywhere; }
-@media (max-width: 600px) { .fb-review-grid { grid-template-columns: 1fr; } }
-</style>"""
-        st.markdown(
-            estilos_opiniones
-            + '<section class="fb-reviews" aria-label="Opiniones de la comunidad">'
-            + '<div class="fb-review-title">Opiniones de la comunidad</div>'
-            + f'<div class="fb-review-grid">{"".join(tarjetas)}</div></section>',
-            unsafe_allow_html=True,
-        )
-
-    with st.expander("📱 DESCARGAR FAMILY BIKE PARA ANDROID", expanded=False):
+    with st.container(border=True):
+        st.markdown("### 📱 Family Bike para Android")
         st.write("Lleva las rutas, quedadas y la comunidad motera en tu móvil Android.")
-        if FAMILYBIKE_APK_URL.startswith("https://"):
-            st.link_button("⬇️ DESCARGAR APP ANDROID", FAMILYBIKE_APK_URL,
-                           use_container_width=True, type="primary")
+        if isinstance(FAMILYBIKE_APK_URL, str) and FAMILYBIKE_APK_URL.strip().startswith("https://"):
+            st.link_button(
+                "⬇️ Descargar app para Android",
+                FAMILYBIKE_APK_URL.strip(),
+                use_container_width=True,
+                type="primary",
+                key="fb_descargar_android",
+            )
         else:
             st.warning("La descarga Android todavía no está configurada.")
         st.caption("Solo Android · La instalación fuera de Google Play puede mostrar "
