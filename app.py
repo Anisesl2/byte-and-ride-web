@@ -1589,7 +1589,7 @@ def compartir_pegatina_mural(entrada):
 
 
 def mostrar_mural_publico(pegatina_id):
-    with st.container(border=True):
+    with st.container(key="fb_muro_portada"):
         st.markdown("## 🏍️ Muro de pegatinas")
         por_pagina = 6
         pagina = st.session_state.get("pagina_mural_publico", 0)
@@ -1700,6 +1700,27 @@ if not autenticado:
       background:linear-gradient(90deg,rgba(8,10,14,.95),rgba(8,10,14,.55)),
       url('https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1000&q=80') center/cover}
     .fb-route-preview a{color:#f5ef00!important;font-weight:700}
+    .st-key-fb_muro_portada {
+      --junta-muro:#181719;
+      padding:clamp(12px,3vw,22px);
+      border:1px solid #5b5147;
+      border-radius:14px;
+      background:
+        radial-gradient(ellipse at 50% 25%,rgba(255,210,145,.16),transparent 72%),
+        repeating-linear-gradient(0deg,var(--junta-muro) 0 2px,transparent 2px 36px),
+        conic-gradient(from 90deg at 2px 50%,transparent 0 50%,var(--junta-muro) 0 75%,transparent 0)
+          0 0 / 112px 72px,
+        conic-gradient(from 90deg at 2px 50%,transparent 0 25%,var(--junta-muro) 0 50%,transparent 0)
+          56px 0 / 112px 72px,
+        linear-gradient(90deg,#352c29,#302827);
+    }
+    .st-key-fb_muro_portada h2 {
+      color:#ffdf39!important;
+    }
+    .st-key-fb_muro_portada .st-key-fb_pegatinas_portada [data-testid="stImage"] img {
+      filter:drop-shadow(0 1px 2px rgba(255,225,187,.28))
+             drop-shadow(0 4px 7px rgba(0,0,0,.65));
+    }
     .st-key-fb_acceso_portada {
       background:linear-gradient(110deg,#302818,#1b2027);
       border:1px solid #877018;
