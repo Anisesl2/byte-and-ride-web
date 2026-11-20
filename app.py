@@ -1558,14 +1558,15 @@ def mostrar_personas_en_linea(usuario_id=None):
     st.caption(f"🟢 {mensaje}")
 
 
-def mostrar_pegatina_mural(entrada):
+def mostrar_pegatina_mural(entrada, mostrar_nombre=True):
     try:
         imagen_mural = base64.b64decode(entrada["imagen_webp"], validate=True)
         with Image.open(BytesIO(imagen_mural), formats=["WEBP"]) as imagen:
             st.image(imagen.copy(), use_container_width=True)
     except (ValueError, OSError, Image.DecompressionBombError):
         st.caption("Imagen no disponible.")
-    st.text(entrada["nombre_grupo"])
+    if mostrar_nombre:
+        st.text(entrada["nombre_grupo"])
 
 
 def compartir_pegatina_mural(entrada):
@@ -1586,7 +1587,6 @@ def compartir_pegatina_mural(entrada):
 def mostrar_mural_publico(pegatina_id):
     with st.container(border=True):
         st.markdown("## 🏍️ Muro de pegatinas")
-        st.caption("Entra con Google para votar por tu pegatina favorita.")
         por_pagina = 6
         pagina = st.session_state.get("pagina_mural_publico", 0)
         if pegatina_id and st.button("← Ver todo el muro", key="mural_publico_ver_todo"):
@@ -1610,18 +1610,39 @@ def mostrar_mural_publico(pegatina_id):
                 st.info("Todavía no hay pegatinas publicadas.")
 
         visibles = entradas[:por_pagina]
-        for inicio in range(0, len(visibles), 3):
-            columnas = st.columns(3, gap="small")
-            for columna, entrada in zip(columnas, visibles[inicio:inicio + 3]):
-                with columna:
-                    mostrar_pegatina_mural(entrada)
-                    st.link_button(
-                        "🤍 Me gusta",
-                        iniciar_google_oauth(str(entrada["id"])),
-                        key=f"mural_publico_votar_{entrada['id']}",
-                        use_container_width=True,
-                    )
-                    compartir_pegatina_mural(entrada)
+        if visibles:
+            with st.container(key="fb_pegatinas_portada"):
+                st.markdown(
+                    """
+                    <style>
+                    .st-key-fb_pegatinas_portada [data-testid="stHorizontalBlock"] {
+                        flex-wrap: nowrap;
+                    }
+                    .st-key-fb_pegatinas_portada [data-testid="stColumn"] {
+                        flex: 1 1 0 !important;
+                        min-width: 0 !important;
+                        width: auto !important;
+                    }
+                    .st-key-fb_pegatinas_portada [data-testid="stLinkButton"] a {
+                        min-height: 0;
+                        padding: .2rem .55rem;
+                        font-size: .78rem;
+                        line-height: 1.25;
+                    }
+                    </style>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                for inicio in range(0, len(visibles), 2):
+                    columnas = st.columns(2, gap="small")
+                    for columna, entrada in zip(columnas, visibles[inicio:inicio + 2]):
+                        with columna:
+                            mostrar_pegatina_mural(entrada, mostrar_nombre=False)
+                            st.link_button(
+                                "Me gusta",
+                                iniciar_google_oauth(str(entrada["id"])),
+                                key=f"mural_publico_votar_{entrada['id']}",
+                            )
 
         if not pegatina_id and (pagina or len(entradas) > por_pagina):
             anterior, siguiente = st.columns(2)
