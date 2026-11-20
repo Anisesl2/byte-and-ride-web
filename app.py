@@ -1468,29 +1468,35 @@ st.markdown("""
     justify-content:center!important;
     align-items:center!important;
     gap:12px!important;
-    background:#ffffff!important;
-    color:#202124!important;
-    -webkit-text-fill-color:#202124!important;
-    border:1px solid #dadce0!important;
+    background:#ffd400!important;
+    color:#171717!important;
+    -webkit-text-fill-color:#171717!important;
+    border:1px solid #ffe564!important;
     border-radius:12px!important;
     font-weight:700!important;
-    min-height:52px!important;
+    min-height:56px!important;
+    box-shadow:0 5px 18px rgba(255,212,0,.18);
     text-decoration:none!important;
 }
 .st-key-fb_google_login a * {
-    color:#202124!important;
-    -webkit-text-fill-color:#202124!important;
+    color:#171717!important;
+    -webkit-text-fill-color:#171717!important;
 }
 .st-key-fb_google_login a::before {
     content:"";
-    width:21px;
-    height:21px;
     flex-shrink:0;
     display:inline-block;
     background-image:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"%3E%3Cpath fill="%23EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/%3E%3Cpath fill="%234285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.75 7.18l7.73 6C44.43 38.03 46.98 31.88 46.98 24.55z"/%3E%3Cpath fill="%23FBBC05" d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78l7.97-6.19z"/%3E%3Cpath fill="%2334A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6C30.03 37.65 27.28 38.5 24 38.5c-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/%3E%3C/svg%3E');
     background-repeat:no-repeat;
-    background-size:contain;
+    background-size:16px;
+    background-position:center;
+    background-color:#fff;
+    width:26px;
+    height:26px;
+    border-radius:50%;
 }
+.st-key-fb_google_login a:hover {background:#ffe564!important;}
+.st-key-fb_google_login a:focus-visible {outline:2px solid #fff;outline-offset:3px;}
 @media(max-width:640px) {
     [data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stTabs"] {padding:8px!important}
     [data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stForm"] {padding:12px!important}
@@ -1503,8 +1509,6 @@ st.markdown("""
 # Estilo de acceso antes del renderizado, incluso cuando st.stop() corta la página.
 st.markdown("""<style>
 [data-testid="stMainBlockContainer"]:has(.fb-login-marker) {max-width:720px!important;}
-[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_login a {background:#fff!important;border:1px solid #dadce0!important;color:#202124!important;-webkit-text-fill-color:#202124!important;}
-[data-testid="stMainBlockContainer"]:has(.fb-login-marker) .st-key-fb_google_login a:hover {background:#f1f3f4!important;}
 </style>""",unsafe_allow_html=True)
 
 st.markdown("""<style>
@@ -1696,7 +1700,19 @@ if not autenticado:
       background:linear-gradient(90deg,rgba(8,10,14,.95),rgba(8,10,14,.55)),
       url('https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1000&q=80') center/cover}
     .fb-route-preview a{color:#f5ef00!important;font-weight:700}
-    #entra-en-family-bike{scroll-margin-top:4rem}
+    .st-key-fb_acceso_portada {
+      background:linear-gradient(110deg,#302818,#1b2027);
+      border:1px solid #877018;
+      border-radius:14px;
+      padding:clamp(14px,3vw,24px);
+    }
+    #entra-en-family-bike {
+      color:#ffdf39!important;
+      font-size:clamp(25px,5vw,36px);
+      padding:0;
+      margin:0;
+      scroll-margin-top:4rem;
+    }
     
     @media(max-width:640px){
       .fb-landing-hero{min-height:0;background-position:58% center}
@@ -1721,21 +1737,20 @@ if not autenticado:
         unsafe_allow_html=True
     )
 
-    st.markdown(
-        '<h2 id="entra-en-family-bike">Entra en Family Bike</h2>',
-        unsafe_allow_html=True,
-    )
-
-    if error_acceso_google:
-        st.error(error_acceso_google)
-
-    st.caption("Usa tu cuenta de Google para entrar. Si es tu primera visita, se creará tu cuenta de Family Bike.")
-    st.link_button(
-        "Continuar con Google",
-        iniciar_google_oauth(),
-        use_container_width=True,
-        key="fb_google_login"
-    )
+    with st.container(key="fb_acceso_portada"):
+        st.markdown(
+            '<h2 id="entra-en-family-bike">Entra en Family Bike</h2>',
+            unsafe_allow_html=True,
+        )
+        st.caption("Tu cuenta de Google te sirve para entrar o registrarte gratis.")
+        if error_acceso_google:
+            st.error(error_acceso_google)
+        st.link_button(
+            "Continuar con Google",
+            iniciar_google_oauth(),
+            use_container_width=True,
+            key="fb_google_login",
+        )
 
     with st.container(border=True):
         st.markdown("### 📱 Family Bike para Android")
