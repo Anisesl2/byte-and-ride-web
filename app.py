@@ -162,6 +162,14 @@ def almacen_oauth_google():
     return {"flujos": {}, "lock": threading.RLock()}
 
 
+def id_pegatina_compartida():
+    valor = st.query_params.get("pegatina", "")
+    if re.fullmatch(r"[0-9]{1,19}|[a-fA-F0-9]{8}(?:-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}", valor):
+        if not valor.isdecimal() or int(valor) <= 9223372036854775807:
+            return valor
+    return None
+
+
 def iniciar_google_oauth():
     nonce = secrets.token_urlsafe(32)
     verifier = secrets.token_urlsafe(64)
@@ -176,7 +184,8 @@ def iniciar_google_oauth():
             if ahora - registro["creado"] > 600:
                 almacen["flujos"].pop(clave, None)
         almacen["flujos"][nonce] = {
-            "verifier": verifier, "creado": ahora
+            "verifier": verifier, "creado": ahora,
+            "pegatina": id_pegatina_compartida(),
         }
 
     retorno = GOOGLE_REDIRECT_URL + "?" + urlencode({"fb_oauth": nonce})
@@ -198,7 +207,15 @@ def completar_google_oauth():
         return None
 
     if error_google:
+        if nonce:
+            almacen = almacen_oauth_google()
+            with almacen["lock"]:
+                registro = almacen["flujos"].pop(nonce, None)
+        else:
+            registro = None
         st.query_params.clear()
+        if registro and registro.get("pegatina"):
+            st.query_params["pegatina"] = registro["pegatina"]
         return "Google ha cancelado el acceso o ha devuelto un error. Inténtalo de nuevo."
 
     if not codigo or not nonce:
@@ -279,6 +296,8 @@ def completar_google_oauth():
         st.session_state["username"] = username
         st.session_state["seccion_activa"] = "menu"
         st.query_params.clear()
+        if registro.get("pegatina"):
+            st.query_params["pegatina"] = registro["pegatina"]
         st.rerun()
 
     except HTTPError as error:
@@ -843,6 +862,7 @@ def cerrar_sesion():
         "username",
         "user_id",
         "seccion_activa",
+        "pegatina_compartida",
         "fb_cache_datos",
         "fb_seccion_anterior",
         "fb_opinion_abierta",
@@ -1544,6 +1564,9 @@ def mostrar_personas_en_linea(usuario_id=None):
 
 if not autenticado:
 
+    if id_pegatina_compartida():
+        st.info("🏍️ Te han compartido una pegatina de Family Bike. Entra con Google para verla.")
+
     clave_compartida = st.query_params.get("ruta", "")
     if isinstance(clave_compartida, str) and re.fullmatch(r"(?:catalogo|propuesta):[a-zA-Z0-9_-]{1,80}", clave_compartida):
         st.info("🏍️ ¡Te han compartido una ruta de FAMILY BIKE! Inicia sesión o crea tu cuenta para ver el recorrido, valorarlo y comentar.")
@@ -1797,6 +1820,12 @@ if not usuario_id:
 
 if "seccion_activa" not in st.session_state:
     st.session_state["seccion_activa"] = "menu"
+
+pegatina_compartida = id_pegatina_compartida()
+if pegatina_compartida:
+    st.session_state["pegatina_compartida"] = pegatina_compartida
+    st.session_state["seccion_activa"] = "grupos"
+    del st.query_params["pegatina"]
 
 
 # =========================================================
@@ -2234,6 +2263,7 @@ else:
         use_container_width=True
     ):
         st.session_state["seccion_activa"] = "menu"
+        st.session_state.pop("pegatina_compartida", None)
         st.rerun()
 
 
@@ -3429,17 +3459,25 @@ if st.session_state["seccion_activa"] == "grupos":
     st.markdown("## 🏍️ Muro de pegatinas")
     st.caption("Comparte la pegatina de tu grupo en el muro de Family Bike.")
 
+    pegatina_destacada = st.session_state.get("pegatina_compartida")
+    if pegatina_destacada and st.button("← Ver todo el muro", key="mural_ver_todo"):
+        st.session_state.pop("pegatina_compartida", None)
+        st.session_state["pagina_mural"] = 0
+        st.rerun()
+
     tabla_mural = supabase.table("familybike_mural_pegatinas")
     por_pagina = 6
     pagina_mural = st.session_state.get("pagina_mural", 0)
 
     try:
-        entradas_mural = (
-            tabla_mural.select("id,nombre_grupo,imagen_webp")
-            .order("id", desc=True)
-            .range(pagina_mural * por_pagina, (pagina_mural + 1) * por_pagina)
-            .execute().data or []
-        )
+        consulta_mural = tabla_mural.select("id,nombre_grupo,imagen_webp")
+        if pegatina_destacada:
+            consulta_mural = consulta_mural.eq("id", pegatina_destacada).limit(1)
+        else:
+            consulta_mural = consulta_mural.order("id", desc=True).range(
+                pagina_mural * por_pagina, (pagina_mural + 1) * por_pagina
+            )
+        entradas_mural = consulta_mural.execute().data or []
     except Exception:
         st.warning("El muro no está disponible en este momento.")
     else:
@@ -3476,16 +3514,31 @@ if st.session_state["seccion_activa"] == "grupos":
                             st.error("No se ha podido publicar la pegatina. Inténtalo de nuevo.")
                         else:
                             st.session_state["pagina_mural"] = 0
+                            st.session_state.pop("pegatina_compartida", None)
                             st.session_state["mural_publicado"] = True
                             st.rerun()
 
-        st.markdown("### Pegatinas publicadas")
-        if not entradas_mural:
-            st.info("El muro está vacío. ¡Anímate a subir la primera pegatina!")
+        st.markdown("### Pegatina compartida" if pegatina_destacada else "### Pegatinas publicadas")
+        visibles = entradas_mural[:por_pagina]
+        if not visibles:
+            if pegatina_destacada:
+                st.info("Esta pegatina ya no está disponible.")
+            elif pagina_mural == 0:
+                st.info("El muro está vacío. ¡Anímate a subir la primera pegatina!")
 
-        for inicio in range(0, min(len(entradas_mural), por_pagina), 3):
+        votos_mural = None
+        if visibles:
+            try:
+                resumen = supabase.rpc("familybike_resumen_me_gusta_mural", {
+                    "pegatinas": [{"id": entrada["id"]} for entrada in visibles],
+                }).execute().data
+                votos_mural = {fila["pegatina_id"]: fila for fila in resumen}
+            except Exception:
+                st.caption("Los Me gusta no están disponibles en este momento.")
+
+        for inicio in range(0, len(visibles), 3):
             columnas = st.columns(3, gap="small")
-            for columna, entrada in zip(columnas, entradas_mural[inicio:min(inicio + 3, por_pagina)]):
+            for columna, entrada in zip(columnas, visibles[inicio:inicio + 3]):
                 with columna, st.container(border=True):
                     try:
                         imagen_mural = base64.b64decode(entrada["imagen_webp"], validate=True)
@@ -3494,8 +3547,45 @@ if st.session_state["seccion_activa"] == "grupos":
                     except (ValueError, OSError, Image.DecompressionBombError):
                         st.caption("Imagen no disponible.")
                     st.text(entrada["nombre_grupo"])
+                    pegatina_id = str(entrada["id"])
+                    if votos_mural is not None:
+                        voto = votos_mural.get(pegatina_id, {})
+                        marcado = voto.get("mi_voto", False)
+                        etiqueta = "❤️ Quitar Me gusta" if marcado else "🤍 Me gusta"
+                        if st.button(
+                            f"{etiqueta} · {voto.get('total', 0)}",
+                            key=f"mural_me_gusta_{pegatina_id}",
+                            use_container_width=True,
+                        ):
+                            tabla_votos = supabase.table("familybike_mural_me_gusta")
+                            try:
+                                if marcado:
+                                    (tabla_votos.delete().eq("pegatina_id", pegatina_id)
+                                     .eq("usuario_id", str(usuario_id)).execute())
+                                else:
+                                    tabla_votos.upsert(
+                                        {"pegatina_id": pegatina_id, "usuario_id": str(usuario_id)},
+                                        on_conflict="pegatina_id,usuario_id",
+                                        ignore_duplicates=True,
+                                    ).execute()
+                            except Exception:
+                                st.error("No se ha podido guardar tu Me gusta. Inténtalo de nuevo.")
+                            else:
+                                st.rerun()
 
-        if pagina_mural or len(entradas_mural) > por_pagina:
+                    enlace_pegatina = FAMILYBIKE_PUBLIC_URL + "?" + urlencode({"pegatina": pegatina_id})
+                    mensaje = f"🏍️ Pegatina de {entrada['nombre_grupo']} en Family Bike\n{enlace_pegatina}"
+                    whatsapp, facebook = st.columns(2, gap="small")
+                    whatsapp.link_button(
+                        "WhatsApp", "https://wa.me/?" + urlencode({"text": mensaje}),
+                        use_container_width=True,
+                    )
+                    facebook.link_button(
+                        "Facebook", "https://www.facebook.com/sharer/sharer.php?" +
+                        urlencode({"u": enlace_pegatina}), use_container_width=True,
+                    )
+
+        if not pegatina_destacada and (pagina_mural or len(entradas_mural) > por_pagina):
             anterior, siguiente = st.columns(2)
             if anterior.button("← Anterior", disabled=pagina_mural == 0, key="mural_anterior"):
                 st.session_state["pagina_mural"] = pagina_mural - 1
