@@ -1773,6 +1773,8 @@ if not autenticado:
             key="fb_google_login",
         )
 
+    mostrar_mural_publico(pegatina_publica)
+
     with st.container(border=True):
         st.markdown("### 📱 Family Bike para Android")
         st.write("Lleva las rutas, quedadas y la comunidad motera en tu móvil Android.")
@@ -1789,7 +1791,6 @@ if not autenticado:
         st.caption("Solo Android · La instalación fuera de Google Play puede mostrar "
                    "advertencias de seguridad. No desactives Play Protect.")
 
-    mostrar_mural_publico(pegatina_publica)
     mostrar_personas_en_linea()
 
     # -----------------------------------------------------
