@@ -1584,52 +1584,55 @@ def compartir_pegatina_mural(entrada):
 
 
 def mostrar_mural_publico(pegatina_id):
-    st.markdown("## 🏍️ Muro de pegatinas")
-    por_pagina = 6
-    pagina = st.session_state.get("pagina_mural_publico", 0)
-    if pegatina_id and st.button("← Ver todo el muro", key="mural_publico_ver_todo"):
-        del st.query_params["pegatina"]
-        st.session_state["pagina_mural_publico"] = 0
-        st.rerun()
-
-    try:
-        entradas = supabase.rpc("familybike_mural_publico", {
-            "id_buscado": pegatina_id,
-            "desplazamiento": pagina * por_pagina,
-        }).execute().data or []
-    except Exception:
-        st.caption("El muro de pegatinas no está disponible en este momento.")
-        return
-
-    if not entradas:
-        if pegatina_id:
-            st.info("Esta pegatina ya no está disponible.")
-        elif pagina == 0:
-            st.info("Todavía no hay pegatinas publicadas.")
-
-    visibles = entradas[:por_pagina]
-    for inicio in range(0, len(visibles), 3):
-        columnas = st.columns(3, gap="small")
-        for columna, entrada in zip(columnas, visibles[inicio:inicio + 3]):
-            with columna, st.container(border=True):
-                mostrar_pegatina_mural(entrada)
-                st.link_button(
-                    "🤍 Me gusta · Entra con Google",
-                    iniciar_google_oauth(str(entrada["id"])),
-                    key=f"mural_publico_votar_{entrada['id']}",
-                    use_container_width=True,
-                )
-                compartir_pegatina_mural(entrada)
-
-    if not pegatina_id and (pagina or len(entradas) > por_pagina):
-        anterior, siguiente = st.columns(2)
-        if anterior.button("← Anterior", disabled=pagina == 0, key="mural_publico_anterior"):
-            st.session_state["pagina_mural_publico"] = pagina - 1
+    with st.container(border=True):
+        st.markdown("## 🏍️ Muro de pegatinas")
+        st.caption("Entra con Google para votar por tu pegatina favorita.")
+        por_pagina = 6
+        pagina = st.session_state.get("pagina_mural_publico", 0)
+        if pegatina_id and st.button("← Ver todo el muro", key="mural_publico_ver_todo"):
+            del st.query_params["pegatina"]
+            st.session_state["pagina_mural_publico"] = 0
             st.rerun()
-        if siguiente.button("Siguiente →", disabled=len(entradas) <= por_pagina,
-                            key="mural_publico_siguiente"):
-            st.session_state["pagina_mural_publico"] = pagina + 1
-            st.rerun()
+
+        try:
+            entradas = supabase.rpc("familybike_mural_publico", {
+                "id_buscado": pegatina_id,
+                "desplazamiento": pagina * por_pagina,
+            }).execute().data or []
+        except Exception:
+            st.caption("El muro de pegatinas no está disponible en este momento.")
+            return
+
+        if not entradas:
+            if pegatina_id:
+                st.info("Esta pegatina ya no está disponible.")
+            elif pagina == 0:
+                st.info("Todavía no hay pegatinas publicadas.")
+
+        visibles = entradas[:por_pagina]
+        for inicio in range(0, len(visibles), 3):
+            columnas = st.columns(3, gap="small")
+            for columna, entrada in zip(columnas, visibles[inicio:inicio + 3]):
+                with columna:
+                    mostrar_pegatina_mural(entrada)
+                    st.link_button(
+                        "🤍 Me gusta",
+                        iniciar_google_oauth(str(entrada["id"])),
+                        key=f"mural_publico_votar_{entrada['id']}",
+                        use_container_width=True,
+                    )
+                    compartir_pegatina_mural(entrada)
+
+        if not pegatina_id and (pagina or len(entradas) > por_pagina):
+            anterior, siguiente = st.columns(2)
+            if anterior.button("← Anterior", disabled=pagina == 0, key="mural_publico_anterior"):
+                st.session_state["pagina_mural_publico"] = pagina - 1
+                st.rerun()
+            if siguiente.button("Siguiente →", disabled=len(entradas) <= por_pagina,
+                                key="mural_publico_siguiente"):
+                st.session_state["pagina_mural_publico"] = pagina + 1
+                st.rerun()
+
 
 
 # =========================================================
@@ -1897,6 +1900,7 @@ if "seccion_activa" not in st.session_state:
 pegatina_compartida = id_pegatina_compartida()
 if pegatina_compartida:
     st.session_state["pegatina_compartida"] = pegatina_compartida
+    st.session_state["pagina_mural"] = 0
     st.session_state["seccion_activa"] = "grupos"
     del st.query_params["pegatina"]
 
@@ -3533,24 +3537,29 @@ if st.session_state["seccion_activa"] == "grupos":
     st.caption("Comparte la pegatina de tu grupo en el muro de Family Bike.")
 
     pegatina_destacada = st.session_state.get("pegatina_compartida")
-    if pegatina_destacada and st.button("← Ver todo el muro", key="mural_ver_todo"):
-        st.session_state.pop("pegatina_compartida", None)
-        st.session_state["pagina_mural"] = 0
-        st.rerun()
-
     tabla_mural = supabase.table("familybike_mural_pegatinas")
     por_pagina = 6
     pagina_mural = st.session_state.get("pagina_mural", 0)
 
     try:
-        consulta_mural = tabla_mural.select("id,nombre_grupo,imagen_webp")
+        campos_mural = "id,nombre_grupo,imagen_webp"
+        destacadas = []
         if pegatina_destacada:
-            consulta_mural = consulta_mural.eq("id", pegatina_destacada).limit(1)
-        else:
-            consulta_mural = consulta_mural.order("id", desc=True).range(
-                pagina_mural * por_pagina, (pagina_mural + 1) * por_pagina
+            campos_destacada = campos_mural if pagina_mural == 0 else "id"
+            destacadas = (
+                tabla_mural.select(campos_destacada)
+                .eq("id", pegatina_destacada).limit(1).execute().data or []
             )
-        entradas_mural = consulta_mural.execute().data or []
+
+        consulta_mural = tabla_mural.select(campos_mural).order("id", desc=True)
+        if destacadas:
+            consulta_mural = consulta_mural.neq("id", pegatina_destacada)
+        inicio_mural = max(0, pagina_mural * por_pagina - len(destacadas))
+        fijadas = destacadas if pagina_mural == 0 else []
+        entradas_mural = fijadas + (
+            consulta_mural.range(inicio_mural, inicio_mural + por_pagina - len(fijadas))
+            .execute().data or []
+        )
     except Exception:
         st.warning("El muro no está disponible en este momento.")
     else:
@@ -3591,13 +3600,12 @@ if st.session_state["seccion_activa"] == "grupos":
                             st.session_state["mural_publicado"] = True
                             st.rerun()
 
-        st.markdown("### Pegatina compartida" if pegatina_destacada else "### Pegatinas publicadas")
+        st.markdown("### Pegatinas publicadas")
         visibles = entradas_mural[:por_pagina]
-        if not visibles:
-            if pegatina_destacada:
-                st.info("Esta pegatina ya no está disponible.")
-            elif pagina_mural == 0:
-                st.info("El muro está vacío. ¡Anímate a subir la primera pegatina!")
+        if pegatina_destacada and not destacadas:
+            st.info("La pegatina seleccionada ya no está disponible.")
+        if not visibles and pagina_mural == 0:
+            st.info("El muro está vacío. ¡Anímate a subir la primera pegatina!")
 
         votos_mural = None
         if visibles:
@@ -3613,8 +3621,10 @@ if st.session_state["seccion_activa"] == "grupos":
             columnas = st.columns(3, gap="small")
             for columna, entrada in zip(columnas, visibles[inicio:inicio + 3]):
                 with columna, st.container(border=True):
-                    mostrar_pegatina_mural(entrada)
                     pegatina_id = str(entrada["id"])
+                    if pegatina_id == pegatina_destacada:
+                        st.caption("⭐ Pegatina seleccionada")
+                    mostrar_pegatina_mural(entrada)
                     if votos_mural is not None:
                         voto = votos_mural.get(pegatina_id, {})
                         marcado = voto.get("mi_voto", False)
@@ -3642,7 +3652,7 @@ if st.session_state["seccion_activa"] == "grupos":
 
                     compartir_pegatina_mural(entrada)
 
-        if not pegatina_destacada and (pagina_mural or len(entradas_mural) > por_pagina):
+        if pagina_mural or len(entradas_mural) > por_pagina:
             anterior, siguiente = st.columns(2)
             if anterior.button("← Anterior", disabled=pagina_mural == 0, key="mural_anterior"):
                 st.session_state["pagina_mural"] = pagina_mural - 1
