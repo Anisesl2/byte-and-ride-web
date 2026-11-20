@@ -170,7 +170,7 @@ def id_pegatina_compartida():
     return None
 
 
-def iniciar_google_oauth():
+def iniciar_google_oauth(pegatina_id=None):
     nonce = secrets.token_urlsafe(32)
     verifier = secrets.token_urlsafe(64)
     challenge = base64.urlsafe_b64encode(
@@ -185,7 +185,7 @@ def iniciar_google_oauth():
                 almacen["flujos"].pop(clave, None)
         almacen["flujos"][nonce] = {
             "verifier": verifier, "creado": ahora,
-            "pegatina": id_pegatina_compartida(),
+            "pegatina": pegatina_id or id_pegatina_compartida(),
         }
 
     retorno = GOOGLE_REDIRECT_URL + "?" + urlencode({"fb_oauth": nonce})
@@ -1558,15 +1558,87 @@ def mostrar_personas_en_linea(usuario_id=None):
     st.caption(f"🟢 {mensaje}")
 
 
+def mostrar_pegatina_mural(entrada):
+    try:
+        imagen_mural = base64.b64decode(entrada["imagen_webp"], validate=True)
+        with Image.open(BytesIO(imagen_mural), formats=["WEBP"]) as imagen:
+            st.image(imagen.copy(), use_container_width=True)
+    except (ValueError, OSError, Image.DecompressionBombError):
+        st.caption("Imagen no disponible.")
+    st.text(entrada["nombre_grupo"])
+
+
+def compartir_pegatina_mural(entrada):
+    pegatina_id = str(entrada["id"])
+    enlace_pegatina = FAMILYBIKE_PUBLIC_URL + "?" + urlencode({"pegatina": pegatina_id})
+    mensaje = f"🏍️ Pegatina de {entrada['nombre_grupo']} en Family Bike\n{enlace_pegatina}"
+    whatsapp, facebook = st.columns(2, gap="small")
+    whatsapp.link_button(
+        "WhatsApp", "https://wa.me/?" + urlencode({"text": mensaje}),
+        use_container_width=True,
+    )
+    facebook.link_button(
+        "Facebook", "https://www.facebook.com/sharer/sharer.php?" +
+        urlencode({"u": enlace_pegatina}), use_container_width=True,
+    )
+
+
+def mostrar_mural_publico(pegatina_id):
+    st.markdown("## 🏍️ Muro de pegatinas")
+    por_pagina = 6
+    pagina = st.session_state.get("pagina_mural_publico", 0)
+    if pegatina_id and st.button("← Ver todo el muro", key="mural_publico_ver_todo"):
+        del st.query_params["pegatina"]
+        st.session_state["pagina_mural_publico"] = 0
+        st.rerun()
+
+    try:
+        entradas = supabase.rpc("familybike_mural_publico", {
+            "id_buscado": pegatina_id,
+            "desplazamiento": pagina * por_pagina,
+        }).execute().data or []
+    except Exception:
+        st.caption("El muro de pegatinas no está disponible en este momento.")
+        return
+
+    if not entradas:
+        if pegatina_id:
+            st.info("Esta pegatina ya no está disponible.")
+        elif pagina == 0:
+            st.info("Todavía no hay pegatinas publicadas.")
+
+    visibles = entradas[:por_pagina]
+    for inicio in range(0, len(visibles), 3):
+        columnas = st.columns(3, gap="small")
+        for columna, entrada in zip(columnas, visibles[inicio:inicio + 3]):
+            with columna, st.container(border=True):
+                mostrar_pegatina_mural(entrada)
+                st.link_button(
+                    "🤍 Me gusta · Entra con Google",
+                    iniciar_google_oauth(str(entrada["id"])),
+                    key=f"mural_publico_votar_{entrada['id']}",
+                    use_container_width=True,
+                )
+                compartir_pegatina_mural(entrada)
+
+    if not pegatina_id and (pagina or len(entradas) > por_pagina):
+        anterior, siguiente = st.columns(2)
+        if anterior.button("← Anterior", disabled=pagina == 0, key="mural_publico_anterior"):
+            st.session_state["pagina_mural_publico"] = pagina - 1
+            st.rerun()
+        if siguiente.button("Siguiente →", disabled=len(entradas) <= por_pagina,
+                            key="mural_publico_siguiente"):
+            st.session_state["pagina_mural_publico"] = pagina + 1
+            st.rerun()
+
+
 # =========================================================
 # ACCESO Y REGISTRO
 # =========================================================
 
 if not autenticado:
 
-    if id_pegatina_compartida():
-        st.info("🏍️ Te han compartido una pegatina de Family Bike. Entra con Google para verla.")
-
+    pegatina_publica = id_pegatina_compartida()
     clave_compartida = st.query_params.get("ruta", "")
     if isinstance(clave_compartida, str) and re.fullmatch(r"(?:catalogo|propuesta):[a-zA-Z0-9_-]{1,80}", clave_compartida):
         st.info("🏍️ ¡Te han compartido una ruta de FAMILY BIKE! Inicia sesión o crea tu cuenta para ver el recorrido, valorarlo y comentar.")
@@ -1657,6 +1729,7 @@ if not autenticado:
         st.caption("Solo Android · La instalación fuera de Google Play puede mostrar "
                    "advertencias de seguridad. No desactives Play Protect.")
 
+    mostrar_mural_publico(pegatina_publica)
     mostrar_personas_en_linea()
 
     # -----------------------------------------------------
@@ -3540,13 +3613,7 @@ if st.session_state["seccion_activa"] == "grupos":
             columnas = st.columns(3, gap="small")
             for columna, entrada in zip(columnas, visibles[inicio:inicio + 3]):
                 with columna, st.container(border=True):
-                    try:
-                        imagen_mural = base64.b64decode(entrada["imagen_webp"], validate=True)
-                        with Image.open(BytesIO(imagen_mural), formats=["WEBP"]) as imagen:
-                            st.image(imagen.copy(), use_container_width=True)
-                    except (ValueError, OSError, Image.DecompressionBombError):
-                        st.caption("Imagen no disponible.")
-                    st.text(entrada["nombre_grupo"])
+                    mostrar_pegatina_mural(entrada)
                     pegatina_id = str(entrada["id"])
                     if votos_mural is not None:
                         voto = votos_mural.get(pegatina_id, {})
@@ -3573,17 +3640,7 @@ if st.session_state["seccion_activa"] == "grupos":
                             else:
                                 st.rerun()
 
-                    enlace_pegatina = FAMILYBIKE_PUBLIC_URL + "?" + urlencode({"pegatina": pegatina_id})
-                    mensaje = f"🏍️ Pegatina de {entrada['nombre_grupo']} en Family Bike\n{enlace_pegatina}"
-                    whatsapp, facebook = st.columns(2, gap="small")
-                    whatsapp.link_button(
-                        "WhatsApp", "https://wa.me/?" + urlencode({"text": mensaje}),
-                        use_container_width=True,
-                    )
-                    facebook.link_button(
-                        "Facebook", "https://www.facebook.com/sharer/sharer.php?" +
-                        urlencode({"u": enlace_pegatina}), use_container_width=True,
-                    )
+                    compartir_pegatina_mural(entrada)
 
         if not pegatina_destacada and (pagina_mural or len(entradas_mural) > por_pagina):
             anterior, siguiente = st.columns(2)
