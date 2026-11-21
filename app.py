@@ -1562,13 +1562,30 @@ def mostrar_personas_en_linea(usuario_id=None):
     st.caption(f"🟢 {mensaje}")
 
 
-def mostrar_pegatina_mural(entrada, mostrar_nombre=True):
+def mostrar_pegatina_mural(entrada, mostrar_nombre=True, cuadrada=False):
     try:
         imagen_mural = base64.b64decode(entrada["imagen_webp"], validate=True)
         with Image.open(BytesIO(imagen_mural), formats=["WEBP"]) as imagen:
-            st.image(imagen.copy(), use_container_width=True)
+            if cuadrada:
+                imagen.verify()
+                contenido = base64.b64encode(imagen_mural).decode("ascii")
+                nombre = escapar(str(entrada.get("nombre_grupo") or "Pegatina motera"))
+                st.markdown(
+                    '<div class="fb-pegatina-cuadrada">'
+                    f'<img src="data:image/webp;base64,{contenido}" alt="{nombre}">'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.image(imagen.copy(), use_container_width=True)
     except (ValueError, OSError, Image.DecompressionBombError):
-        st.caption("Imagen no disponible.")
+        if cuadrada:
+            st.markdown(
+                '<div class="fb-pegatina-cuadrada">Imagen no disponible</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.caption("Imagen no disponible.")
     if mostrar_nombre:
         st.text(entrada["nombre_grupo"])
 
@@ -1627,6 +1644,29 @@ def mostrar_mural_publico(pegatina_id):
                         min-width: 0 !important;
                         width: auto !important;
                     }
+                    .fb-pegatina-cuadrada {
+                        box-sizing: border-box;
+                        width: 100%;
+                        aspect-ratio: 1 / 1;
+                        display: grid;
+                        grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+                        place-items: center;
+                        overflow: hidden;
+                        padding: clamp(10px, 3vw, 24px);
+                        border: 1px solid #454038;
+                        border-radius: 14px;
+                        background: radial-gradient(ellipse at center, #303238, #16171b);
+                        color: #dedede;
+                        text-align: center;
+                    }
+                    .fb-pegatina-cuadrada img {
+                        display: block;
+                        width: 100%;
+                        height: 100%;
+                        min-height: 0;
+                        min-width: 0;
+                        object-fit: contain;
+                    }
                     .st-key-fb_pegatinas_portada [data-testid="stLinkButton"] a {
                         min-height: 0;
                         padding: .2rem .55rem;
@@ -1641,7 +1681,9 @@ def mostrar_mural_publico(pegatina_id):
                     columnas = st.columns(2, gap="small")
                     for columna, entrada in zip(columnas, visibles[inicio:inicio + 2]):
                         with columna:
-                            mostrar_pegatina_mural(entrada, mostrar_nombre=False)
+                            mostrar_pegatina_mural(
+                                entrada, mostrar_nombre=False, cuadrada=True,
+                            )
                             st.link_button(
                                 "Me gusta",
                                 iniciar_google_oauth(str(entrada["id"])),
