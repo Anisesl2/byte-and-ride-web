@@ -1462,41 +1462,41 @@ st.markdown("""
     color:#FFD400!important;
     -webkit-text-fill-color:#FFD400!important;
 }
-/* El icono oficial multicolor de Google es un SVG embebido, sin dependencias externas. */
-.st-key-fb_google_login a {
+/* Botón de acceso con Google, en el tema claro. */
+.st-key-fb_acceso_portada .stLinkButton > a {
     display:flex!important;
     justify-content:center!important;
     align-items:center!important;
-    gap:12px!important;
-    background:#ffd400!important;
-    color:#171717!important;
-    -webkit-text-fill-color:#171717!important;
-    border:1px solid #ffe564!important;
-    border-radius:12px!important;
-    font-weight:700!important;
-    min-height:56px!important;
-    box-shadow:0 5px 18px rgba(255,212,0,.18);
+    gap:10px!important;
+    min-height:44px!important;
+    padding:0 12px!important;
+    background:#fff!important;
+    border:1px solid #747775!important;
+    border-radius:4px!important;
+    box-shadow:none!important;
     text-decoration:none!important;
 }
-.st-key-fb_google_login a * {
-    color:#171717!important;
-    -webkit-text-fill-color:#171717!important;
+.st-key-fb_acceso_portada .stLinkButton > a,
+.st-key-fb_acceso_portada .stLinkButton > a * {
+    color:#1f1f1f!important;
+    -webkit-text-fill-color:#1f1f1f!important;
+    font-family:"Google Sans",Roboto,Arial,sans-serif!important;
+    font-size:14px!important;
+    font-weight:500!important;
+    line-height:20px!important;
 }
-.st-key-fb_google_login a::before {
+.st-key-fb_acceso_portada .stLinkButton > a::before {
     content:"";
-    flex-shrink:0;
-    display:inline-block;
+    flex:0 0 18px;
+    width:18px;
+    height:18px;
     background-image:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"%3E%3Cpath fill="%23EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/%3E%3Cpath fill="%234285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.75 7.18l7.73 6C44.43 38.03 46.98 31.88 46.98 24.55z"/%3E%3Cpath fill="%23FBBC05" d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78l7.97-6.19z"/%3E%3Cpath fill="%2334A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6C30.03 37.65 27.28 38.5 24 38.5c-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/%3E%3C/svg%3E');
     background-repeat:no-repeat;
-    background-size:16px;
+    background-size:contain;
     background-position:center;
-    background-color:#fff;
-    width:26px;
-    height:26px;
-    border-radius:50%;
 }
-.st-key-fb_google_login a:hover {background:#ffe564!important;}
-.st-key-fb_google_login a:focus-visible {outline:2px solid #fff;outline-offset:3px;}
+.st-key-fb_acceso_portada .stLinkButton > a:hover {background:#f8faff!important;}
+.st-key-fb_acceso_portada .stLinkButton > a:focus-visible {outline:2px solid #4285f4;outline-offset:3px;}
 @media(max-width:640px) {
     [data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stTabs"] {padding:8px!important}
     [data-testid="stMainBlockContainer"]:has(.fb-login-marker) [data-testid="stForm"] {padding:12px!important}
