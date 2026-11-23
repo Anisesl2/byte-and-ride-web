@@ -28692,11 +28692,44 @@ st.markdown("""
     line-height:.96; font-weight:850; letter-spacing:-.055em;
 }
 .fb-rutas-portada p {max-width:34ch; color:#f0f1e9; margin:20px 0 24px; line-height:1.5; font-size:clamp(1rem, 2vw, 1.15rem)}
-.fb-portada-explorar, .fb-portada-explorar:visited {
-    display:inline-flex; gap:12px; align-items:center; padding:12px 20px; min-height:46px;
-    border-radius:10px; background:#f4d568; color:#181b17!important;
+.fb-rutas-portada .fb-portada-explorar, .fb-rutas-portada .fb-portada-explorar:visited {
+    display:inline-flex; gap:12px; align-items:center; padding:7px 9px 7px 14px; min-height:46px;
+    border:1px solid #ffffff48; border-radius:11px; background:#101719dc; color:#fff!important;
 }
-.fb-portada-explorar:hover {background:#ffe492}
+.fb-rutas-portada .fb-portada-explorar:hover {background:#26302f; border-color:#f4d568}
+.fb-portada-explorar .fb-explorar-flecha {
+    display:grid; place-items:center; width:32px; height:32px; border-radius:7px;
+    background:#f4d568; color:#1b201d!important; font-size:1.15rem; line-height:1;
+}
+.st-key-fb_menu_miembros {
+    padding:clamp(12px, 3vw, 26px); background:#192124;
+    border:1px solid #736743; border-radius:18px; margin-bottom:18px;
+}
+.st-key-fb_menu_miembros h2 {color:#fff!important; margin:0; padding:0}
+.st-key-fb_menu_miembros [data-testid="stButton"] button {
+    min-height:64px; border:1px solid #635a41!important; background:#273033!important;
+    color:#fff!important; border-radius:12px; padding:7px 9px;
+}
+.st-key-fb_menu_miembros [data-testid="stButton"] button p {
+    color:inherit!important; font-weight:800; white-space:normal;
+}
+.st-key-fb_menu_miembros [data-testid="stButton"] button:hover,
+.st-key-fb_menu_miembros [data-testid="stButton"] button:focus-visible {
+    border-color:#f4d568!important; background:#353624!important;
+}
+.st-key-fb_menu_miembros .st-key-home_rutas button {
+    background:#f4d568!important; color:#1b201d!important; border-color:#f4d568!important;
+}
+.st-key-fb_menu_miembros .st-key-home_rutas button:hover,
+.st-key-fb_menu_miembros .st-key-home_rutas button:focus-visible {
+    background:#ffe492!important;
+}
+@media(max-width:640px) {
+    .st-key-fb_menu_miembros [data-testid="stHorizontalBlock"] {flex-wrap:nowrap; gap:6px}
+    .st-key-fb_menu_miembros [data-testid="stColumn"] {min-width:0; flex:1 1 0}
+    .st-key-fb_menu_miembros [data-testid="stButton"] button {min-height:68px; width:100%; padding:6px 3px}
+    .st-key-fb_menu_miembros [data-testid="stButton"] button p {font-size:.72rem; line-height:1.25}
+}
 .fb-rutas-portada a:focus-visible {outline:3px solid #fff; outline-offset:4px}
 .fb-portada-catalogo {scroll-margin-top:4.5rem; color:#f9f7ed!important; margin:0 0 8px; padding:0}
 .st-key-fb_catalogo_publico {padding:clamp(16px, 3vw, 28px); border-radius:20px; border:1px solid #ffffff20; background:#171e20}
@@ -28746,7 +28779,7 @@ if not autenticado:
         '</div>'
         '<div class="fb-portada-texto"><h1>La carretera<br>te espera.</h1>'
         '<p>Descubre rutas en moto compartidas por la comunidad.</p>'
-        '<a class="fb-portada-explorar" href="#catalogo-de-rutas">Explorar rutas <span aria-hidden="true">↓</span></a>'
+        '<a class="fb-portada-explorar" href="#catalogo-de-rutas">Explorar rutas <span class="fb-explorar-flecha" aria-hidden="true">↓</span></a>'
         '</div></header>',
         unsafe_allow_html=True,
     )
@@ -29281,7 +29314,34 @@ a[href*="/Descargas/FAMILYBIKE.apk"]:hover, a[href*="FAMILYBIKE.apk?download="]:
 
 if st.session_state["seccion_activa"] == "menu":
 
-    # El catálogo abre la portada de miembros.
+    with st.container(key="fb_menu_miembros"):
+        st.markdown("## Menú de Family Bike")
+        accesos = [
+            ("🗺️", "EXPLORAR RUTAS", "rutas", "home_rutas"),
+            ("📅", "QUEDADAS MOTERAS", "quedadas", "home_quedadas"),
+            ("🏍️", "MI GARAJE", "garaje", "home_garaje"),
+            ("👥", "COMUNIDAD", "comunidad", "home_comunidad"),
+            ("💬", "CHAT GENERAL", "chat", "home_chat"),
+            ("🏍️", "MURO DE PEGATINAS", "grupos", "home_grupos"),
+            ("📍", "SUBIR MI RUTA", "rutas", "home_subir"),
+            ("👤", "EDITAR MI PERFIL", "perfil", "home_perfil"),
+            ("🛒", "TIENDA FAMILY BIKE", "tienda", "home_tienda"),
+        ]
+        for inicio in range(0, len(accesos), 3):
+            columnas = st.columns(3, gap="small")
+            for columna, (emoji, titulo, destino, clave) in zip(columnas, accesos[inicio:inicio+3]):
+                with columna:
+                    if st.button(f"{emoji}\n{titulo}", key=clave, use_container_width=True):
+                        if clave == "home_subir":
+                            st.session_state["abrir_propuesta_ruta"] = True
+                        st.session_state["seccion_activa"] = destino
+                        st.rerun()
+
+        if es_admin:
+            if st.button("⚙️ ADMINISTRACIÓN FAMILY BIKE", key="home_admin", use_container_width=True):
+                st.session_state["seccion_activa"] = "administracion"
+                st.rerun()
+
     st.markdown('<div class="fb-home-heading">EXPLORA RUTAS EN MOTO</div>', unsafe_allow_html=True)
     with st.form("fb_buscar_desde_inicio"):
         busqueda_inicio = st.text_input("Buscar rutas", placeholder="Ej.: Sierra de Cádiz")
@@ -29303,33 +29363,6 @@ if st.session_state["seccion_activa"] == "menu":
                     st.session_state["seccion_activa"] = "rutas"
                     st.rerun()
 
-    # Accesos reales de Streamlit: mantienen el comportamiento original.
-    st.markdown('<div class="fb-home-heading">DESCUBRE FAMILY BIKE</div>', unsafe_allow_html=True)
-    accesos = [
-        ("🗺️", "EXPLORAR RUTAS", "rutas", "home_rutas"),
-        ("📅", "QUEDADAS MOTERAS", "quedadas", "home_quedadas"),
-        ("🏍️", "MI GARAJE", "garaje", "home_garaje"),
-        ("👥", "COMUNIDAD", "comunidad", "home_comunidad"),
-        ("💬", "CHAT GENERAL", "chat", "home_chat"),
-        ("🏍️", "MURO DE PEGATINAS", "grupos", "home_grupos"),
-        ("📍", "SUBIR MI RUTA", "rutas", "home_subir"),
-        ("👤", "EDITAR MI PERFIL", "perfil", "home_perfil"),
-        ("🛒", "TIENDA FAMILY BIKE", "tienda", "home_tienda"),
-    ]
-    for inicio in range(0, len(accesos), 4):
-        columnas = st.columns(4, gap="small")
-        for columna, (emoji, titulo, destino, clave) in zip(columnas, accesos[inicio:inicio+4]):
-            with columna:
-                if st.button(f"{emoji}\n{titulo}", key=clave, use_container_width=True):
-                    if clave == "home_subir":
-                        st.session_state["abrir_propuesta_ruta"] = True
-                    st.session_state["seccion_activa"] = destino
-                    st.rerun()
-
-    if es_admin:
-        if st.button("⚙️ ADMINISTRACIÓN FAMILY BIKE", key="home_admin", use_container_width=True):
-            st.session_state["seccion_activa"] = "administracion"
-            st.rerun()
 
 
 
