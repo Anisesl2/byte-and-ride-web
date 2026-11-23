@@ -28429,15 +28429,19 @@ def cargar_trazados(claves):
     trazados = {clave: incluidos[clave] for clave in claves if clave in incluidos}
     if not claves:
         return trazados
-    try:
-        respuesta = supabase.rpc(
-            "familybike_trazados_publicos", {"claves": list(claves)}
-        ).execute()
-    except Exception:
-        return trazados
-    for fila in respuesta.data or []:
-        if fila.get("trazado"):
-            trazados[fila["ruta_clave"]] = {"segmentos": fila["trazado"]}
+    propuestas = [clave for clave in claves if clave.startswith("propuesta:")]
+    consultas = [("familybike_trazados_publicos", list(claves))]
+    if propuestas:
+        consultas.insert(0, ("familybike_gpx_propuestas_publicados", propuestas))
+
+    for funcion, claves_consulta in consultas:
+        try:
+            respuesta = supabase.rpc(funcion, {"claves": claves_consulta}).execute()
+        except Exception:
+            continue
+        for fila in respuesta.data or []:
+            if fila.get("trazado"):
+                trazados[fila["ruta_clave"]] = {"segmentos": fila["trazado"]}
     return trazados
 
 
@@ -29464,7 +29468,7 @@ if st.session_state["seccion_activa"] == "rutas":
                 st.rerun()
 
     with st.expander(
-        "➕ COMPARTIR UNA RUTA DE GOOGLE MAPS",
+        "➕ SUBIR MI RUTA",
         expanded=st.session_state.pop("abrir_propuesta_ruta", False)
     ):
         st.caption(
@@ -29483,6 +29487,8 @@ if st.session_state["seccion_activa"] == "rutas":
             descripcion_propuesta = st.text_area(
                 "Descripción (opcional)", max_chars=1000
             )
+            archivo_gpx_propuesto = st.file_uploader("Archivo GPX (opcional)", type=["gpx"])
+            st.caption("Si adjuntas un GPX, su recorrido será visible en el mapa cuando se apruebe la ruta.")
             enviar_propuesta = st.form_submit_button(
                 "ENVIAR PARA REVISIÓN", use_container_width=True
             )
@@ -29494,13 +29500,18 @@ if st.session_state["seccion_activa"] == "rutas":
                 st.error("Introduce un enlace HTTPS válido de Google Maps.")
             else:
                 try:
-                    supabase.table("familybike_rutas_propuestas").insert({
+                    propuesta = {
                         "usuario_id": usuario_id,
                         "nombre": nombre_propuesto.strip(),
                         "url": enlace_propuesto.strip(),
                         "descripcion": descripcion_propuesta.strip(),
-                    }).execute()
+                    }
+                    if archivo_gpx_propuesto is not None:
+                        propuesta["trazado_gpx"] = leer_trazado_gpx(archivo_gpx_propuesto.getvalue())
+                    supabase.table("familybike_rutas_propuestas").insert(propuesta).execute()
                     st.success("Ruta enviada. Está pendiente de aprobación.")
+                except ValueError as error:
+                    st.error(str(error))
                 except Exception as error:
                     st.error("No se ha podido enviar la ruta. Comprueba la configuración de Supabase.")
                     st.code(str(error))
