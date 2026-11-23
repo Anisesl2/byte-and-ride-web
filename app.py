@@ -170,7 +170,14 @@ def id_pegatina_compartida():
     return None
 
 
-def iniciar_google_oauth(pegatina_id=None):
+def clave_ruta_compartida():
+    valor = st.query_params.get("ruta", "")
+    if isinstance(valor, str) and re.fullmatch(r"(?:catalogo|propuesta):[a-zA-Z0-9_-]{1,80}", valor):
+        return valor
+    return None
+
+
+def iniciar_google_oauth(pegatina_id=None, ruta=None):
     nonce = secrets.token_urlsafe(32)
     verifier = secrets.token_urlsafe(64)
     challenge = base64.urlsafe_b64encode(
@@ -185,7 +192,8 @@ def iniciar_google_oauth(pegatina_id=None):
                 almacen["flujos"].pop(clave, None)
         almacen["flujos"][nonce] = {
             "verifier": verifier, "creado": ahora,
-            "pegatina": pegatina_id or id_pegatina_compartida(),
+            "pegatina": pegatina_id or (None if ruta else id_pegatina_compartida()),
+            "ruta": ruta if not pegatina_id else None,
         }
 
     retorno = GOOGLE_REDIRECT_URL + "?" + urlencode({"fb_oauth": nonce})
@@ -216,6 +224,8 @@ def completar_google_oauth():
         st.query_params.clear()
         if registro and registro.get("pegatina"):
             st.query_params["pegatina"] = registro["pegatina"]
+        if registro and registro.get("ruta"):
+            st.query_params["ruta"] = registro["ruta"]
         return "Google ha cancelado el acceso o ha devuelto un error. Inténtalo de nuevo."
 
     if not codigo or not nonce:
@@ -298,13 +308,19 @@ def completar_google_oauth():
         st.query_params.clear()
         if registro.get("pegatina"):
             st.query_params["pegatina"] = registro["pegatina"]
+        if registro.get("ruta"):
+            st.query_params["ruta"] = registro["ruta"]
         st.rerun()
 
     except HTTPError as error:
         st.query_params.clear()
+        if registro.get("ruta"):
+            st.query_params["ruta"] = registro["ruta"]
         return "No se ha podido completar el acceso con Google (HTTP {}).".format(error.code)
     except Exception:
         st.query_params.clear()
+        if registro.get("ruta"):
+            st.query_params["ruta"] = registro["ruta"]
         return "No se ha podido completar el acceso con Google. Inténtalo de nuevo."
 
 
@@ -1706,18 +1722,96 @@ def mostrar_mural_publico(pegatina_id):
 # ACCESO Y REGISTRO
 # =========================================================
 
+@st.cache_data(ttl=60, show_spinner=False)
+def cargar_rutas_publicas():
+    respuesta = supabase.rpc("familybike_catalogo_publico", {}).execute()
+    return ordenar_rutas(respuesta.data or [])
+
+
+def mostrar_catalogo_publico(clave_elegida, error_google, url_acceso):
+    st.markdown("## Explora rutas en moto")
+    try:
+        rutas_publicas = cargar_rutas_publicas()
+    except Exception:
+        st.warning("El catálogo de rutas no está disponible ahora mismo.")
+        return
+
+    if clave_elegida:
+        elegida = next((ruta for ruta in rutas_publicas if fb_clave_ruta(ruta) == clave_elegida), None)
+        if elegida:
+            with st.container(border=True):
+                st.text(elegida.get("nombre") or "Ruta motera")
+                st.caption("Crea tu cuenta gratis o inicia sesión para abrir el recorrido en Google Maps.")
+                if error_google:
+                    st.error(error_google)
+                st.link_button(
+                    "Continuar con Google", url_acceso, type="primary",
+                    key="fb_google_ruta", use_container_width=True,
+                )
+        else:
+            st.info("Esta ruta ya no está disponible en el catálogo.")
+
+    busqueda = st.text_input(
+        "Buscar rutas", placeholder="Ej.: Sierra de Cádiz", key="fb_buscar_ruta_publica"
+    ).strip().casefold()
+    resultados = [
+        ruta for ruta in rutas_publicas
+        if busqueda in str(ruta.get("nombre") or "").casefold()
+    ]
+    if not resultados:
+        st.info("No hay rutas que coincidan con tu búsqueda." if busqueda else "Aún no hay rutas publicadas.")
+        return
+
+    por_pagina = 12
+    paginas = (len(resultados) - 1) // por_pagina + 1
+    if st.session_state.get("fb_busqueda_publica_anterior") != busqueda:
+        st.session_state["fb_busqueda_publica_anterior"] = busqueda
+        st.session_state["fb_pagina_publica"] = 0
+    pagina = min(st.session_state.get("fb_pagina_publica", 0), paginas - 1)
+    st.caption(f"{len(resultados)} {'ruta' if len(resultados) == 1 else 'rutas'}")
+    if paginas > 1:
+        anterior, siguiente = st.columns(2)
+        if anterior.button("← Anterior", key="fb_publica_anterior", disabled=pagina == 0):
+            st.session_state["fb_pagina_publica"] = pagina - 1
+            st.rerun()
+        if siguiente.button("Siguiente →", key="fb_publica_siguiente", disabled=pagina == paginas - 1):
+            st.session_state["fb_pagina_publica"] = pagina + 1
+            st.rerun()
+
+    columnas = st.columns(3)
+    inicio = pagina * por_pagina
+    for indice, ruta in enumerate(resultados[inicio:inicio + por_pagina]):
+        clave = fb_clave_ruta(ruta)
+        with columnas[indice % len(columnas)]:
+            with st.container(border=True):
+                imagen = ruta.get("imagen_url")
+                if not isinstance(imagen, str) or not imagen.startswith("https://"):
+                    imagen = IMAGEN_PREDETERMINADA
+                st.image(imagen, use_container_width=True)
+                st.markdown(
+                    f'<div class="route-name">{escapar(ruta.get("nombre") or "Ruta motera")}</div>',
+                    unsafe_allow_html=True,
+                )
+                if st.button("Usar ruta", key=f"fb_usar_{clave}", use_container_width=True, disabled=clave == clave_elegida):
+                    st.query_params["ruta"] = clave
+                    st.rerun()
+
+
 if not autenticado:
 
     pegatina_publica = id_pegatina_compartida()
-    clave_compartida = st.query_params.get("ruta", "")
-    if isinstance(clave_compartida, str) and re.fullmatch(r"(?:catalogo|propuesta):[a-zA-Z0-9_-]{1,80}", clave_compartida):
-        st.info("🏍️ ¡Te han compartido una ruta de FAMILY BIKE! Inicia sesión o crea tu cuenta para ver el recorrido, valorarlo y comentar.")
+    clave_compartida = clave_ruta_compartida()
+    url_acceso_google = iniciar_google_oauth(ruta=clave_compartida)
 
     st.markdown('<span class="fb-login-marker"></span>', unsafe_allow_html=True)
 
-    # PORTADA PÚBLICA: solo contenido promocional, sin consultar rutas privadas.
+    # Portada y catálogo público de rutas moteras.
     st.markdown("""
     <style>
+    @media(max-width:640px){
+      .st-key-fb_catalogo_publico [data-testid="stHorizontalBlock"]{flex-wrap:wrap}
+      .st-key-fb_catalogo_publico [data-testid="stColumn"]{min-width:min(100%,220px);flex:1 1 220px}
+    }
     .fb-landing{max-width:1100px;margin:0 auto 22px}
     .fb-landing-hero{position:relative;isolation:isolate;min-height:320px;border-radius:22px;
       overflow:hidden;display:flex;align-items:center;border:1px solid #803732;
@@ -1814,6 +1908,9 @@ if not autenticado:
         unsafe_allow_html=True
     )
 
+    with st.container(key="fb_catalogo_publico"):
+        mostrar_catalogo_publico(clave_compartida, error_acceso_google, url_acceso_google)
+
     with st.container(key="fb_acceso_portada"):
         st.markdown(
             '<h2 id="entra-en-family-bike">Entra en Family Bike</h2>',
@@ -1824,7 +1921,7 @@ if not autenticado:
             st.error(error_acceso_google)
         st.link_button(
             "Continuar con Google",
-            iniciar_google_oauth(),
+            url_acceso_google,
             use_container_width=True,
             key="fb_google_login",
         )
@@ -2017,6 +2114,12 @@ if pegatina_compartida:
     st.session_state["pagina_mural"] = 0
     st.session_state["seccion_activa"] = "grupos"
     del st.query_params["pegatina"]
+else:
+    ruta_compartida = clave_ruta_compartida()
+    if ruta_compartida:
+        st.session_state["fb_ruta_elegida"] = ruta_compartida
+        st.session_state["seccion_activa"] = "rutas"
+        del st.query_params["ruta"]
 
 
 # =========================================================
@@ -2455,6 +2558,7 @@ else:
     ):
         st.session_state["seccion_activa"] = "menu"
         st.session_state.pop("pegatina_compartida", None)
+        st.session_state.pop("fb_ruta_elegida", None)
         st.rerun()
 
 
@@ -2475,6 +2579,23 @@ if st.session_state["seccion_activa"] == "rutas":
         '</div>',
         unsafe_allow_html=True
     )
+
+    clave_elegida = st.session_state.get("fb_ruta_elegida")
+    if clave_elegida:
+        elegida = next((ruta for ruta in rutas if fb_clave_ruta(ruta) == clave_elegida), None)
+        with st.container(border=True):
+            if elegida:
+                st.text(elegida.get("nombre") or "Ruta motera")
+                recorrido = elegida.get("url")
+                if isinstance(recorrido, str) and recorrido.startswith(("https://", "http://")):
+                    st.link_button("Abrir recorrido ↗", recorrido, type="primary", use_container_width=True)
+                else:
+                    st.info("Esta ruta no tiene un enlace de recorrido disponible.")
+            else:
+                st.info("No se ha podido cargar la ruta seleccionada.")
+            if st.button("Seguir explorando", key="fb_cerrar_ruta_elegida"):
+                st.session_state.pop("fb_ruta_elegida", None)
+                st.rerun()
 
     with st.expander(
         "➕ COMPARTIR UNA RUTA DE GOOGLE MAPS",
