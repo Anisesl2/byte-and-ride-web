@@ -179,7 +179,7 @@ def clave_ruta_compartida():
     return None
 
 
-def iniciar_google_oauth(pegatina_id=None, ruta=None):
+def iniciar_google_oauth(pegatina_id=None, ruta=None, *, proponer_ruta=False):
     nonce = secrets.token_urlsafe(32)
     verifier = secrets.token_urlsafe(64)
     challenge = base64.urlsafe_b64encode(
@@ -194,8 +194,9 @@ def iniciar_google_oauth(pegatina_id=None, ruta=None):
                 almacen["flujos"].pop(clave, None)
         almacen["flujos"][nonce] = {
             "verifier": verifier, "creado": ahora,
-            "pegatina": pegatina_id or (None if ruta else id_pegatina_compartida()),
-            "ruta": ruta if not pegatina_id else None,
+            "pegatina": pegatina_id or (None if ruta or proponer_ruta else id_pegatina_compartida()),
+            "ruta": ruta if not pegatina_id and not proponer_ruta else None,
+            "proponer_ruta": proponer_ruta,
         }
 
     retorno = GOOGLE_REDIRECT_URL + "?" + urlencode({"fb_oauth": nonce})
@@ -306,7 +307,11 @@ def completar_google_oauth():
         st.session_state["refresh_token"] = refresh_token
         st.session_state["user_id"] = usuario.id
         st.session_state["username"] = username
-        st.session_state["seccion_activa"] = "menu"
+        if registro.get("proponer_ruta"):
+            st.session_state["seccion_activa"] = "rutas"
+            st.session_state["abrir_propuesta_ruta"] = True
+        else:
+            st.session_state["seccion_activa"] = "menu"
         st.query_params.clear()
         if registro.get("pegatina"):
             st.query_params["pegatina"] = registro["pegatina"]
@@ -28734,6 +28739,15 @@ st.markdown("""
     .st-key-fb_menu_miembros [data-testid="stButton"] button {min-height:68px; width:100%; padding:6px 3px}
     .st-key-fb_menu_miembros [data-testid="stButton"] button p {font-size:.72rem; line-height:1.25}
 }
+.fb-portada-acciones {display:flex; align-items:stretch; gap:10px}
+@media(max-width:640px) {
+    .fb-portada-acciones {display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px}
+    .fb-rutas-portada .fb-portada-acciones .fb-portada-explorar {
+        justify-content:space-between; gap:5px; min-width:0; padding:6px;
+        font-size:clamp(.73rem, 3.3vw, .9rem); line-height:1.2;
+    }
+    .fb-portada-acciones .fb-explorar-flecha {width:26px; height:28px; flex-shrink:0}
+}
 .fb-rutas-portada a:focus-visible {outline:3px solid #fff; outline-offset:4px}
 .fb-portada-catalogo {scroll-margin-top:4.5rem; color:#f9f7ed!important; margin:0 0 8px; padding:0}
 .st-key-fb_catalogo_publico {padding:clamp(16px, 3vw, 28px); border-radius:20px; border:1px solid #ffffff20; background:#171e20}
@@ -28774,6 +28788,7 @@ if not autenticado:
         mostrar_mural_publico(pegatina_publica)
         st.stop()
 
+    url_proponer_ruta = html.escape(iniciar_google_oauth(proponer_ruta=True), quote=True)
     st.markdown(
         '<header class="fb-rutas-portada">'
         f'<img class="fb-paisaje" src="{FOTO_PORTADA_URL}" alt="" fetchpriority="high">'
@@ -28783,8 +28798,10 @@ if not autenticado:
         '</div>'
         '<div class="fb-portada-texto"><h1>La carretera<br>te espera.</h1>'
         '<p>Descubre rutas en moto compartidas por la comunidad.</p>'
+        '<div class="fb-portada-acciones">'
         '<a class="fb-portada-explorar" href="#catalogo-de-rutas">Explorar rutas <span class="fb-explorar-flecha" aria-hidden="true">↓</span></a>'
-        '</div></header>',
+        f'<a class="fb-portada-explorar" href="{url_proponer_ruta}" target="_self">Añadir tu ruta <span class="fb-explorar-flecha" aria-hidden="true">+</span></a>'
+        '</div></div></header>',
         unsafe_allow_html=True,
     )
 
