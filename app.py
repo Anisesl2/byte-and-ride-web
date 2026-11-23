@@ -28800,7 +28800,7 @@ if not autenticado:
         '<p>Descubre rutas en moto compartidas por la comunidad.</p>'
         '<div class="fb-portada-acciones">'
         '<a class="fb-portada-explorar" href="#catalogo-de-rutas">Explorar rutas <span class="fb-explorar-flecha" aria-hidden="true">↓</span></a>'
-        f'<a class="fb-portada-explorar" href="{url_proponer_ruta}" target="_self">Añadir tu ruta <span class="fb-explorar-flecha" aria-hidden="true">+</span></a>'
+        f'<a class="fb-portada-explorar" href="{url_proponer_ruta}" target="_blank" rel="noopener noreferrer">Añadir tu ruta <span class="fb-explorar-flecha" aria-hidden="true">+</span></a>'
         '</div></div></header>',
         unsafe_allow_html=True,
     )
