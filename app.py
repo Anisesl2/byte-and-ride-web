@@ -890,6 +890,9 @@ def cerrar_sesion():
         "fb_seccion_anterior",
         "fb_opinion_abierta",
         "fb_pagina_rutas",
+        "fb_pagina_negocios",
+        "fb_revision_negocio",
+        "fb_negocio_publicado",
         "fb_busqueda_anterior",
         "fb_aviso_email_oculto",
         "fb_aviso_email_guardado",
@@ -29342,7 +29345,7 @@ if st.session_state["seccion_activa"] == "menu":
             ("📅", "QUEDADAS MOTERAS", "quedadas", "home_quedadas"),
             ("🏍️", "MI GARAJE", "garaje", "home_garaje"),
             ("👥", "COMUNIDAD", "comunidad", "home_comunidad"),
-            ("💬", "CHAT GENERAL", "chat", "home_chat"),
+            ("🤝", "COLABORADORES Y EMPRESAS", "colaboradores", "home_colaboradores"),
             ("🏍️", "MURO DE PEGATINAS", "grupos", "home_grupos"),
             ("📍", "SUBIR MI RUTA", "rutas", "home_subir"),
             ("👤", "EDITAR MI PERFIL", "perfil", "home_perfil"),
@@ -30784,94 +30787,116 @@ if st.session_state["seccion_activa"] == "grupos":
                 st.rerun()
 
 
-# =========================================================
-# SECCIÓN CHAT GENERAL INDEPENDIENTE
-# =========================================================
+if st.session_state["seccion_activa"] == "colaboradores":
+    st.markdown("## Colaboradores y empresas")
 
-if st.session_state["seccion_activa"] == "chat":
-
-    # CHAT GENERAL: únicamente para sesiones autenticadas.
-    st.markdown("### 💬 CHAT GENERAL FAMILY BIKE")
-    st.caption("Sala común de la comunidad · Solo usuarios registrados")
     try:
-        respuesta_chat = (
-            supabase.table("familybike_chat_mensajes")
-            .select("id,usuario_id,contenido,created_at")
-            .order("created_at", desc=True)
-            .limit(60)
+        ficha = (
+            supabase.table("familybike_negocios")
+            .select("nombre,actividad,descripcion,localidad,web,fotos")
+            .eq("usuario_id", usuario_id)
+            .limit(1)
             .execute()
-        )
-        mensajes_chat = list(reversed(respuesta_chat.data or []))
-        ids_autores = list({m["usuario_id"] for m in mensajes_chat if m.get("usuario_id")})
-        nombres_chat = {}
-        if ids_autores:
-            respuesta_autores = (
-                supabase.table("profiles")
-                .select("id,username")
-                .in_("id", ids_autores)
-                .execute()
-            )
-            nombres_chat = {
-                str(p["id"]): p.get("username") or "Motero"
-                for p in (respuesta_autores.data or [])
-            }
+        ).data
+    except Exception:
+        ficha = None
+        st.warning("El directorio de negocios no está disponible en este momento.")
 
-        with st.container(border=True):
-            if not mensajes_chat:
-                st.info("Todavía no hay mensajes. ¡Inaugura el chat motero!")
-            for mensaje in mensajes_chat:
-                es_mio = str(mensaje.get("usuario_id")) == str(usuario_id)
-                nombre_autor = nombres_chat.get(
-                    str(mensaje.get("usuario_id")), "Motero"
+    if ficha is not None:
+        negocio = ficha[0] if ficha else {}
+        if st.session_state.pop("fb_negocio_publicado", False):
+            st.success("Ficha publicada en Colaboradores y empresas.")
+        revision = st.session_state.get("fb_revision_negocio", 0)
+        with st.expander("Editar mi negocio" if negocio else "Añadir mi negocio"):
+            with st.form(f"fb_negocio_form_{revision}"):
+                nombre = st.text_input("Nombre del negocio", negocio.get("nombre", ""), max_chars=100)
+                actividad = st.text_input("A qué se dedica", negocio.get("actividad", ""), max_chars=120)
+                descripcion = st.text_area("Descripción", negocio.get("descripcion", ""), max_chars=1500)
+                localidad = st.text_input("Localidad (opcional)", negocio.get("localidad", ""), max_chars=100)
+                web = st.text_input("Web o red social (opcional)", negocio.get("web", ""), max_chars=250, placeholder="https://…")
+                fotos_nuevas = st.file_uploader(
+                    "Fotos o logotipo (hasta 3)", type=["jpg", "jpeg", "png", "webp"],
+                    accept_multiple_files=True,
                 )
-                fecha_mensaje = str(mensaje.get("created_at") or "")[:16].replace("T", " ")
-                with st.chat_message("user" if es_mio else "assistant"):
-                    st.caption(f"{'Tú' if es_mio else nombre_autor} · {fecha_mensaje} UTC")
-                    st.write(mensaje.get("contenido") or "")
-                    if es_admin:
-                        if st.button(
-                            "🗑️ Eliminar mensaje",
-                            key=f"chat_eliminar_{mensaje['id']}"
-                        ):
-                            supabase.table("familybike_chat_mensajes").delete().eq(
-                                "id", mensaje["id"]
-                            ).execute()
-                            st.rerun()
+                fotos_anteriores = negocio.get("fotos") or []
+                if fotos_anteriores:
+                    st.caption("Si subes fotos nuevas, sustituirán la galería actual.")
+                quitar_fotos = bool(fotos_anteriores) and st.checkbox("Quitar las fotos actuales")
+                guardar = st.form_submit_button("Publicar ficha" if not negocio else "Guardar cambios")
 
-        if st.button("🔄 Actualizar mensajes", key="chat_actualizar"):
-            st.rerun()
-
-        with st.form("chat_formulario", clear_on_submit=True):
-            nuevo_mensaje = st.text_area(
-                "Escribe tu mensaje",
-                max_chars=1000,
-                height=80,
-                placeholder="¿Quién se apunta a la próxima ruta?"
-            )
-            enviar_chat = st.form_submit_button(
-                "💬 ENVIAR MENSAJE",
-                use_container_width=True
-            )
-        if enviar_chat:
-            texto_chat = nuevo_mensaje.strip()
-            if not texto_chat:
-                st.warning("Escribe un mensaje antes de enviarlo.")
-            elif len(texto_chat) > 1000:
-                st.error("El mensaje supera los 1.000 caracteres.")
-            else:
+            if guardar:
                 try:
-                    supabase.table("familybike_chat_mensajes").insert({
+                    if not nombre.strip() or not actividad.strip() or not descripcion.strip():
+                        raise ValueError("Completa el nombre, la actividad y la descripción.")
+                    web = web.strip()
+                    if web:
+                        enlace = urlparse(web)
+                        if enlace.scheme != "https" or not enlace.hostname or enlace.username or enlace.password:
+                            raise ValueError("Escribe una dirección web completa que empiece por https://.")
+                    if len(fotos_nuevas) > 3:
+                        raise ValueError("Puedes subir hasta tres fotos.")
+                    fotos = fotos_anteriores
+                    if fotos_nuevas:
+                        try:
+                            fotos = [preparar_pegatina(foto) for foto in fotos_nuevas]
+                        except (OSError, Image.DecompressionBombError) as error:
+                            raise ValueError("Una de las fotos no se puede leer o es demasiado grande.") from error
+                    elif quitar_fotos:
+                        fotos = []
+                    supabase.table("familybike_negocios").upsert({
                         "usuario_id": usuario_id,
-                        "contenido": texto_chat,
-                    }).execute()
+                        "nombre": nombre.strip(),
+                        "actividad": actividad.strip(),
+                        "descripcion": descripcion.strip(),
+                        "localidad": localidad.strip(),
+                        "web": web,
+                        "fotos": fotos,
+                    }, on_conflict="usuario_id").execute()
+                    st.session_state["fb_revision_negocio"] = revision + 1
+                    st.session_state["fb_negocio_publicado"] = True
+                    st.session_state["fb_pagina_negocios"] = 0
                     st.rerun()
-                except Exception as error:
-                    st.error(f"No se pudo enviar el mensaje: {error}")
-    except Exception as error:
-        st.error("No se pudo cargar el chat. Ejecuta primero el SQL de configuración.")
-        st.code(str(error))
+                except ValueError as error:
+                    st.error(str(error))
+                except Exception:
+                    st.error("No se ha podido guardar la ficha. Inténtalo de nuevo.")
 
-    st.divider()
+        pagina = st.session_state.get("fb_pagina_negocios", 0)
+        por_pagina = 6
+        inicio = pagina * por_pagina
+        try:
+            negocios = (
+                supabase.table("familybike_negocios")
+                .select("nombre,actividad,descripcion,localidad,web,fotos")
+                .order("nombre").order("usuario_id")
+                .range(inicio, inicio + por_pagina)
+                .execute()
+            ).data or []
+        except Exception:
+            st.warning("No se han podido cargar los negocios.")
+        else:
+            if not negocios:
+                st.info("Todavía no hay negocios en esta página.")
+            for empresa in negocios[:por_pagina]:
+                with st.container(border=True):
+                    st.text(empresa["nombre"])
+                    st.text(" · ".join(filter(None, (empresa["actividad"], empresa["localidad"]))))
+                    st.text(empresa["descripcion"])
+                    fotos = empresa.get("fotos") or []
+                    if fotos:
+                        for columna, foto in zip(st.columns(len(fotos)), fotos):
+                            with columna:
+                                st.image("data:image/webp;base64," + foto, use_container_width=True)
+                    if empresa["web"].startswith("https://"):
+                        st.link_button("Visitar web", empresa["web"])
+            if pagina or len(negocios) > por_pagina:
+                anterior, siguiente = st.columns(2)
+                if anterior.button("← Anterior", disabled=pagina == 0):
+                    st.session_state["fb_pagina_negocios"] = pagina - 1
+                    st.rerun()
+                if siguiente.button("Siguiente →", disabled=len(negocios) <= por_pagina):
+                    st.session_state["fb_pagina_negocios"] = pagina + 1
+                    st.rerun()
 
 
 # =========================================================
