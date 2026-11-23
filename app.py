@@ -1,7 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import html
-from xml.etree import ElementTree
 import re
 import base64
 import hashlib
@@ -171,14 +170,7 @@ def id_pegatina_compartida():
     return None
 
 
-def clave_ruta_compartida():
-    valor = st.query_params.get("ruta", "")
-    if isinstance(valor, str) and re.fullmatch(r"(?:catalogo|propuesta):[a-zA-Z0-9_-]{1,80}", valor):
-        return valor
-    return None
-
-
-def iniciar_google_oauth(pegatina_id=None, ruta=None):
+def iniciar_google_oauth(pegatina_id=None):
     nonce = secrets.token_urlsafe(32)
     verifier = secrets.token_urlsafe(64)
     challenge = base64.urlsafe_b64encode(
@@ -193,8 +185,7 @@ def iniciar_google_oauth(pegatina_id=None, ruta=None):
                 almacen["flujos"].pop(clave, None)
         almacen["flujos"][nonce] = {
             "verifier": verifier, "creado": ahora,
-            "pegatina": pegatina_id or (None if ruta else id_pegatina_compartida()),
-            "ruta": ruta if not pegatina_id else None,
+            "pegatina": pegatina_id or id_pegatina_compartida(),
         }
 
     retorno = GOOGLE_REDIRECT_URL + "?" + urlencode({"fb_oauth": nonce})
@@ -225,8 +216,6 @@ def completar_google_oauth():
         st.query_params.clear()
         if registro and registro.get("pegatina"):
             st.query_params["pegatina"] = registro["pegatina"]
-        if registro and registro.get("ruta"):
-            st.query_params["ruta"] = registro["ruta"]
         return "Google ha cancelado el acceso o ha devuelto un error. Inténtalo de nuevo."
 
     if not codigo or not nonce:
@@ -309,19 +298,13 @@ def completar_google_oauth():
         st.query_params.clear()
         if registro.get("pegatina"):
             st.query_params["pegatina"] = registro["pegatina"]
-        if registro.get("ruta"):
-            st.query_params["ruta"] = registro["ruta"]
         st.rerun()
 
     except HTTPError as error:
         st.query_params.clear()
-        if registro.get("ruta"):
-            st.query_params["ruta"] = registro["ruta"]
         return "No se ha podido completar el acceso con Google (HTTP {}).".format(error.code)
     except Exception:
         st.query_params.clear()
-        if registro.get("ruta"):
-            st.query_params["ruta"] = registro["ruta"]
         return "No se ha podido completar el acceso con Google. Inténtalo de nuevo."
 
 
@@ -1723,289 +1706,113 @@ def mostrar_mural_publico(pegatina_id):
 # ACCESO Y REGISTRO
 # =========================================================
 
-MAX_PUNTOS_GPX = 50_000
-
-
-def normalizar_trazado(segmentos):
-    if not isinstance(segmentos, list) or not segmentos:
-        raise ValueError("El GPX debe contener un trayecto.")
-    trazado = []
-    total = 0
-    for segmento in segmentos:
-        if not isinstance(segmento, list) or len(segmento) < 2:
-            raise ValueError("Cada tramo del trayecto necesita al menos dos puntos.")
-        total += len(segmento)
-        if total > MAX_PUNTOS_GPX:
-            raise ValueError("El máximo es de 50.000 puntos por ruta.")
-        puntos = []
-        for punto in segmento:
-            if (
-                not isinstance(punto, list) or len(punto) != 2
-                or any(type(valor) not in (float, int) for valor in punto)
-            ):
-                raise ValueError("El trazado contiene coordenadas inválidas.")
-            latitud, longitud = punto
-            if not (-90 <= latitud <= 90 and -180 <= longitud <= 180):
-                raise ValueError("El trazado contiene coordenadas fuera de rango.")
-            puntos.append([round(latitud, 6), round(longitud, 6)])
-        trazado.append(puntos)
-    return trazado
-
-
-def leer_trazado_gpx(contenido):
-    if len(contenido) > 8 * 1024 * 1024:
-        raise ValueError("El GPX supera los 8 MB.")
-    try:
-        texto = contenido.decode("utf-8-sig")
-        if re.search(r"<!\s*(?:DOCTYPE|ENTITY)", texto, re.IGNORECASE):
-            raise ValueError("El GPX contiene declaraciones XML no compatibles.")
-        raiz = ElementTree.fromstring(texto)
-    except (UnicodeError, ElementTree.ParseError) as error:
-        raise ValueError("Sube un archivo GPX válido en UTF-8.") from error
-    if raiz.tag.rsplit("}", 1)[-1] != "gpx":
-        raise ValueError("El archivo no es un GPX.")
-
-    grupos = raiz.findall("{*}trk/{*}trkseg")
-    etiqueta_punto = "{*}trkpt"
-    if not grupos:
-        grupos = raiz.findall("{*}rte")
-        etiqueta_punto = "{*}rtept"
-
-    segmentos = []
-    for grupo in grupos:
-        puntos = grupo.findall(etiqueta_punto)
-        if len(puntos) < 2:
-            continue
-        try:
-            segmentos.append([
-                [float(punto.attrib["lat"]), float(punto.attrib["lon"])]
-                for punto in puntos
-            ])
-        except (KeyError, ValueError) as error:
-            raise ValueError("El GPX contiene puntos sin coordenadas válidas.") from error
-    return normalizar_trazado(segmentos)
-
-
-@st.cache_data(ttl=60, show_spinner=False, max_entries=128)
-def cargar_trazados(claves):
-    if not claves:
-        return {}
-    try:
-        respuesta = supabase.rpc(
-            "familybike_trazados_publicos", {"claves": list(claves)}
-        ).execute()
-    except Exception:
-        return None
-    return {fila["ruta_clave"]: fila["trazado"] for fila in respuesta.data or []}
-
-
-def mostrar_mapa_ruta(ruta, trazados, alto=220):
-    if trazados is None:
-        st.caption("Mapas temporalmente no disponibles.")
-        return
-    trazado = trazados.get(fb_clave_ruta(ruta))
-    if not trazado:
-        st.markdown('<div class="fb-mapa-pendiente">Trayecto pendiente de cargar</div>', unsafe_allow_html=True)
-        return
-    try:
-        coordenadas = json.dumps(normalizar_trazado(trazado), separators=(",", ":"), allow_nan=False)
-    except ValueError:
-        st.caption("El trayecto de esta ruta no está disponible.")
-        return
-
-    components.html(
-        """<!doctype html><html lang="es"><head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIINfQ3ynJbH6S+K3AfiJ4iIAlkql5S8W20=" crossorigin="">
-        <style>html,body,#mapa{height:100%;margin:0}
-        #mapa{background:#e7eeea;border-radius:10px;font:14px system-ui;color:#22352f}</style>
-        </head><body>
-        <div id="mapa" role="region" aria-label="Mapa interactivo del trayecto">Cargando mapa del trayecto…</div>
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-        <script>
-        const contenedor = document.getElementById("mapa");
-        if (typeof L === "undefined") {
-          contenedor.textContent = "El mapa no se ha podido cargar.";
-        } else {
-          contenedor.textContent = "";
-          const mapa = L.map(contenedor, {scrollWheelZoom: false, dragging: !L.Browser.touch});
-          L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
-          }).addTo(mapa);
-          const linea = L.polyline(""" + coordenadas + """, {color:"#076454", weight:4}).addTo(mapa);
-          mapa.fitBounds(linea.getBounds(), {padding:[18,18], maxZoom:16});
-        }
-        </script></body></html>""",
-        height=alto,
-        scrolling=False,
-    )
-
-
-def editar_trazado_admin():
-    st.markdown("### Mapas de rutas publicadas")
-    st.caption("Selecciona una ruta y sube el GPX del recorrido. El trayecto será visible en el catálogo público.")
-    try:
-        rutas_publicadas = cargar_rutas_publicas()
-    except Exception:
-        st.info("El catálogo público de Supabase no está disponible.")
-        return
-    if not rutas_publicadas:
-        st.info("Aún no hay rutas publicadas.")
-        return
-
-    por_clave = {fb_clave_ruta(ruta): ruta for ruta in rutas_publicadas}
-    with st.form("fb_formulario_gpx", clear_on_submit=True):
-        clave = st.selectbox(
-            "Ruta publicada", list(por_clave),
-            format_func=lambda valor: f"{por_clave[valor]['nombre']} · {valor}",
-        )
-        archivo = st.file_uploader("Archivo GPX", type=["gpx"])
-        guardar = st.form_submit_button("Guardar mapa")
-        if guardar:
-            if archivo is None:
-                st.error("Selecciona un archivo GPX.")
-                return
-            try:
-                trazado = leer_trazado_gpx(archivo.getvalue())
-            except ValueError as error:
-                st.error(str(error))
-                return
-            try:
-                supabase.rpc(
-                    "familybike_guardar_trazado", {"clave": clave, "segmentos": trazado}
-                ).execute()
-            except Exception:
-                st.error("No se ha podido guardar el mapa en Supabase.")
-                return
-            cargar_trazados.clear()
-            st.success("Mapa guardado en la ruta seleccionada.")
-
-
-@st.cache_data(ttl=60, show_spinner=False)
-def cargar_rutas_publicas():
-    respuesta = supabase.rpc("familybike_catalogo_publico", {}).execute()
-    return ordenar_rutas(respuesta.data or [])
-
-
-def mostrar_catalogo_publico(clave_elegida, error_google, url_acceso):
-    try:
-        rutas_publicas = cargar_rutas_publicas()
-    except Exception:
-        st.warning("El catálogo de rutas no está disponible ahora mismo.")
-        return
-
-    if clave_elegida:
-        elegida = next((ruta for ruta in rutas_publicas if fb_clave_ruta(ruta) == clave_elegida), None)
-        if elegida:
-            with st.container(border=True):
-                st.text(elegida.get("nombre") or "Ruta motera")
-                mostrar_mapa_ruta(elegida, cargar_trazados((clave_elegida,)), alto=300)
-                st.caption("Crea tu cuenta gratis o inicia sesión para abrir el recorrido en Google Maps.")
-                if error_google:
-                    st.error(error_google)
-                st.link_button(
-                    "Continuar con Google", url_acceso, type="primary",
-                    key="fb_google_ruta", use_container_width=True,
-                )
-        else:
-            st.info("Esta ruta ya no está disponible en el catálogo.")
-
-    busqueda = st.text_input(
-        "Buscar rutas", placeholder="Ej.: Sierra de Cádiz", key="fb_buscar_ruta_publica"
-    ).strip().casefold()
-    resultados = [
-        ruta for ruta in rutas_publicas
-        if busqueda in str(ruta.get("nombre") or "").casefold()
-    ]
-    if not resultados:
-        st.info("No hay rutas que coincidan con tu búsqueda." if busqueda else "Aún no hay rutas publicadas.")
-        return
-
-    por_pagina = 9
-    paginas = (len(resultados) - 1) // por_pagina + 1
-    if st.session_state.get("fb_busqueda_publica_anterior") != busqueda:
-        st.session_state["fb_busqueda_publica_anterior"] = busqueda
-        st.session_state["fb_pagina_publica"] = 0
-    pagina = min(st.session_state.get("fb_pagina_publica", 0), paginas - 1)
-    st.caption(f"{len(resultados)} {'ruta' if len(resultados) == 1 else 'rutas'}")
-    if paginas > 1:
-        anterior, siguiente = st.columns(2)
-        if anterior.button("← Anterior", key="fb_publica_anterior", disabled=pagina == 0):
-            st.session_state["fb_pagina_publica"] = pagina - 1
-            st.rerun()
-        if siguiente.button("Siguiente →", key="fb_publica_siguiente", disabled=pagina == paginas - 1):
-            st.session_state["fb_pagina_publica"] = pagina + 1
-            st.rerun()
-
-    columnas = st.columns(3)
-    inicio = pagina * por_pagina
-    visibles = resultados[inicio:inicio + por_pagina]
-    trazados = cargar_trazados(tuple(fb_clave_ruta(ruta) for ruta in visibles))
-    for indice, ruta in enumerate(visibles):
-        clave = fb_clave_ruta(ruta)
-        with columnas[indice % len(columnas)]:
-            with st.container(border=True):
-                mostrar_mapa_ruta(ruta, trazados)
-                st.markdown(
-                    f'<div class="route-name">{escapar(ruta.get("nombre") or "Ruta motera")}</div>',
-                    unsafe_allow_html=True,
-                )
-                if st.button("Usar ruta", key=f"fb_usar_{clave}", use_container_width=True, disabled=clave == clave_elegida):
-                    st.query_params["ruta"] = clave
-                    st.rerun()
-
-
-st.markdown("""
-<style>
-.fb-rutas-portada{display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;
-background:#153c34;border:1px solid #3e6455;border-radius:16px;padding:clamp(18px,4vw,38px);margin-bottom:12px}
-.fb-rutas-portada img{width:clamp(80px,13vw,150px);max-height:70px;object-fit:contain}
-.fb-rutas-portada h1{margin:0;padding:0;color:#fff;font-size:clamp(25px,4vw,45px);line-height:1.08}
-.fb-rutas-portada p{margin:8px 0 0;color:#d9ebe4}
-.fb-rutas-portada a,.fb-rutas-portada a:visited{color:#f4d84e;font-weight:750;white-space:nowrap}
-.fb-mapa-pendiente{display:grid;place-items:center;box-sizing:border-box;min-height:140px;padding:16px;
-background:#18332f;border:1px solid #3b5751;border-radius:10px;color:#d9ebe4;text-align:center}
-.st-key-fb_catalogo_publico .route-name{font-weight:750;line-height:1.3;color:#fff}
-#entra-en-family-bike{scroll-margin-top:4rem}
-@media(max-width:640px){
- .fb-rutas-portada{grid-template-columns:1fr auto;gap:10px 14px}
- .fb-rutas-portada div{grid-column:1/-1;grid-row:2}
- .st-key-fb_catalogo_publico [data-testid="stHorizontalBlock"]{flex-wrap:wrap}
- .st-key-fb_catalogo_publico [data-testid="stColumn"]{min-width:min(100%,230px);flex:1 1 230px}
-}
-</style>
-""", unsafe_allow_html=True)
-
-
 if not autenticado:
 
     pegatina_publica = id_pegatina_compartida()
-    clave_compartida = clave_ruta_compartida()
-    url_acceso_google = iniciar_google_oauth(ruta=clave_compartida)
+    clave_compartida = st.query_params.get("ruta", "")
+    if isinstance(clave_compartida, str) and re.fullmatch(r"(?:catalogo|propuesta):[a-zA-Z0-9_-]{1,80}", clave_compartida):
+        st.info("🏍️ ¡Te han compartido una ruta de FAMILY BIKE! Inicia sesión o crea tu cuenta para ver el recorrido, valorarlo y comentar.")
 
     st.markdown('<span class="fb-login-marker"></span>', unsafe_allow_html=True)
 
-    if pegatina_publica and not clave_compartida:
-        st.markdown(f'<a href="{FAMILYBIKE_PUBLIC_URL}">← Explorar rutas en Family Bike</a>', unsafe_allow_html=True)
-        mostrar_mural_publico(pegatina_publica)
-        st.stop()
+    # PORTADA PÚBLICA: solo contenido promocional, sin consultar rutas privadas.
+    st.markdown("""
+    <style>
+    .fb-landing{max-width:1100px;margin:0 auto 22px}
+    .fb-landing-hero{position:relative;isolation:isolate;min-height:320px;border-radius:22px;
+      overflow:hidden;display:flex;align-items:center;border:1px solid #803732;
+      background:radial-gradient(ellipse at 88% 80%,#6d1b21,transparent 62%),
+      linear-gradient(115deg,#101116 40%,#3d1318)}
+    .fb-landing-hero::after{content:"";position:absolute;inset:0 0 0 auto;width:42%;z-index:-1;
+      background:conic-gradient(#fff 25%,transparent 0 50%,#fff 0 75%,transparent 0) 0 0/44px 44px;
+      opacity:.12;mask-image:linear-gradient(90deg,transparent,#000)}
+    .fb-landing-number{position:absolute;right:clamp(16px,6vw,82px);bottom:0;z-index:-1;
+      color:#ec6259;opacity:.46;font:900 italic clamp(150px,26vw,350px)/.86 'Barlow Condensed',sans-serif;
+      letter-spacing:-.06em;pointer-events:none}
+    .fb-landing-content{position:relative;padding:clamp(20px,4vw,44px);max-width:660px}
+    .fb-landing-tribute-link{display:inline-block;color:#fff!important;font-weight:700;
+      text-decoration:underline;text-underline-offset:3px}
+    .fb-landing-logo{width:min(75%,300px);max-height:76px;object-fit:contain;object-position:left}
+    .fb-landing-kicker{color:#f5ef00;font-weight:800;letter-spacing:2px;font-size:12px;margin:12px 0}
+    .fb-landing-title{color:white;font-size:clamp(30px,5vw,52px);font-weight:900;
+      line-height:1.04;margin:10px 0;font-family:'Barlow Condensed',sans-serif}
+    .fb-landing-desc{color:#e5e7eb;font-size:clamp(14px,2vw,18px);line-height:1.55}
+    .fb-landing-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0}
+    .fb-landing-card{background:#1c2027;border:1px solid #444951;border-radius:15px;
+      padding:17px 12px;text-align:center}
+    .fb-landing-icon{font-size:27px;margin-bottom:7px}
+    .fb-landing-card strong{display:block;color:#fff;font-size:13px}
+    .fb-landing-card span{display:block;color:#c9cdd3;font-size:12px;margin-top:7px}
+    .fb-landing-private{color:#f5ef00!important;font-size:11px!important}
+    .fb-landing-card,.fb-landing-card:visited{display:block;color:#fff;text-decoration:none}
+    .fb-landing-card:hover,.fb-landing-card:focus-visible{border-color:#f5ef00;outline-offset:3px}
+    .fb-route-preview{border:1px solid #45494f;border-radius:15px;padding:18px;margin:0 0 20px;
+      background:linear-gradient(90deg,rgba(8,10,14,.95),rgba(8,10,14,.55)),
+      url('https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1000&q=80') center/cover}
+    .fb-route-preview a{color:#f5ef00!important;font-weight:700}
+    .st-key-fb_muro_portada {
+      --junta-muro:#181719;
+      padding:clamp(12px,3vw,22px);
+      border:1px solid #5b5147;
+      border-radius:14px;
+      background:
+        radial-gradient(ellipse at 50% 25%,rgba(255,210,145,.16),transparent 72%),
+        repeating-linear-gradient(0deg,var(--junta-muro) 0 2px,transparent 2px 36px),
+        conic-gradient(from 90deg at 2px 50%,transparent 0 50%,var(--junta-muro) 0 75%,transparent 0)
+          0 0 / 112px 72px,
+        conic-gradient(from 90deg at 2px 50%,transparent 0 25%,var(--junta-muro) 0 50%,transparent 0)
+          56px 0 / 112px 72px,
+        linear-gradient(90deg,#352c29,#302827);
+    }
+    .st-key-fb_muro_portada h2 {
+      color:#ffdf39!important;
+    }
+    .st-key-fb_muro_portada .st-key-fb_pegatinas_portada [data-testid="stImage"] img {
+      filter:drop-shadow(0 1px 2px rgba(255,225,187,.28))
+             drop-shadow(0 4px 7px rgba(0,0,0,.65));
+    }
+    .st-key-fb_acceso_portada {
+      background:linear-gradient(110deg,#302818,#1b2027);
+      border:1px solid #877018;
+      border-radius:14px;
+      padding:clamp(14px,3vw,24px);
+    }
+    #entra-en-family-bike {
+      color:#ffdf39!important;
+      font-size:clamp(25px,5vw,36px);
+      padding:0;
+      margin:0;
+      scroll-margin-top:4rem;
+    }
+    
+    @media(max-width:640px){
+      .fb-landing-hero{min-height:270px}
+      .fb-landing-number{opacity:.17}
+      .fb-landing-content{padding:20px}
+      .fb-landing-logo{width:165px;max-height:62px}
+      .fb-landing-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+      .fb-landing-card{padding:14px 8px}
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     st.markdown(
-        '<header class="fb-rutas-portada">'
-        f'<img src="{LOGO_URL}" alt="Family Bike">'
-        '<div><h1>Encuentra tu próxima ruta en moto</h1>'
-        '<p>Explora los mapas de las rutas compartidas por la comunidad.</p></div>'
-        '<a href="#entra-en-family-bike">Entrar</a>'
-        '</header>',
-        unsafe_allow_html=True,
+        '<div class="fb-landing">'
+        '<section class="fb-landing-hero" aria-labelledby="fb-marc-titulo">'
+        '<span class="fb-landing-number" aria-hidden="true">93</span>'
+        '<div class="fb-landing-content">'
+        f'<img class="fb-landing-logo" src="{LOGO_URL}" alt="Family Bike">'
+        '<div class="fb-landing-kicker">CAMPEÓN DEL MUNDO DE MOTOGP 2026</div>'
+        '<h1 class="fb-landing-title" id="fb-marc-titulo">¡Enhorabuena, Marc Márquez!</h1>'
+        '<p class="fb-landing-desc">El 93 hizo historia en Portimão: '
+        'ocho títulos en MotoGP y diez mundiales de motociclismo.</p>'
+        '<a class="fb-landing-tribute-link" '
+        'href="https://www.motogp.com/es/news/2026/11/22/marc-marquez-las-cifras-de-una-temporada-2026-que-ha-hecho-historia/1184719" '
+        'target="_blank" rel="noopener noreferrer">Leer en MotoGP ↗</a>'
+        '</div></section>'
+        '</div>',
+        unsafe_allow_html=True
     )
-
-    with st.container(key="fb_catalogo_publico"):
-        mostrar_catalogo_publico(clave_compartida, error_acceso_google, url_acceso_google)
 
     with st.container(key="fb_acceso_portada"):
         st.markdown(
@@ -2017,10 +1824,12 @@ if not autenticado:
             st.error(error_acceso_google)
         st.link_button(
             "Continuar con Google",
-            url_acceso_google,
+            iniciar_google_oauth(),
             use_container_width=True,
             key="fb_google_login",
         )
+
+    mostrar_mural_publico(pegatina_publica)
 
     with st.container(border=True):
         st.markdown("### 📱 Family Bike para Android")
@@ -2208,12 +2017,6 @@ if pegatina_compartida:
     st.session_state["pagina_mural"] = 0
     st.session_state["seccion_activa"] = "grupos"
     del st.query_params["pegatina"]
-else:
-    ruta_compartida = clave_ruta_compartida()
-    if ruta_compartida:
-        st.session_state["fb_ruta_elegida"] = ruta_compartida
-        st.session_state["seccion_activa"] = "rutas"
-        del st.query_params["ruta"]
 
 
 # =========================================================
@@ -2515,94 +2318,6 @@ if seccion in {"menu", "rutas", "quedadas"}:
     except Exception:
         st.warning("No se han podido cargar las rutas desde Supabase.")
 
-# Estilo del botón de descarga Android (portada).
-st.markdown("""<style>
-a[href*="/Descargas/FAMILYBIKE.apk"], a[href*="FAMILYBIKE.apk?download="] {
-  background:#eeff00!important;color:#121212!important;border:1px solid #eeff00!important;
-  border-radius:12px!important;font-weight:900!important;min-height:54px!important;
-  text-decoration:none!important;
-}
-a[href*="/Descargas/FAMILYBIKE.apk"]:hover, a[href*="FAMILYBIKE.apk?download="]:hover {
-  background:#d8e600!important;color:#101010!important;
-}
-</style>""", unsafe_allow_html=True)
-
-# =========================================================
-# MENÚ PRINCIPAL FAMILY BIKE
-# =========================================================
-
-if st.session_state["seccion_activa"] == "menu":
-
-    # El catálogo abre la portada de miembros.
-    st.markdown('<div class="fb-home-heading">EXPLORA RUTAS EN MOTO</div>', unsafe_allow_html=True)
-    with st.form("fb_buscar_desde_inicio"):
-        busqueda_inicio = st.text_input("Buscar rutas", placeholder="Ej.: Sierra de Cádiz")
-        if st.form_submit_button("Buscar", type="primary"):
-            st.session_state["buscar_ruta"] = busqueda_inicio
-            st.session_state["seccion_activa"] = "rutas"
-            st.rerun()
-
-    if rutas:
-        destacadas = rutas[:3]
-        trazados = cargar_trazados(tuple(fb_clave_ruta(ruta) for ruta in destacadas))
-        for columna, ruta in zip(st.columns(3), destacadas):
-            with columna, st.container(border=True):
-                mostrar_mapa_ruta(ruta, trazados)
-                st.text(ruta.get("nombre") or "Ruta motera")
-                clave = fb_clave_ruta(ruta)
-                if st.button("Ver ruta", key=f"fb_destacada_{clave}", use_container_width=True):
-                    st.session_state["fb_ruta_elegida"] = clave
-                    st.session_state["seccion_activa"] = "rutas"
-                    st.rerun()
-
-    # Accesos reales de Streamlit: mantienen el comportamiento original.
-    st.markdown('<div class="fb-home-heading">DESCUBRE FAMILY BIKE</div>', unsafe_allow_html=True)
-    accesos = [
-        ("🗺️", "EXPLORAR RUTAS", "rutas", "home_rutas"),
-        ("📅", "QUEDADAS MOTERAS", "quedadas", "home_quedadas"),
-        ("🏍️", "MI GARAJE", "garaje", "home_garaje"),
-        ("👥", "COMUNIDAD", "comunidad", "home_comunidad"),
-        ("💬", "CHAT GENERAL", "chat", "home_chat"),
-        ("🏍️", "MURO DE PEGATINAS", "grupos", "home_grupos"),
-        ("📍", "SUBIR MI RUTA", "rutas", "home_subir"),
-        ("👤", "EDITAR MI PERFIL", "perfil", "home_perfil"),
-        ("🛒", "TIENDA FAMILY BIKE", "tienda", "home_tienda"),
-    ]
-    for inicio in range(0, len(accesos), 4):
-        columnas = st.columns(4, gap="small")
-        for columna, (emoji, titulo, destino, clave) in zip(columnas, accesos[inicio:inicio+4]):
-            with columna:
-                if st.button(f"{emoji}\n{titulo}", key=clave, use_container_width=True):
-                    if clave == "home_subir":
-                        st.session_state["abrir_propuesta_ruta"] = True
-                    st.session_state["seccion_activa"] = destino
-                    st.rerun()
-
-    if es_admin:
-        if st.button("⚙️ ADMINISTRACIÓN FAMILY BIKE", key="home_admin", use_container_width=True):
-            st.session_state["seccion_activa"] = "administracion"
-            st.rerun()
-
-
-
-# =========================================================
-# NAVEGACIÓN: BOTÓN VOLVER AL MENÚ
-# =========================================================
-
-else:
-
-    if st.button(
-        "← VOLVER AL MENÚ PRINCIPAL",
-        key="volver_menu",
-        type="secondary",
-        use_container_width=True
-    ):
-        st.session_state["seccion_activa"] = "menu"
-        st.session_state.pop("pegatina_compartida", None)
-        st.session_state.pop("fb_ruta_elegida", None)
-        st.rerun()
-
-
 # =========================================================
 # NOTICIAS EN LA PÁGINA PRINCIPAL
 # =========================================================
@@ -2644,6 +2359,105 @@ if st.session_state["seccion_activa"] == "menu":
         pass
 
 
+
+# Estilo del botón de descarga Android (portada).
+st.markdown("""<style>
+a[href*="/Descargas/FAMILYBIKE.apk"], a[href*="FAMILYBIKE.apk?download="] {
+  background:#eeff00!important;color:#121212!important;border:1px solid #eeff00!important;
+  border-radius:12px!important;font-weight:900!important;min-height:54px!important;
+  text-decoration:none!important;
+}
+a[href*="/Descargas/FAMILYBIKE.apk"]:hover, a[href*="FAMILYBIKE.apk?download="]:hover {
+  background:#d8e600!important;color:#101010!important;
+}
+</style>""", unsafe_allow_html=True)
+
+# =========================================================
+# MENÚ PRINCIPAL FAMILY BIKE
+# =========================================================
+
+if st.session_state["seccion_activa"] == "menu":
+
+    # Portada con imagen panorámica y logotipo transparente.
+    st.markdown(
+        f"""
+        <div class="fb-home-hero">
+          <div class="fb-home-shade"></div>
+          <div class="fb-home-content">
+            <img class="fb-home-logo" src="{LOGO_URL}" alt="Family Bike">
+            <div class="fb-home-tagline">RUTAS · QUEDADAS · COMUNIDAD</div>
+            <div class="fb-home-line"></div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True
+    )
+
+    # Accesos reales de Streamlit: mantienen el comportamiento original.
+    st.markdown('<div class="fb-home-heading">DESCUBRE FAMILY BIKE</div>', unsafe_allow_html=True)
+    accesos = [
+        ("🗺️", "EXPLORAR RUTAS", "rutas", "home_rutas"),
+        ("📅", "QUEDADAS MOTERAS", "quedadas", "home_quedadas"),
+        ("🏍️", "MI GARAJE", "garaje", "home_garaje"),
+        ("👥", "COMUNIDAD", "comunidad", "home_comunidad"),
+        ("💬", "CHAT GENERAL", "chat", "home_chat"),
+        ("🏍️", "MURO DE PEGATINAS", "grupos", "home_grupos"),
+        ("📍", "SUBIR MI RUTA", "rutas", "home_subir"),
+        ("👤", "EDITAR MI PERFIL", "perfil", "home_perfil"),
+        ("🛒", "TIENDA FAMILY BIKE", "tienda", "home_tienda"),
+    ]
+    for inicio in range(0, len(accesos), 4):
+        columnas = st.columns(4, gap="small")
+        for columna, (emoji, titulo, destino, clave) in zip(columnas, accesos[inicio:inicio+4]):
+            with columna:
+                if st.button(f"{emoji}\n{titulo}", key=clave, use_container_width=True):
+                    if clave == "home_subir":
+                        st.session_state["abrir_propuesta_ruta"] = True
+                    st.session_state["seccion_activa"] = destino
+                    st.rerun()
+
+    if es_admin:
+        if st.button("⚙️ ADMINISTRACIÓN FAMILY BIKE", key="home_admin", use_container_width=True):
+            st.session_state["seccion_activa"] = "administracion"
+            st.rerun()
+
+    st.markdown('<div class="fb-home-heading">⛰️ RUTAS DESTACADAS</div>', unsafe_allow_html=True)
+    if rutas:
+        for inicio in range(0, min(len(rutas), 6), 3):
+            columnas_rutas = st.columns(3, gap="medium")
+            for columna, ruta in zip(columnas_rutas, rutas[inicio:inicio+3]):
+                with columna:
+                    nombre_ruta = escapar(str(ruta.get("nombre") or "Ruta motera"))
+                    imagen_ruta = ruta.get("imagen_url") or IMAGEN_PREDETERMINADA
+                    # Evitar inyección HTML mediante URLs provenientes de la base de datos.
+                    imagen_ruta = html.escape(str(imagen_ruta), quote=True)
+                    st.markdown(
+                        f'<div class="fb-route-tile"><img src="{imagen_ruta}" alt="Ruta motera" loading="lazy"><div class="fb-route-name">{nombre_ruta}</div></div>',
+                        unsafe_allow_html=True
+                    )
+                    if st.button("VER RUTAS", key=f"home_featured_{inicio}_{str(ruta.get('id'))}", use_container_width=True):
+                        st.session_state["seccion_activa"] = "rutas"
+                        st.rerun()
+    else:
+        st.info("Todavía no hay rutas publicadas. ¡Sé el primero en compartir una!")
+
+
+# =========================================================
+# NAVEGACIÓN: BOTÓN VOLVER AL MENÚ
+# =========================================================
+
+else:
+
+    if st.button(
+        "← VOLVER AL MENÚ PRINCIPAL",
+        key="volver_menu",
+        type="secondary",
+        use_container_width=True
+    ):
+        st.session_state["seccion_activa"] = "menu"
+        st.session_state.pop("pegatina_compartida", None)
+        st.rerun()
+
+
 # =========================================================
 # SECCIÓN EXPLORAR RUTAS
 # =========================================================
@@ -2661,24 +2475,6 @@ if st.session_state["seccion_activa"] == "rutas":
         '</div>',
         unsafe_allow_html=True
     )
-
-    clave_elegida = st.session_state.get("fb_ruta_elegida")
-    if clave_elegida:
-        elegida = next((ruta for ruta in rutas if fb_clave_ruta(ruta) == clave_elegida), None)
-        with st.container(border=True):
-            if elegida:
-                st.text(elegida.get("nombre") or "Ruta motera")
-                mostrar_mapa_ruta(elegida, cargar_trazados((clave_elegida,)), alto=320)
-                recorrido = elegida.get("url")
-                if isinstance(recorrido, str) and recorrido.startswith(("https://", "http://")):
-                    st.link_button("Abrir recorrido ↗", recorrido, type="primary", use_container_width=True)
-                else:
-                    st.info("Esta ruta no tiene un enlace de recorrido disponible.")
-            else:
-                st.info("No se ha podido cargar la ruta seleccionada.")
-            if st.button("Seguir explorando", key="fb_cerrar_ruta_elegida"):
-                st.session_state.pop("fb_ruta_elegida", None)
-                st.rerun()
 
     with st.expander(
         "➕ COMPARTIR UNA RUTA DE GOOGLE MAPS",
@@ -2784,20 +2580,28 @@ if st.session_state["seccion_activa"] == "rutas":
 
         columnas = st.columns(3)
 
-        visibles = rutas_filtradas[inicio:fin]
-        trazados = cargar_trazados(tuple(fb_clave_ruta(ruta) for ruta in visibles))
-        for indice, ruta in enumerate(visibles):
+        for indice, ruta in enumerate(rutas_filtradas[inicio:fin], start=inicio):
 
             nombre = ruta.get("nombre", "Ruta sin nombre")
             url_original = ruta.get("url", "")
+            imagen = ruta.get("imagen_url")
 
-            with columnas[indice % 3], st.container(border=True):
+            if (
+                not isinstance(imagen, str)
+                or not imagen.startswith(("https://", "http://"))
+            ):
+                imagen = IMAGEN_PREDETERMINADA
 
-                mostrar_mapa_ruta(ruta, trazados)
+            with columnas[indice % 3]:
+
+                st.image(imagen, use_container_width=True)
 
                 st.markdown(
                     f"""
                     <div class="route-card">
+                        <div class="route-number">
+                            RUTA {indice + 1:02d}
+                        </div>
                         <div class="route-name">
                             {escapar(nombre)}
                         </div>
@@ -4342,8 +4146,6 @@ if st.session_state["seccion_activa"] == "administracion":
             st.code(str(error))
 
     with tab_rutas:
-        editar_trazado_admin()
-        st.divider()
         st.markdown("### MODERACIÓN DE RUTAS")
         try:
             pendientes = (
