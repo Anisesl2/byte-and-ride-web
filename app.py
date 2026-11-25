@@ -28639,6 +28639,25 @@ def mostrar_catalogo_publico(clave_elegida, error_google, url_acceso):
 
 st.markdown("""
 <style>
+.fb-whatsapp-comunidad, .fb-whatsapp-comunidad:visited {
+    position: fixed;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: max(22px, env(safe-area-inset-bottom));
+    z-index: 1001;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #087d47;
+    color: #fff !important;
+    border: 2px solid #ffffffb3;
+    box-shadow: 0 4px 16px #0006;
+    text-decoration: none;
+}
+.fb-whatsapp-comunidad:hover {background: #06643a}
+.fb-whatsapp-comunidad:focus-visible {outline: 3px solid #fff; outline-offset: 4px}
+.fb-whatsapp-comunidad svg {width: 29px; height: 29px}
 [data-testid="stMainBlockContainer"]:has(.fb-rutas-portada) {
     max-width: 1200px !important;
     padding-inline: clamp(16px, 3.5vw, 46px) !important;
@@ -28793,6 +28812,18 @@ if not autenticado:
         '<a class="fb-portada-explorar" href="#catalogo-de-rutas">Explorar rutas <span class="fb-explorar-flecha" aria-hidden="true">↓</span></a>'
         f'<a class="fb-portada-explorar" href="{url_proponer_ruta}" target="_blank" rel="noopener noreferrer">Añadir tu ruta <span class="fb-explorar-flecha" aria-hidden="true">+</span></a>'
         '</div></div></header>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        '<a class="fb-whatsapp-comunidad"'
+        ' href="https://chat.whatsapp.com/Iw9SHrac2O6CSBCllTUvL6"'
+        ' target="_blank" rel="noopener noreferrer"'
+        ' aria-label="Únete a la comunidad Family Bike en WhatsApp"'
+        ' title="Únete a la comunidad Family Bike en WhatsApp">'
+        '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+        '<path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.41-1.49-.89-.8-1.49-1.78-1.66-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.35.19 1.86.11.57-.08 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.42-.07-.12-.27-.2-.57-.35zM12.04 21.6h-.01a9.58 9.58 0 0 1-4.89-1.34l-.35-.21-3.64.96.97-3.55-.23-.36a9.58 9.58 0 1 1 8.15 4.5zM20.2 3.81A11.56 11.56 0 0 0 2 17.66L.36 23.64l6.12-1.6a11.56 11.56 0 0 0 5.55 1.41h.01a11.56 11.56 0 0 0 8.16-19.64z"/>'
+        '</svg></a>',
         unsafe_allow_html=True,
     )
 
