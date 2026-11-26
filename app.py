@@ -28641,7 +28641,7 @@ st.markdown("""
 <style>
 .fb-whatsapp-comunidad, .fb-whatsapp-comunidad:visited {
     position: fixed;
-    right: max(18px, env(safe-area-inset-right));
+    left: max(18px, env(safe-area-inset-left));
     bottom: max(22px, env(safe-area-inset-bottom));
     z-index: 1001;
     display: grid;
