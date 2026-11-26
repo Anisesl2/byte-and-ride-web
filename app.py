@@ -28782,6 +28782,119 @@ VIDEO_PORTADA_URL = (
 )
 
 
+PORTADA_TEXTOS = {
+    "titulo": ("Título principal", "La carretera\nte espera.", 100),
+    "descripcion": ("Descripción principal", "Descubre rutas en moto compartidas por la comunidad.", 300),
+    "catalogo": ("Título del catálogo", "Rutas en moto", 100),
+    "acceso": ("Título del acceso con Google", "Entra en Family Bike", 100),
+    "android": ("Título del bloque de Android", "📱 Family Bike para Android", 100),
+}
+PORTADA_ENLACES = {
+    "foto": ("URL de la imagen de fondo", FOTO_PORTADA_URL),
+    "video": ("URL del vídeo MP4", VIDEO_PORTADA_URL),
+    "whatsapp": ("Enlace de invitación a WhatsApp", "https://chat.whatsapp.com/Iw9SHrac2O6CSBCllTUvL6"),
+}
+PORTADA_VISIBILIDAD = {
+    "mostrar_video": "Reproducir el vídeo de fondo",
+    "mostrar_whatsapp": "Mostrar el botón flotante de WhatsApp",
+}
+
+
+def enlace_portada_valido(campo, valor):
+    if not valor or len(valor) > 2048 or any(c.isspace() for c in valor):
+        return False
+    try:
+        url = urlparse(valor)
+        return (
+            url.scheme == "https"
+            and bool(url.hostname)
+            and url.username is None
+            and url.password is None
+            and (campo != "whatsapp" or (
+                url.hostname == "chat.whatsapp.com" and bool(url.path.strip("/"))
+            ))
+        )
+    except ValueError:
+        return False
+
+
+def leer_portada():
+    respuesta = (
+        supabase.table("familybike_portada").select("contenido")
+        .eq("id", 1).limit(1).execute()
+    )
+    filas = respuesta.data or []
+    datos = filas[0].get("contenido") if filas else {}
+    if not isinstance(datos, dict):
+        return {}
+    contenido = {
+        campo: datos[campo].strip()
+        for campo, (_, _, limite) in PORTADA_TEXTOS.items()
+        if isinstance(datos.get(campo), str) and 0 < len(datos[campo].strip()) <= limite
+    }
+    contenido.update({
+        campo: datos[campo]
+        for campo in PORTADA_ENLACES
+        if isinstance(datos.get(campo), str) and enlace_portada_valido(campo, datos[campo])
+    })
+    contenido.update({
+        campo: datos[campo]
+        for campo in PORTADA_VISIBILIDAD
+        if isinstance(datos.get(campo), bool)
+    })
+    return contenido
+
+
+def editar_portada_publica():
+    st.subheader("Portada pública")
+    try:
+        actual = leer_portada()
+    except Exception:
+        st.error("No se pudo cargar la configuración de la portada. Comprueba que la tabla y sus permisos estén instalados en Supabase.")
+        return
+
+    with st.form("fb_editor_portada"):
+        cambios = {}
+        for campo, (etiqueta, valor, limite) in PORTADA_TEXTOS.items():
+            entrada = st.text_area if campo in ("titulo", "descripcion") else st.text_input
+            cambios[campo] = entrada(
+                etiqueta, value=actual.get(campo, valor), max_chars=limite, key=f"fb_portada_{campo}"
+            ).strip()
+
+        st.caption("Deja una URL vacía para usar el recurso original.")
+        for campo, (etiqueta, _) in PORTADA_ENLACES.items():
+            cambios[campo] = st.text_input(
+                etiqueta, value=actual.get(campo, ""), max_chars=2048, key=f"fb_portada_{campo}"
+            ).strip()
+
+        for campo, etiqueta in PORTADA_VISIBILIDAD.items():
+            cambios[campo] = st.checkbox(etiqueta, value=actual.get(campo, True), key=f"fb_portada_{campo}")
+        guardar = st.form_submit_button("Publicar cambios", type="primary")
+
+    if not guardar:
+        return
+
+    for campo, (etiqueta, _, _) in PORTADA_TEXTOS.items():
+        if not cambios[campo]:
+            st.error(f"Completa el campo «{etiqueta}».")
+            return
+
+    for campo, (etiqueta, _) in PORTADA_ENLACES.items():
+        if cambios[campo] and not enlace_portada_valido(campo, cambios[campo]):
+            st.error(f"Revisa «{etiqueta}». Usa una URL HTTPS válida y un enlace chat.whatsapp.com para la comunidad.")
+            return
+
+    try:
+        respuesta = supabase.table("familybike_portada").upsert({"id": 1, "contenido": cambios}).execute()
+        if not respuesta.data:
+            st.error("Supabase no confirmó la publicación de los cambios.")
+            return
+    except Exception:
+        st.error("No se pudieron publicar los cambios. Comprueba la conexión y los permisos de administrador.")
+        return
+    st.success("Portada actualizada.")
+
+
 if not autenticado:
 
     pegatina_publica = id_pegatina_compartida()
@@ -28796,18 +28909,38 @@ if not autenticado:
         st.stop()
 
     url_proponer_ruta = html.escape(iniciar_google_oauth(proponer_ruta=True), quote=True)
+    try:
+        portada = leer_portada()
+    except Exception:
+        portada = {}
+
+    textos = {
+        campo: html.escape(portada.get(campo, valor))
+        for campo, (_, valor, _) in PORTADA_TEXTOS.items()
+    }
+    enlaces = {
+        campo: html.escape(portada.get(campo, valor), quote=True)
+        for campo, (_, valor) in PORTADA_ENLACES.items()
+    }
+    video_portada = ""
+    if portada.get("mostrar_video", True):
+        video_portada = (
+            '<video class="fb-paisaje fb-portada-video" autoplay muted loop playsinline aria-hidden="true">'
+            f'<source src="{enlaces["video"]}" type="video/mp4" media="(prefers-reduced-motion: no-preference)">'
+            '</video>'
+        )
+
+    titulo_portada = textos["titulo"].replace("\n", "<br>")
     st.markdown(
         '<header class="fb-rutas-portada">'
-        f'<img class="fb-paisaje" src="{FOTO_PORTADA_URL}" alt="" fetchpriority="high">'
-        '<video class="fb-paisaje fb-portada-video" autoplay muted loop playsinline aria-hidden="true">'
-        f'<source src="{html.escape(VIDEO_PORTADA_URL, quote=True)}" type="video/mp4" media="(prefers-reduced-motion: no-preference)">'
-        '</video>'
+        f'<img class="fb-paisaje" src="{enlaces["foto"]}" alt="" fetchpriority="high">'
+        f'{video_portada}'
         '<div class="fb-portada-nav">'
         f'<img src="{LOGO_URL}" alt="Family Bike">'
         '<a class="fb-portada-cuenta" href="#entra-en-family-bike">Iniciar sesión</a>'
         '</div>'
-        '<div class="fb-portada-texto"><h1>La carretera<br>te espera.</h1>'
-        '<p>Descubre rutas en moto compartidas por la comunidad.</p>'
+        f'<div class="fb-portada-texto"><h1>{titulo_portada}</h1>'
+        f'<p>{textos["descripcion"]}</p>'
         '<div class="fb-portada-acciones">'
         '<a class="fb-portada-explorar" href="#catalogo-de-rutas">Explorar rutas <span class="fb-explorar-flecha" aria-hidden="true">↓</span></a>'
         f'<a class="fb-portada-explorar" href="{url_proponer_ruta}" target="_blank" rel="noopener noreferrer">Añadir tu ruta <span class="fb-explorar-flecha" aria-hidden="true">+</span></a>'
@@ -28815,25 +28948,26 @@ if not autenticado:
         unsafe_allow_html=True,
     )
 
-    st.markdown(
-        '<a class="fb-whatsapp-comunidad"'
-        ' href="https://chat.whatsapp.com/Iw9SHrac2O6CSBCllTUvL6"'
-        ' target="_blank" rel="noopener noreferrer"'
-        ' aria-label="Únete a la comunidad Family Bike en WhatsApp"'
-        ' title="Únete a la comunidad Family Bike en WhatsApp">'
-        '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
-        '<path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.41-1.49-.89-.8-1.49-1.78-1.66-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.35.19 1.86.11.57-.08 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.42-.07-.12-.27-.2-.57-.35zM12.04 21.6h-.01a9.58 9.58 0 0 1-4.89-1.34l-.35-.21-3.64.96.97-3.55-.23-.36a9.58 9.58 0 1 1 8.15 4.5zM20.2 3.81A11.56 11.56 0 0 0 2 17.66L.36 23.64l6.12-1.6a11.56 11.56 0 0 0 5.55 1.41h.01a11.56 11.56 0 0 0 8.16-19.64z"/>'
-        '</svg></a>',
-        unsafe_allow_html=True,
-    )
+    if portada.get("mostrar_whatsapp", True):
+        st.markdown(
+            '<a class="fb-whatsapp-comunidad"'
+            f' href="{enlaces["whatsapp"]}"'
+            ' target="_blank" rel="noopener noreferrer"'
+            ' aria-label="Únete a la comunidad Family Bike en WhatsApp"'
+            ' title="Únete a la comunidad Family Bike en WhatsApp">'
+            '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+            '<path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.41-1.49-.89-.8-1.49-1.78-1.66-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.35.19 1.86.11.57-.08 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.42-.07-.12-.27-.2-.57-.35zM12.04 21.6h-.01a9.58 9.58 0 0 1-4.89-1.34l-.35-.21-3.64.96.97-3.55-.23-.36a9.58 9.58 0 1 1 8.15 4.5zM20.2 3.81A11.56 11.56 0 0 0 2 17.66L.36 23.64l6.12-1.6a11.56 11.56 0 0 0 5.55 1.41h.01a11.56 11.56 0 0 0 8.16-19.64z"/>'
+            '</svg></a>',
+            unsafe_allow_html=True,
+        )
 
     with st.container(key="fb_catalogo_publico"):
-        st.markdown('<h2 class="fb-portada-catalogo" id="catalogo-de-rutas">Rutas en moto</h2>', unsafe_allow_html=True)
+        st.markdown(f'<h2 class="fb-portada-catalogo" id="catalogo-de-rutas">{textos["catalogo"]}</h2>', unsafe_allow_html=True)
         mostrar_catalogo_publico(clave_compartida, error_acceso_google, url_acceso_google)
 
     with st.container(key="fb_acceso_portada"):
         st.markdown(
-            '<h2 id="entra-en-family-bike">Entra en Family Bike</h2>',
+            f'<h2 id="entra-en-family-bike">{textos["acceso"]}</h2>',
             unsafe_allow_html=True,
         )
         st.caption("Tu cuenta de Google te sirve para entrar o registrarte gratis.")
@@ -28847,7 +28981,7 @@ if not autenticado:
         )
 
     with st.container(border=True):
-        st.markdown("### 📱 Family Bike para Android")
+        st.markdown(f'<h3>{textos["android"]}</h3>', unsafe_allow_html=True)
         st.write("Lleva las rutas, quedadas y la comunidad motera en tu móvil Android.")
         if isinstance(FAMILYBIKE_APK_URL, str) and FAMILYBIKE_APK_URL.strip().startswith("https://"):
             st.link_button(
@@ -31108,15 +31242,22 @@ if st.session_state["seccion_activa"] == "administracion":
         unsafe_allow_html=True
     )
 
-    tab_rutas, tab_chat, tab_usuarios, tab_garajes, tab_quedadas, tab_noticias, tab_admins = st.tabs([
+    (
+        tab_rutas, tab_chat, tab_usuarios, tab_garajes,
+        tab_quedadas, tab_noticias, tab_admins, tab_portada,
+    ) = st.tabs([
         "🗺️ RUTAS PENDIENTES",
         "💬 MODERAR CHAT",
         "👥 USUARIOS",
         "🏍️ GARAJES",
         "📅 QUEDADAS",
         "📢 NOTICIAS",
-        "👑 ADMINISTRADORES"
+        "👑 ADMINISTRADORES",
+        "🏠 PORTADA",
     ])
+
+    with tab_portada:
+        editar_portada_publica()
 
     with tab_chat:
         with st.expander("⭐ MODERAR COMENTARIOS DE RUTAS"):
