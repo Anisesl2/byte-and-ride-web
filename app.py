@@ -286,9 +286,10 @@ def completar_google_oauth():
                 .maybe_single()
                 .execute()
             )
-            if perfil.data:
-                username = perfil.data.get("username") or username
-                if not perfil.data.get("username"):
+            perfil_existente = perfil.data if perfil is not None else None
+            if perfil_existente:
+                username = perfil_existente.get("username") or username
+                if not perfil_existente.get("username"):
                     supabase.table("profiles").update({
                         "username": username
                     }).eq("id", usuario.id).execute()
@@ -296,7 +297,6 @@ def completar_google_oauth():
                 supabase.table("profiles").insert({
                     "id": usuario.id,
                     "username": username,
-                    "email_contacto": email_real,
                     "avisos_email": False
                 }).execute()
         except Exception:
@@ -850,6 +850,37 @@ def guardar_sesion(response, username):
         st.session_state["user_id"] = user.id
 
     return True
+
+
+def completar_correo_google(usuario, perfil):
+    correo_actual = perfil.get("email_contacto")
+    if (correo_actual or "").strip():
+        return
+
+    proveedores = getattr(usuario, "app_metadata", None) or {}
+    if proveedores.get("provider") != "google" and "google" not in (
+        proveedores.get("providers") or []
+    ):
+        return
+
+    correo_google = (getattr(usuario, "email", None) or "").strip().lower()
+    if not email_valido(correo_google) or correo_google.endswith(".invalid"):
+        return
+
+    # Escribir solo si el valor sigue vacío y nadie lo ha editado entretanto.
+    consulta = (
+        supabase.table("profiles")
+        .update({"email_contacto": correo_google})
+        .eq("id", usuario.id)
+    )
+    if correo_actual is None:
+        consulta = consulta.is_("email_contacto", "null")
+    else:
+        consulta = consulta.eq("email_contacto", correo_actual)
+
+    resultado = consulta.select("email_contacto").execute()
+    if resultado.data:
+        perfil["email_contacto"] = resultado.data[0]["email_contacto"]
 
 
 def guardar_datos_contacto(user_id, email_contacto, avisos_email):
@@ -29204,7 +29235,7 @@ try:
         .execute()
     )
 
-    perfil_garaje = respuesta_perfil.data or {}
+    perfil_garaje = (respuesta_perfil.data if respuesta_perfil is not None else None) or {}
     foto_moto_actual = perfil_garaje.get("moto_foto_url")
     if perfil_garaje.get("username"):
         st.session_state["username"] = perfil_garaje["username"]
@@ -29214,6 +29245,14 @@ except Exception:
     st.warning(
         "No se ha podido cargar la fotografía del garaje."
     )
+
+
+if perfil_garaje:
+    try:
+        completar_correo_google(usuario_actual, perfil_garaje)
+    except Exception:
+        if st.session_state.get("seccion_activa") == "perfil":
+            st.warning("No se ha podido rellenar automáticamente el correo de Google.")
 
 
 # =========================================================
@@ -29312,6 +29351,8 @@ if st.session_state.get("seccion_activa") == "perfil":
     if perfil_garaje:
         if perfil_garaje.get("avisos_email") is True:
             st.caption("Tus avisos por correo están activados.")
+        elif perfil_garaje.get("email_contacto"):
+            st.caption("Si quieres recibir avisos, marca la casilla y pulsa Guardar avisos.")
         else:
             st.caption("Introduce tu correo, marca la casilla y pulsa Guardar avisos.")
 
