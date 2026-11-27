@@ -1076,7 +1076,9 @@ def destinatarios_comunicado(cliente):
 
 
 def enviar_lote_comunicado(clave_resend, comunicado, enviados):
-    lote = comunicado["destinatarios"][enviados:enviados + 100]
+    imagen = comunicado.get("imagen")
+    cantidad = 1 if imagen else 100
+    lote = comunicado["destinatarios"][enviados:enviados + cantidad]
     mensajes = [
         {
             "from": "Family Bike <avisos@send.familybike.es>",
@@ -1086,9 +1088,19 @@ def enviar_lote_comunicado(clave_resend, comunicado, enviados):
         }
         for correo in lote
     ]
+    url = "https://api.resend.com/emails/batch"
+    datos = mensajes
+    if imagen:
+        url = "https://api.resend.com/emails"
+        datos = mensajes[0]
+        datos["attachments"] = [{
+            "filename": imagen["nombre"],
+            "content": base64.b64encode(imagen["contenido"]).decode("ascii"),
+        }]
+
     peticion = Request(
-        "https://api.resend.com/emails/batch",
-        data=json.dumps(mensajes).encode("utf-8"),
+        url,
+        data=json.dumps(datos).encode("utf-8"),
         headers={
             "Authorization": "Bearer " + clave_resend,
             "Content-Type": "application/json",
@@ -1101,9 +1113,34 @@ def enviar_lote_comunicado(clave_resend, comunicado, enviados):
     with urlopen(peticion, timeout=20) as respuesta:
         resultado = json.load(respuesta)
 
+    if imagen:
+        if not resultado.get("id"):
+            raise ValueError("Resend no confirmó el correo con imagen.")
+        return 1
+
     if len(resultado.get("data", [])) != len(lote):
         raise ValueError("Resend no confirmó todos los correos del lote.")
     return len(lote)
+
+
+def preparar_imagen_comunicado(archivo):
+    contenido = archivo.getvalue()
+    if len(contenido) > 5 * 1024 * 1024:
+        raise ValueError("La imagen debe ocupar como máximo 5 MB.")
+
+    extensiones = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}
+    try:
+        with Image.open(BytesIO(contenido)) as imagen:
+            extension = extensiones.get(imagen.format)
+            if extension is None or imagen.width * imagen.height > 25_000_000:
+                raise ValueError
+            imagen.load()
+    except (OSError, ValueError, Image.DecompressionBombError) as error:
+        raise ValueError("Elige una imagen JPG, PNG o WebP válida de hasta 25 megapíxeles.") from error
+
+    nombre_base = archivo.name.rsplit(".", 1)[0]
+    nombre = re.sub(r"[^a-zA-Z0-9_-]", "_", nombre_base)[:80].strip("_")
+    return {"nombre": f"{nombre or 'imagen-family-bike'}.{extension}", "contenido": contenido}
 
 
 def panel_admin_comunicados(usuario_id):
@@ -1122,11 +1159,22 @@ def panel_admin_comunicados(usuario_id):
         with st.form(clave_borrador + "_formulario"):
             asunto = st.text_input("Asunto", max_chars=160)
             mensaje = st.text_area("Mensaje", max_chars=12000, height=200)
+            archivo_imagen = st.file_uploader(
+                "Adjuntar imagen (opcional)",
+                type=["jpg", "jpeg", "png", "webp"],
+                help="JPG, PNG o WebP, hasta 5 MB y 25 megapíxeles.",
+            )
             preparar = st.form_submit_button("Preparar envío")
         if not preparar:
             return
         if not asunto.strip() or not mensaje.strip():
             st.warning("Rellena el asunto y el mensaje.")
+            return
+
+        try:
+            imagen = preparar_imagen_comunicado(archivo_imagen) if archivo_imagen is not None else None
+        except ValueError as error:
+            st.warning(str(error))
             return
 
         try:
@@ -1143,6 +1191,7 @@ def panel_admin_comunicados(usuario_id):
             "id": secrets.token_hex(16),
             "asunto": asunto.strip(),
             "mensaje": mensaje.strip(),
+            "imagen": imagen,
             "destinatarios": destinatarios,
             "enviados": 0,
             "inicio": None,
@@ -1153,6 +1202,10 @@ def panel_admin_comunicados(usuario_id):
     st.metric("Direcciones destinatarias", total)
     st.text(comunicado["asunto"])
     st.text(comunicado["mensaje"])
+    imagen = comunicado.get("imagen")
+    if imagen:
+        st.image(imagen["contenido"], caption=imagen["nombre"], width=320)
+        st.caption("La imagen viajará como archivo adjunto. El envío puede tardar más.")
 
     if comunicado["enviados"] == total:
         st.success(f"Resend aceptó {total} correos.")
