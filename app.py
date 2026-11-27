@@ -1115,6 +1115,8 @@ def enviar_lote_comunicado(clave_resend, comunicado, enviados):
         headers={
             "Authorization": "Bearer " + clave_resend,
             "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "FamilyBike-Streamlit/1.0 (+https://www.familybike.es)",
             "Idempotency-Key": f"familybike-comunicado/{comunicado['id']}/{enviados}",
         },
         method="POST",
@@ -1208,7 +1210,21 @@ def panel_admin_comunicados(usuario_id):
                 if comunicado["enviados"] < total:
                     time_module.sleep(0.55)
     except HTTPError as error:
-        st.error(f"Resend detuvo el envío (HTTP {error.code}). Aceptados hasta ahora: {comunicado['enviados']} de {total}.")
+        detalle = "Consulta Resend → Logs para ver el motivo del rechazo."
+        cuerpo = error.read(8192)
+        try:
+            respuesta_error = json.loads(cuerpo)
+        except (ValueError, UnicodeError):
+            respuesta_error = {}
+        nombre = respuesta_error.get("name") if isinstance(respuesta_error, dict) else None
+        if isinstance(nombre, str) and re.fullmatch(r"[a-z_]{1,60}", nombre):
+            detalle = f"Código de Resend: {nombre}. {detalle}"
+        elif error.code == 403 and b"error code: 1010" in cuerpo.lower():
+            detalle = "Cloudflare bloqueó la petición antes de que llegara a Resend (1010)."
+        st.error(
+            f"Resend detuvo el envío (HTTP {error.code}). "
+            f"Aceptados hasta ahora: {comunicado['enviados']} de {total}. {detalle}"
+        )
         return
     except Exception:
         st.error(f"No se pudo completar el envío. Aceptados hasta ahora: {comunicado['enviados']} de {total}.")
@@ -32557,4 +32573,3 @@ st.markdown("""
     CARRETERA · AVENTURA · LIBERTAD<br>
     © FAMILY BIKE
 </div>
-""", unsafe_allow_html=True)
