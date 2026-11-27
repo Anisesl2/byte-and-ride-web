@@ -32573,3 +32573,4 @@ st.markdown("""
     CARRETERA · AVENTURA · LIBERTAD<br>
     © FAMILY BIKE
 </div>
+""", unsafe_allow_html=True)
