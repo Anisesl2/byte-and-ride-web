@@ -1042,6 +1042,181 @@ def comprobar_es_admin(user_id):
         return False
 
 
+def cliente_admin_comunicados(usuario_id):
+    token = st.session_state.get("access_token")
+    usuario = supabase.auth.get_user(token).user if token else None
+    if usuario is None or str(usuario.id) != str(usuario_id):
+        raise PermissionError("Sesión de administrador no válida.")
+
+    clave = st.secrets.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not clave:
+        raise ValueError("Falta SUPABASE_SERVICE_ROLE_KEY en los secretos de Streamlit.")
+
+    cliente = create_client(SUPABASE_URL, clave)
+    permiso = (
+        cliente.table("familybike_admins")
+        .select("user_id")
+        .eq("user_id", usuario.id)
+        .limit(1)
+        .execute()
+    )
+    if not permiso.data:
+        raise PermissionError("Se requieren permisos de administrador.")
+    return cliente
+
+
+def destinatarios_comunicado(cliente):
+    destinatarios = set()
+    por_pagina = 100
+    pagina = 1
+    while True:
+        usuarios = cliente.auth.admin.list_users(page=pagina, per_page=por_pagina)
+        if not usuarios:
+            break
+
+        perfiles = (
+            cliente.table("profiles")
+            .select("id,email_contacto")
+            .in_("id", [str(usuario.id) for usuario in usuarios])
+            .execute()
+        )
+        contactos = {
+            str(perfil["id"]): perfil.get("email_contacto")
+            for perfil in (perfiles.data or [])
+        }
+        for usuario in usuarios:
+            for candidato in (contactos.get(str(usuario.id)), usuario.email):
+                correo = (candidato or "").strip().lower()
+                if email_valido(correo) and not correo.endswith(".invalid"):
+                    destinatarios.add(correo)
+                    break
+
+        if len(usuarios) < por_pagina:
+            break
+        pagina += 1
+
+    return sorted(destinatarios)
+
+
+def enviar_lote_comunicado(clave_resend, comunicado, enviados):
+    lote = comunicado["destinatarios"][enviados:enviados + 100]
+    mensajes = [
+        {
+            "from": "Family Bike <avisos@send.familybike.es>",
+            "to": [correo],
+            "subject": comunicado["asunto"],
+            "text": comunicado["mensaje"],
+        }
+        for correo in lote
+    ]
+    peticion = Request(
+        "https://api.resend.com/emails/batch",
+        data=json.dumps(mensajes).encode("utf-8"),
+        headers={
+            "Authorization": "Bearer " + clave_resend,
+            "Content-Type": "application/json",
+            "Idempotency-Key": f"familybike-comunicado/{comunicado['id']}/{enviados}",
+        },
+        method="POST",
+    )
+    with urlopen(peticion, timeout=20) as respuesta:
+        resultado = json.load(respuesta)
+
+    if len(resultado.get("data", [])) != len(lote):
+        raise ValueError("Resend no confirmó todos los correos del lote.")
+    return len(lote)
+
+
+def panel_admin_comunicados(usuario_id):
+    st.markdown("### 📧 Enviar un comunicado")
+    st.caption("Envía un correo individual a cada dirección válida registrada en Family Bike.")
+
+    clave_resend = st.secrets.get("RESEND_API_KEY")
+    if not clave_resend:
+        st.info("Añade RESEND_API_KEY a los secretos de Streamlit para habilitar el envío.")
+        return
+
+    clave_borrador = f"fb_comunicado_{usuario_id}"
+    comunicado = st.session_state.get(clave_borrador)
+
+    if comunicado is None:
+        with st.form(clave_borrador + "_formulario"):
+            asunto = st.text_input("Asunto", max_chars=160)
+            mensaje = st.text_area("Mensaje", max_chars=12000, height=200)
+            preparar = st.form_submit_button("Preparar envío")
+        if not preparar:
+            return
+        if not asunto.strip() or not mensaje.strip():
+            st.warning("Rellena el asunto y el mensaje.")
+            return
+
+        try:
+            cliente = cliente_admin_comunicados(usuario_id)
+            destinatarios = destinatarios_comunicado(cliente)
+        except Exception:
+            st.error("No se pudo consultar el listado de destinatarios. Comprueba la sesión y la configuración de Supabase.")
+            return
+        if not destinatarios:
+            st.info("No hay usuarios registrados con correo válido.")
+            return
+
+        st.session_state[clave_borrador] = {
+            "id": secrets.token_hex(16),
+            "asunto": asunto.strip(),
+            "mensaje": mensaje.strip(),
+            "destinatarios": destinatarios,
+            "enviados": 0,
+            "inicio": None,
+        }
+        st.rerun()
+
+    total = len(comunicado["destinatarios"])
+    st.metric("Direcciones destinatarias", total)
+    st.text(comunicado["asunto"])
+    st.text(comunicado["mensaje"])
+
+    if comunicado["enviados"] == total:
+        st.success(f"Resend aceptó {total} correos.")
+        if st.button("Redactar otro comunicado", key=clave_borrador + "_nuevo"):
+            del st.session_state[clave_borrador]
+            st.rerun()
+        return
+
+    iniciado = comunicado["inicio"] is not None
+    if iniciado:
+        st.info(f"Resend ha aceptado {comunicado['enviados']} de {total} correos.")
+        if time_module.time() - comunicado["inicio"] >= 23 * 3600:
+            st.warning("El plazo de reintento ha caducado. Revisa el historial de Resend.")
+            return
+    else:
+        if st.button("Volver a redactar", key=clave_borrador + "_editar"):
+            del st.session_state[clave_borrador]
+            st.rerun()
+
+    etiqueta = "Reintentar los pendientes" if iniciado else f"Confirmar envío a {total} direcciones"
+    if not st.button(etiqueta, key=clave_borrador + "_enviar", type="primary"):
+        return
+
+    try:
+        cliente_admin_comunicados(usuario_id)
+        if not iniciado:
+            comunicado["inicio"] = time_module.time()
+        with st.spinner("Enviando el comunicado…"):
+            while comunicado["enviados"] < total:
+                enviados = comunicado["enviados"]
+                comunicado["enviados"] += enviar_lote_comunicado(clave_resend, comunicado, enviados)
+                if comunicado["enviados"] < total:
+                    time_module.sleep(0.55)
+    except HTTPError as error:
+        st.error(f"Resend detuvo el envío (HTTP {error.code}). Aceptados hasta ahora: {comunicado['enviados']} de {total}.")
+        return
+    except Exception:
+        st.error(f"No se pudo completar el envío. Aceptados hasta ahora: {comunicado['enviados']} de {total}.")
+        return
+
+    st.rerun()
+
+
 def obtener_ruta_storage(url, carpeta_permitida=None):
     """
     Obtiene la ruta interna de un archivo únicamente si pertenece
@@ -31285,7 +31460,7 @@ if st.session_state["seccion_activa"] == "administracion":
 
     (
         tab_rutas, tab_chat, tab_usuarios, tab_garajes,
-        tab_quedadas, tab_noticias, tab_admins, tab_portada,
+        tab_quedadas, tab_noticias, tab_admins, tab_portada, tab_correo,
     ) = st.tabs([
         "🗺️ RUTAS PENDIENTES",
         "💬 MODERAR CHAT",
@@ -31295,7 +31470,11 @@ if st.session_state["seccion_activa"] == "administracion":
         "📢 NOTICIAS",
         "👑 ADMINISTRADORES",
         "🏠 PORTADA",
+        "📧 ENVIAR CORREO",
     ])
+
+    with tab_correo:
+        panel_admin_comunicados(usuario_id)
 
     with tab_portada:
         editar_portada_publica()
