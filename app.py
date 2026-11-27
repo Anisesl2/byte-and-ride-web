@@ -883,27 +883,6 @@ def completar_correo_google(usuario, perfil):
         perfil["email_contacto"] = resultado.data[0]["email_contacto"]
 
 
-def guardar_datos_contacto(user_id, email_contacto, avisos_email):
-    supabase.table("profiles").update({
-        "email_contacto": email_contacto,
-        "avisos_email": avisos_email,
-    }).eq("id", user_id).execute()
-
-    respuesta = (
-        supabase.table("profiles")
-        .select("email_contacto,avisos_email")
-        .eq("id", user_id)
-        .maybe_single()
-        .execute()
-    )
-    perfil_guardado = respuesta.data if respuesta is not None else None
-    return bool(
-        perfil_guardado
-        and perfil_guardado.get("email_contacto") == email_contacto
-        and perfil_guardado.get("avisos_email") is avisos_email
-    )
-
-
 def cerrar_sesion():
     try:
         supabase.auth.sign_out()
@@ -925,8 +904,6 @@ def cerrar_sesion():
         "fb_revision_negocio",
         "fb_negocio_publicado",
         "fb_busqueda_anterior",
-        "fb_aviso_email_oculto",
-        "fb_aviso_email_guardado",
     ]:
         st.session_state.pop(key, None)
 
@@ -1390,70 +1367,6 @@ def eliminar_foto_garaje(perfil):
 
 
 # =========================================================
-# NOTIFICACIONES
-# =========================================================
-
-def crear_notificaciones_quedada(quedada_id, creador_id):
-
-    if not quedada_id:
-        raise ValueError("No se ha recibido el ID de la quedada.")
-
-    respuesta_perfiles = (
-        supabase.table("profiles")
-        .select("id,email_contacto,avisos_email")
-        .eq("avisos_email", True)
-        .execute()
-    )
-
-    perfiles = respuesta_perfiles.data or []
-    notificaciones = []
-
-    ahora_utc = datetime.now(timezone.utc).isoformat()
-
-    for perfil in perfiles:
-
-        profile_id = perfil.get("id")
-
-        if profile_id == creador_id:
-            continue
-
-        email_destino = (
-            perfil.get("email_contacto") or ""
-        ).strip().lower()
-
-        if not email_valido(email_destino):
-            continue
-
-        notificaciones.append({
-            "quedada_id": quedada_id,
-            "profile_id": profile_id,
-            "email_destino": email_destino,
-            "estado": "pendiente",
-            "intentos": 0,
-            "proximo_intento": ahora_utc
-        })
-
-    if not notificaciones:
-        return {
-            "creadas": 0,
-            "omitidas": len(perfiles)
-        }
-
-    respuesta_insert = (
-        supabase.table("notificaciones_quedadas")
-        .insert(notificaciones)
-        .execute()
-    )
-
-    creadas = len(respuesta_insert.data or [])
-
-    return {
-        "creadas": creadas,
-        "omitidas": len(perfiles) - creadas
-    }
-
-
-# =========================================================
 # FUNCIONES DE RUTAS
 # =========================================================
 
@@ -1543,14 +1456,6 @@ st.markdown("""
     --fb-text:#f5f7fb;
     --fb-muted:#b7c0cd;
     --fb-line:#35404d;
-}
-.stApp .fb-aviso-quedadas {
-    background: var(--fb-bg) !important;
-    color: var(--fb-accent) !important;
-    -webkit-text-fill-color: var(--fb-accent) !important;
-    border: 1px solid var(--fb-accent);
-    border-radius: 12px;
-    padding: 12px 16px;
 }
 html,body,.stApp,[data-testid="stAppViewContainer"],
 [data-testid="stMain"],[data-testid="stMainBlockContainer"],
@@ -29420,7 +29325,7 @@ try:
 
     respuesta_perfil = (
         supabase.table("profiles")
-        .select("moto_foto_url,username,email_contacto,avisos_email")
+        .select("moto_foto_url,username,email_contacto")
         .eq("id", usuario_id)
         .maybe_single()
         .execute()
@@ -29444,34 +29349,6 @@ if perfil_garaje:
     except Exception:
         if st.session_state.get("seccion_activa") == "perfil":
             st.warning("No se ha podido rellenar automáticamente el correo de Google.")
-
-
-# =========================================================
-# AVISO DE QUEDADAS POR CORREO
-# =========================================================
-
-if (
-    perfil_garaje
-    and perfil_garaje.get("avisos_email") is not True
-    and not st.session_state.get("fb_aviso_email_oculto")
-    and st.session_state["seccion_activa"] != "perfil"
-):
-    st.markdown(
-        """
-        <div class="fb-aviso-quedadas" role="status">
-            📩 ¿Quieres enterarte de las próximas quedadas?
-            Activa los avisos por correo en tu perfil.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    col_configurar, col_omitir = st.columns(2)
-    if col_configurar.button("Configurar avisos", key="fb_configurar_avisos", use_container_width=True):
-        st.session_state["seccion_activa"] = "perfil"
-        st.rerun()
-    if col_omitir.button("Ahora no", key="fb_omitir_avisos", use_container_width=True):
-        st.session_state["fb_aviso_email_oculto"] = True
-        st.rerun()
 
 
 # =========================================================
@@ -29536,51 +29413,6 @@ if st.session_state.get("seccion_activa") == "perfil":
 
     if st.session_state.pop("aviso_perfil_actualizado", False):
         st.success("Nombre de usuario actualizado correctamente. Tu cuenta sigue vinculada al mismo acceso.")
-
-    st.markdown("### 📩 Avisos de quedadas")
-
-    if perfil_garaje:
-        if perfil_garaje.get("avisos_email") is True:
-            st.caption("Tus avisos por correo están activados.")
-        elif perfil_garaje.get("email_contacto"):
-            st.caption("Si quieres recibir avisos, marca la casilla y pulsa Guardar avisos.")
-        else:
-            st.caption("Introduce tu correo, marca la casilla y pulsa Guardar avisos.")
-
-        with st.form("fb_formulario_avisos_email"):
-            correo_contacto = st.text_input(
-                "Correo de contacto",
-                value=perfil_garaje.get("email_contacto") or "",
-            )
-            avisos_email = st.checkbox(
-                "Recibir avisos por correo cuando se publique una quedada",
-                value=bool(perfil_garaje.get("avisos_email")),
-            )
-            guardar_avisos = st.form_submit_button(
-                "Guardar avisos", use_container_width=True
-            )
-
-        if guardar_avisos:
-            correo_contacto = correo_contacto.strip().lower()
-            if (correo_contacto or avisos_email) and (
-                not email_valido(correo_contacto) or correo_contacto.endswith(".invalid")
-            ):
-                st.error("Introduce un correo de contacto válido.")
-            else:
-                try:
-                    guardado = guardar_datos_contacto(usuario_id, correo_contacto, avisos_email)
-                    if not guardado:
-                        st.error("Supabase no confirmó el cambio de tus avisos. Inténtalo de nuevo.")
-                    else:
-                        st.session_state["fb_aviso_email_guardado"] = True
-                        st.rerun()
-                except Exception:
-                    st.error("No se ha podido guardar la configuración de avisos. Inténtalo de nuevo.")
-
-        if st.session_state.pop("fb_aviso_email_guardado", False):
-            st.success("Configuración de avisos guardada.")
-    else:
-        st.warning("No se ha podido cargar tu configuración de avisos.")
 
     st.caption("La fotografía de tu motocicleta se sigue gestionando desde MI GARAJE.")
 
@@ -30315,38 +30147,7 @@ if st.session_state["seccion_activa"] == "quedadas":
                             "que se hayan guardado todos los horarios."
                         )
 
-                    etapa_publicacion = "preparar las notificaciones"
                     st.success("¡Quedada publicada correctamente!")
-
-                    try:
-
-                        resultado_avisos = crear_notificaciones_quedada(
-                            quedada_id,
-                            usuario_id
-                        )
-
-                        creadas = resultado_avisos["creadas"]
-
-                        if creadas > 0:
-                            st.success(
-                                f"📬 Se han registrado {creadas} "
-                                "notificaciones pendientes."
-                            )
-                        else:
-                            st.info(
-                                "No hay usuarios con avisos activados "
-                                "y correo válido."
-                            )
-
-                    except Exception as error_avisos:
-
-                        st.warning(
-                            "La quedada se ha publicado, pero no se han "
-                            "podido crear las notificaciones."
-                        )
-
-                        st.code(str(error_avisos))
-
                     st.rerun()
 
                 except Exception as error:
